@@ -174,7 +174,7 @@ bool would_be_in_check_after_move(ChessGame *game, Position from, Position to); 
 bool can_block_or_capture_threat(ChessGame *game, Color color);  // Check if player can escape check
 
 // Display and formatting utilities
-void print_captured_pieces(CapturedPieces *captured);  // Display captured pieces for UI
+void print_captured_pieces(CapturedPieces *captured, const char* color_code, const char* player_name);  // Display captured pieces for UI
 char piece_to_char(Piece piece);  // Convert piece to display character
 Position char_to_position(char *input);  // Convert algebraic notation (e.g. "e4") to Position
 char *position_to_string(Position pos);  // Convert Position to algebraic notation string

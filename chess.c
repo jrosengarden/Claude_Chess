@@ -114,9 +114,9 @@ void print_board(ChessGame *game, Position possible_moves[], int move_count) {
             } else {
                 if (piece_char != '.') {
                     if (piece_char >= 'A' && piece_char <= 'Z') {
-                        printf("\033[97m%c\033[0m ", piece_char);  // White pieces in bright white
+                        printf("\033[1;95m%c\033[0m ", piece_char); // White pieces in bold magenta
                     } else {
-                        printf("\033[94m%c\033[0m ", piece_char);  // Black pieces in blue
+                        printf("\033[1;96m%c\033[0m ", piece_char); // Black pieces in bold cyan
                     }
                 } else {
                     printf("%c ", piece_char);
@@ -467,13 +467,13 @@ bool make_move(ChessGame *game, Position from, Position to) {
     return true;
 }
 
-void print_captured_pieces(CapturedPieces *captured) {
-    printf("Captured: ");
+void print_captured_pieces(CapturedPieces *captured, const char* color_code, const char* player_name) {
+    printf("%s%s Has Captured:%s ", color_code, player_name, "\033[0m");
     if (captured->count == 0) {
-        printf("None");
+        printf("%sNone%s", color_code, "\033[0m");
     } else {
         for (int i = 0; i < captured->count; i++) {
-            printf("%c ", piece_to_char(captured->captured_pieces[i]));
+            printf("%c ", piece_to_char(captured->captured_pieces[i]));  // All captured pieces in normal black text
         }
     }
     printf("\n");

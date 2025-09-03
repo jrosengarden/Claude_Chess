@@ -26,6 +26,12 @@ make install-deps      # Install Stockfish dependency
 ## Current Development Status
 
 ### Recently Completed
+- ✅ **Optimized Color Scheme for Cross-Platform Compatibility**: Complete color overhaul for terminal compatibility
+  - Changed white pieces from bright white to bold magenta for visibility in Mac Light Mode
+  - Changed black pieces from blue to bold cyan for better contrast
+  - Updated capture labels to "White Has Captured:" and "Black Has Captured:" with color-coded labels
+  - Captured pieces display in normal black text for clarity
+  - Colors tested and optimized for both Mac Light Mode and Dark Mode terminals
 - ✅ **Comprehensive Code Documentation**: Complete commenting of entire codebase
   - Added detailed file headers explaining purpose, features, and architecture for all source files
   - Function-level documentation with parameter descriptions and return values
@@ -231,7 +237,7 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - Added `clear_screen()` function in main.c:4-7 using ANSI escape codes
 - Added `get_stockfish_version()` function to extract version info via UCI protocol
 - Fixed help text in main.c:19 to use "Type a piece position" instead of "Click on a piece" for proper command-line interface instructions
-- **Added color coding for chess pieces**: White pieces display in bright white, black pieces in blue using ANSI escape codes in `print_board()` function (chess.c:70-78) for improved visual distinction
+- **Optimized piece color scheme**: White pieces display in bold magenta, black pieces in bold cyan for excellent visibility in both Mac Light Mode and Dark Mode terminals
 - **Added HINT command**: Players can now type `hint` to get Stockfish's best move suggestion for White during their turn
 - **Fixed move display bug**: Resolved static buffer issue in `position_to_string()` that was causing AI moves and hints to display incorrect "to to to" format instead of proper "from to to" format
 - **Added DEBUG mode**: Run with `./chess DEBUG` to enable diagnostic output showing raw Stockfish move strings, parsed coordinates, and other debugging information

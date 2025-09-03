@@ -43,10 +43,9 @@ void print_game_info(ChessGame *game) {
     printf("Current player: %s\n", game->current_player == WHITE ? "WHITE" : "BLACK");
     
     // Display captured pieces for both players
-    printf("\nWhite ");
-    print_captured_pieces(&game->white_captured);
-    printf("Black ");
-    print_captured_pieces(&game->black_captured);
+    printf("\n");
+    print_captured_pieces(&game->white_captured, "\033[1;95m", "White");
+    print_captured_pieces(&game->black_captured, "\033[1;96m", "Black");
 }
 
 /**
@@ -220,10 +219,9 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
                 printf("\n=== CHESS GAME ===\n");
                 printf("Current player: %s\n", game->current_player == WHITE ? "WHITE" : "BLACK");
                 
-                printf("\nWhite ");
-                print_captured_pieces(&game->white_captured);
-                printf("Black ");
-                print_captured_pieces(&game->black_captured);
+                printf("\n");
+                print_captured_pieces(&game->white_captured, "\033[1;95m", "White");
+                print_captured_pieces(&game->black_captured, "\033[1;96m", "Black");
                 
                 if (game->in_check[WHITE]) {
                     printf("\nYour king is in check! You can only make moves that get out of check.\n");
