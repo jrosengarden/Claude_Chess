@@ -15,7 +15,7 @@ A complete chess implementation in C featuring:
 - **Undo Functionality**: Single-level undo to revert the last move pair (White + AI)
 - **Visual Board**: Clear ASCII representation with coordinates (a-h, 1-8)
 - **Move Visualization**: Shows possible moves with `*` for empty squares and `[piece]` for captures
-- **Capture Tracking**: Displays "White Has Captured:" and "Black Has Captured:" with color-coded labels
+- **Capture Tracking**: Displays "Black Has Captured:" and "White Has Captured:" with color-coded labels (ordered to match board layout)
 - **Check Protection**: When king is in check, only allows moves that resolve the check
 - **AI Integration**: Uses Stockfish engine for intelligent computer moves
 - **Game State Detection**: Detects checkmate and stalemate conditions

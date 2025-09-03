@@ -29,7 +29,7 @@ make install-deps      # Install Stockfish dependency
 - ✅ **Optimized Color Scheme for Cross-Platform Compatibility**: Complete color overhaul for terminal compatibility
   - Changed white pieces from bright white to bold magenta for visibility in Mac Light Mode
   - Changed black pieces from blue to bold cyan for better contrast
-  - Updated capture labels to "White Has Captured:" and "Black Has Captured:" with color-coded labels
+  - Updated capture labels to "Black Has Captured:" and "White Has Captured:" with color-coded labels (ordered to match board layout)
   - Captured pieces display in normal black text for clarity
   - Colors tested and optimized for both Mac Light Mode and Dark Mode terminals
 - ✅ **Comprehensive Code Documentation**: Complete commenting of entire codebase
