@@ -172,6 +172,7 @@ bool make_move(ChessGame *game, Position from, Position to);  // Execute move an
 bool is_in_check(ChessGame *game, Color color);  // Determine if player is in check
 bool would_be_in_check_after_move(ChessGame *game, Position from, Position to);  // Test if move would leave king in check
 bool can_block_or_capture_threat(ChessGame *game, Color color);  // Check if player can escape check
+bool is_square_attacked(ChessGame *game, Position pos, Color by_color);  // Check if square is attacked by given color
 
 // Display and formatting utilities
 void print_captured_pieces(CapturedPieces *captured, const char* color_code, const char* player_name);  // Display captured pieces for UI

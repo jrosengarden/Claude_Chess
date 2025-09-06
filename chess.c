@@ -281,6 +281,7 @@ int get_king_moves(ChessGame *game, Position from, Position moves[]) {
     int count = 0;
     Piece piece = get_piece_at(game, from.row, from.col);
     
+    // Standard king moves (one square in any direction)
     int directions[8][2] = {
         {-1, -1}, {-1, 0}, {-1, 1},
         {0, -1},           {0, 1},
@@ -295,6 +296,47 @@ int get_king_moves(ChessGame *game, Position from, Position moves[]) {
             if (!is_piece_at(game, new_row, new_col) || 
                 get_piece_at(game, new_row, new_col).color != piece.color) {
                 moves[count++] = (Position){new_row, new_col};
+            }
+        }
+    }
+    
+    // Castling moves
+    if (!game->in_check[piece.color]) { // Cannot castle while in check
+        if (piece.color == WHITE) {
+            // White kingside castling (king moves to g1)
+            if (!game->white_king_moved && !game->white_rook_h_moved &&
+                from.row == 7 && from.col == 4 && // King is on e1
+                !is_piece_at(game, 7, 5) && !is_piece_at(game, 7, 6) && // f1 and g1 are empty
+                !is_square_attacked(game, (Position){7, 5}, BLACK) && // f1 not attacked
+                !is_square_attacked(game, (Position){7, 6}, BLACK)) { // g1 not attacked
+                moves[count++] = (Position){7, 6}; // g1
+            }
+            
+            // White queenside castling (king moves to c1)
+            if (!game->white_king_moved && !game->white_rook_a_moved &&
+                from.row == 7 && from.col == 4 && // King is on e1
+                !is_piece_at(game, 7, 1) && !is_piece_at(game, 7, 2) && !is_piece_at(game, 7, 3) && // b1, c1, d1 are empty
+                !is_square_attacked(game, (Position){7, 2}, BLACK) && // c1 not attacked
+                !is_square_attacked(game, (Position){7, 3}, BLACK)) { // d1 not attacked
+                moves[count++] = (Position){7, 2}; // c1
+            }
+        } else { // BLACK
+            // Black kingside castling (king moves to g8)
+            if (!game->black_king_moved && !game->black_rook_h_moved &&
+                from.row == 0 && from.col == 4 && // King is on e8
+                !is_piece_at(game, 0, 5) && !is_piece_at(game, 0, 6) && // f8 and g8 are empty
+                !is_square_attacked(game, (Position){0, 5}, WHITE) && // f8 not attacked
+                !is_square_attacked(game, (Position){0, 6}, WHITE)) { // g8 not attacked
+                moves[count++] = (Position){0, 6}; // g8
+            }
+            
+            // Black queenside castling (king moves to c8)
+            if (!game->black_king_moved && !game->black_rook_a_moved &&
+                from.row == 0 && from.col == 4 && // King is on e8
+                !is_piece_at(game, 0, 1) && !is_piece_at(game, 0, 2) && !is_piece_at(game, 0, 3) && // b8, c8, d8 are empty
+                !is_square_attacked(game, (Position){0, 2}, WHITE) && // c8 not attacked
+                !is_square_attacked(game, (Position){0, 3}, WHITE)) { // d8 not attacked
+                moves[count++] = (Position){0, 2}; // c8
             }
         }
     }
@@ -440,6 +482,40 @@ bool make_move(ChessGame *game, Position from, Position to) {
     clear_position(game, from.row, from.col);
     
     if (moving_piece.type == KING) {
+        // Check if this is a castling move (king moves 2 squares horizontally)
+        if (abs(to.col - from.col) == 2) {
+            // This is castling - also move the rook
+            if (moving_piece.color == WHITE) {
+                if (to.col == 6) {
+                    // White kingside castling: move rook from h1 to f1
+                    Piece rook = get_piece_at(game, 7, 7);
+                    set_piece_at(game, 7, 5, rook);
+                    clear_position(game, 7, 7);
+                    game->white_rook_h_moved = true;
+                } else if (to.col == 2) {
+                    // White queenside castling: move rook from a1 to d1
+                    Piece rook = get_piece_at(game, 7, 0);
+                    set_piece_at(game, 7, 3, rook);
+                    clear_position(game, 7, 0);
+                    game->white_rook_a_moved = true;
+                }
+            } else { // BLACK
+                if (to.col == 6) {
+                    // Black kingside castling: move rook from h8 to f8
+                    Piece rook = get_piece_at(game, 0, 7);
+                    set_piece_at(game, 0, 5, rook);
+                    clear_position(game, 0, 7);
+                    game->black_rook_h_moved = true;
+                } else if (to.col == 2) {
+                    // Black queenside castling: move rook from a8 to d8
+                    Piece rook = get_piece_at(game, 0, 0);
+                    set_piece_at(game, 0, 3, rook);
+                    clear_position(game, 0, 0);
+                    game->black_rook_a_moved = true;
+                }
+            }
+        }
+        
         if (moving_piece.color == WHITE) {
             game->white_king_pos = to;
             game->white_king_moved = true;

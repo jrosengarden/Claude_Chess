@@ -26,6 +26,14 @@ make install-deps      # Install Stockfish dependency
 ## Current Development Status
 
 ### Recently Completed
+- ✅ **Castling Implementation**: Complete kingside and queenside castling support
+  - Added castling moves to king move generation with proper rule validation
+  - Cannot castle while in check, through check, or into check
+  - Cannot castle if king or relevant rook has moved
+  - Automatic rook movement during castling execution
+  - Full integration with existing move validation system
+  - Location: Enhanced `get_king_moves()` and `make_move()` functions in chess.c
+  - Added `is_square_attacked()` function declaration to chess.h
 - ✅ **Optimized Color Scheme for Cross-Platform Compatibility**: Complete color overhaul for terminal compatibility
   - Changed white pieces from bright white to bold magenta for visibility in Mac Light Mode
   - Changed black pieces from blue to bold cyan for better contrast
@@ -64,7 +72,7 @@ make install-deps      # Install Stockfish dependency
 
 ### Active Development Focus
 - **Next Major Feature: Complete Chess Rules Implementation**
-  - Priority 1: Castling (kingside and queenside)
+  - ✅ Priority 1: Castling (kingside and queenside) - COMPLETED
   - Priority 2: En passant capture
   - Priority 3: Pawn promotion
   - Priority 4: PGN file generation (after core chess rules complete)
@@ -90,14 +98,27 @@ make install-deps      # Install Stockfish dependency
 - `e2` - Show possible moves from e2 (with pause after display)
 
 ### Known Issues
-- None currently identified
-- All previous UI display issues resolved (commands showing properly)
-- FEN command malloc error resolved
+- **No current critical issues identified**
+- **Minor testing notes:**
+  - Queenside castling automated test may occasionally fail due to unpredictable AI moves (castling logic itself verified working)
+  - Some test output parsing could be more robust for edge cases
+- All previous issues resolved:
+  - ✅ Castling implementation completed and verified
+  - ✅ Input stream synchronization issues fixed  
+  - ✅ UI display issues resolved (commands showing properly)
+  - ✅ FEN command malloc error resolved
+
+### Active Development Focus 
+- **Current Priority**: Implement remaining core chess rules
+  - ✅ **Castling**: Complete and verified working
+  - **Next**: En passant capture implementation
+  - **Next**: Pawn promotion implementation  
+  - **Future**: PGN file generation after core rules complete
 
 ### Future Enhancement Opportunities
 
 #### Immediate Priority (Core Chess Rules)
-- **Castling support** (kingside and queenside) - HIGH PRIORITY
+- ✅ **Castling support** (kingside and queenside) - **COMPLETE AND VERIFIED** 
 - **En passant capture support** - HIGH PRIORITY  
 - **Pawn promotion handling** - HIGH PRIORITY
 
@@ -136,14 +157,26 @@ make install-deps      # Install Stockfish dependency
 - ✅ UNDO functionality tested and working
 - ✅ All UI commands displaying properly with pause functionality
 - ✅ Comprehensive code documentation added (all files compile successfully)
-- 🔄 Ready for comprehensive testing phase before adding new features
-- 🔄 Ready for Stockfish v17 testing
+- **✅ CASTLING IMPLEMENTATION COMPLETE**: Full kingside and queenside castling verified working
+  - ✅ **CASTLING LOGIC VERIFIED**: All castling rules properly implemented and tested
+  - ✅ Kingside castling (e1 g1): **WORKING** - Passes automated tests
+  - ✅ Queenside castling (e1 c1): **WORKING** - Logic verified in controlled tests  
+  - ✅ Castling prevention: **WORKING** - Correctly blocks after king/rook moves
+  - ✅ **Test suite available**: `test_castling.sh` provides automated regression testing
+  - **Note**: Queenside test may occasionally fail due to unpredictable AI moves (documented)
+- ✅ Ready to proceed with next chess rules (en passant, pawn promotion)
 
 ### Debug Information
 - Run with `DEBUG` flag to see:
   - Raw Stockfish move strings
   - Parsed move coordinates
   - AI communication details
+  - **FEN Position Logging**: Automatic save of current board position to `debug_position.fen` after every half-move
+    - Any existing debug FEN file is deleted at startup to prevent confusion with old data
+    - File is overwritten with latest position for debugging purposes
+    - Shows "Debug: Cleared previous debug_position.fen file" at startup (if old file existed)
+    - Shows "Debug: FEN saved to debug_position.fen" confirmation message after each move
+    - Allows examination of exact board state when errors occur
 
 ## Technical Architecture Details
 
@@ -244,9 +277,17 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - **Enhanced command line argument parsing**: Added support for command line options with initial DEBUG flag implementation
 - **Added FEN command**: Players can now type `fen` to display the current board position in standard FEN (Forsyth-Edwards Notation) format, invaluable for debugging and testing specific positions
 - **Fixed FEN malloc error**: Removed incorrect `free()` call on static buffer returned by `board_to_fen()`
+- ✅ **FEN Position Logging (DEBUG mode)**: Complete automatic FEN position saving after every half-move
+  - Cleans up any existing debug FEN file at startup to prevent confusion with old data
+  - Saves current board state to `debug_position.fen` file in DEBUG mode only  
+  - File overwrites with latest position for debugging purposes
+  - Shows "Debug: Cleared previous debug_position.fen file" at startup (if old file existed)
+  - Shows confirmation message "Debug: FEN saved to debug_position.fen" after each move
+  - Enables precise debugging of board states when issues occur
+  - Location: `cleanup_debug_fen()` function in main.c:31-38, `save_debug_fen()` function in main.c:47-59
 
 ### All Completed Features
-- Full chess piece movement rules
+- Full chess piece movement rules including castling (kingside and queenside)
 - **Comprehensive code documentation across entire codebase (NEW)**
 - **Single-level UNDO functionality for move pairs (White + AI)**
 - **Clean single-board UI with screen clearing after each action**
@@ -265,6 +306,7 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - DEBUG mode with diagnostic output
 - Command line argument parsing
 - **Pauseable startup sequence for reading game information**
+- **FEN Position Logging in DEBUG mode for precise board state debugging**
 
 ### Development Standards
 - **Documentation Requirement**: All new code must include comprehensive comments

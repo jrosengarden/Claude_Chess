@@ -24,6 +24,41 @@
 bool debug_mode = false;
 
 /**
+ * Clean up debug FEN file at startup
+ * Only called when debug_mode is enabled at startup to ensure no old debug data
+ * remains from previous sessions that could cause confusion during debugging.
+ */
+void cleanup_debug_fen() {
+    if (!debug_mode) return;
+    
+    if (remove("debug_position.fen") == 0) {
+        printf("Debug: Cleared previous debug_position.fen file\n");
+    }
+    // Don't report if file doesn't exist - that's expected for first run
+}
+
+/**
+ * Save current board position to debug FEN file
+ * Only called when debug_mode is enabled. Overwrites previous FEN.
+ * This allows debugging of positions when errors occur.
+ * 
+ * @param game Current game state to save as FEN
+ */
+void save_debug_fen(ChessGame *game) {
+    if (!debug_mode) return;
+    
+    char *fen = board_to_fen(game);
+    FILE *fen_file = fopen("debug_position.fen", "w");
+    if (fen_file) {
+        fprintf(fen_file, "%s\n", fen);
+        fclose(fen_file);
+        printf("Debug: FEN saved to debug_position.fen\n");
+    } else {
+        printf("Debug: Failed to save FEN file\n");
+    }
+}
+
+/**
  * Clear the terminal screen using ANSI escape codes
  * Used throughout the UI to maintain clean single-board display
  */
@@ -121,6 +156,11 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     }
     
     input[strcspn(input, "\n")] = '\0';
+    
+    // Skip empty input
+    if (strlen(input) == 0) {
+        return;
+    }
     
     if (strcmp(input, "quit") == 0) {
         exit(0);
@@ -267,6 +307,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     
     if (make_move(game, from, to)) {
         printf("Move made: %s to %s\n", from_str, to_str);
+        save_debug_fen(game);  // Save FEN after White's move in debug mode
         printf("Press Enter to continue...");
         getchar();
         clear_screen();
@@ -302,6 +343,7 @@ void handle_black_turn(ChessGame *game, StockfishEngine *engine) {
                 strcpy(from_str, position_to_string(from_pos));
                 strcpy(to_str, position_to_string(to_pos));
                 printf("\nAI played: %s to %s\n", from_str, to_str);
+                save_debug_fen(game);  // Save FEN after AI's move in debug mode
                 printf("Press Enter to continue...");
                 getchar();
                 clear_screen();
@@ -342,6 +384,9 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
+    
+    // Clean up any existing debug files if in debug mode
+    cleanup_debug_fen();
     
     // Clear screen at startup
     clear_screen();

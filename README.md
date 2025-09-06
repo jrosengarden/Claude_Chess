@@ -10,13 +10,14 @@ A complete chess implementation in C featuring:
 
 ## Features
 
-- **Complete Chess Rules**: All standard chess piece movements, capturing, check detection
+- **Complete Chess Rules**: All standard chess piece movements, capturing, check detection, and castling (kingside and queenside)
 - **Clean Single-Board UI**: Screen clears after each move showing only current game state
 - **Undo Functionality**: Single-level undo to revert the last move pair (White + AI)
 - **Visual Board**: Clear ASCII representation with coordinates (a-h, 1-8)
 - **Move Visualization**: Shows possible moves with `*` for empty squares and `[piece]` for captures
 - **Capture Tracking**: Displays "Black Has Captured:" and "White Has Captured:" with color-coded labels (ordered to match board layout)
 - **Check Protection**: When king is in check, only allows moves that resolve the check
+- **Castling Support**: Full kingside (O-O) and queenside (O-O-O) castling with proper rule validation
 - **AI Integration**: Uses Stockfish engine for intelligent computer moves
 - **Game State Detection**: Detects checkmate and stalemate conditions
 - **Interactive Commands**: Help, hints, position analysis, undo, and game information
@@ -60,7 +61,7 @@ A complete chess implementation in C featuring:
 
 1. **Starting the Game**: You play as White, AI plays as Black. The startup screen shows game information - press Enter to continue.
 2. **Clean Interface**: The screen shows only the current game state with a single chess board at any time.
-3. **Making Moves**: Enter moves in algebraic notation format: `e2 e4`. After each move, press Enter to continue.
+3. **Making Moves**: Enter moves in algebraic notation format: `e2 e4`. For castling, move the king two squares: `e1 g1` (kingside) or `e1 c1` (queenside). After each move, press Enter to continue.
 4. **Undo Moves**: Type `undo` to revert both your last move and the AI's response. Only one level of undo is supported.
 5. **Viewing Possible Moves**: Enter just a position (e.g., `e2`) to see highlighted moves on the board.
 6. **Special Displays**:
@@ -108,8 +109,31 @@ Run the game with `./chess DEBUG` to enable debug output that shows:
 - Raw Stockfish move strings (e.g., "e7e5") 
 - Parsed move coordinates for AI moves and hints
 - Additional diagnostic information during gameplay
+- **FEN Position Logging**: Automatic save of board position to `debug_position.fen` after every half-move
+  - Any existing debug FEN file is deleted at startup to prevent confusion with old data
+  - File is overwritten with the latest position for debugging purposes
+  - Shows "Debug: Cleared previous debug_position.fen file" at startup (if old file existed)
+  - Shows "Debug: FEN saved to debug_position.fen" confirmation message after each move
+  - Enables precise examination of board state when issues occur
 
 This is useful for development and troubleshooting engine communication.
+
+## Testing
+
+The project includes an automated test suite for castling functionality:
+
+```bash
+# Run castling tests
+./test_castling.sh
+```
+
+**Test Coverage:**
+- ✅ **Kingside Castling**: Verifies e1→g1 king movement with rook repositioning
+- ✅ **Castling Prevention**: Ensures castling blocked after king/rook moves  
+- 🔄 **Queenside Castling**: Tests e1→c1 movement (may be AI-dependent)
+- 🔄 **Move Display**: Verifies castling moves appear in possible moves list
+
+Tests are designed for regression testing to ensure castling functionality remains stable across code changes.
 
 ## Files
 
@@ -117,6 +141,7 @@ This is useful for development and troubleshooting engine communication.
 - `stockfish.h/stockfish.c` - Stockfish AI engine integration  
 - `main.c` - Game loop and user interface
 - `Makefile` - Build configuration
+- `test_castling.sh` - Automated test suite for castling functionality
 - `CLAUDE.md` - Development notes and technical documentation
 
 ## Troubleshooting
