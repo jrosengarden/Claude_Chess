@@ -109,12 +109,12 @@ Run the game with `./chess DEBUG` to enable debug output that shows:
 - Raw Stockfish move strings (e.g., "e7e5") 
 - Parsed move coordinates for AI moves and hints
 - Additional diagnostic information during gameplay
-- **FEN Position Logging**: Automatic save of board position to `debug_position.fen` after every half-move
+- **FEN Position Logging**: Automatic append of board positions to `debug_position.fen` after every half-move
   - Any existing debug FEN file is deleted at startup to prevent confusion with old data
-  - File is overwritten with the latest position for debugging purposes
+  - Each board state is appended to file, creating complete game history (one FEN per line)
   - Shows "Debug: Cleared previous debug_position.fen file" at startup (if old file existed)
-  - Shows "Debug: FEN saved to debug_position.fen" confirmation message after each move
-  - Enables precise examination of board state when issues occur
+  - Shows "Debug: FEN appended to debug_position.fen" confirmation message after each move
+  - Enables step-by-step examination of game progression when debugging
 
 This is useful for development and troubleshooting engine communication.
 

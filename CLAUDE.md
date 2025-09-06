@@ -171,12 +171,12 @@ make install-deps      # Install Stockfish dependency
   - Raw Stockfish move strings
   - Parsed move coordinates
   - AI communication details
-  - **FEN Position Logging**: Automatic save of current board position to `debug_position.fen` after every half-move
+  - **FEN Position Logging**: Automatic append of board positions to `debug_position.fen` after every half-move
     - Any existing debug FEN file is deleted at startup to prevent confusion with old data
-    - File is overwritten with latest position for debugging purposes
+    - Each board state is appended to file, creating complete game history (one FEN per line)
     - Shows "Debug: Cleared previous debug_position.fen file" at startup (if old file existed)
-    - Shows "Debug: FEN saved to debug_position.fen" confirmation message after each move
-    - Allows examination of exact board state when errors occur
+    - Shows "Debug: FEN appended to debug_position.fen" confirmation message after each move
+    - Allows step-by-step examination of game progression when debugging
 
 ## Technical Architecture Details
 
@@ -277,12 +277,12 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - **Enhanced command line argument parsing**: Added support for command line options with initial DEBUG flag implementation
 - **Added FEN command**: Players can now type `fen` to display the current board position in standard FEN (Forsyth-Edwards Notation) format, invaluable for debugging and testing specific positions
 - **Fixed FEN malloc error**: Removed incorrect `free()` call on static buffer returned by `board_to_fen()`
-- ✅ **FEN Position Logging (DEBUG mode)**: Complete automatic FEN position saving after every half-move
+- ✅ **FEN Position Logging (DEBUG mode)**: Complete automatic FEN position logging after every half-move
   - Cleans up any existing debug FEN file at startup to prevent confusion with old data
-  - Saves current board state to `debug_position.fen` file in DEBUG mode only  
-  - File overwrites with latest position for debugging purposes
+  - Appends each board state to `debug_position.fen` file in DEBUG mode only  
+  - File contains complete game history with one FEN position per line for analysis
   - Shows "Debug: Cleared previous debug_position.fen file" at startup (if old file existed)
-  - Shows confirmation message "Debug: FEN saved to debug_position.fen" after each move
+  - Shows confirmation message "Debug: FEN appended to debug_position.fen" after each move
   - Enables precise debugging of board states when issues occur
   - Location: `cleanup_debug_fen()` function in main.c:31-38, `save_debug_fen()` function in main.c:47-59
 
@@ -306,7 +306,7 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - DEBUG mode with diagnostic output
 - Command line argument parsing
 - **Pauseable startup sequence for reading game information**
-- **FEN Position Logging in DEBUG mode for precise board state debugging**
+- **FEN Position Logging in DEBUG mode for complete game history debugging**
 
 ### Development Standards
 - **Documentation Requirement**: All new code must include comprehensive comments

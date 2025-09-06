@@ -48,11 +48,11 @@ void save_debug_fen(ChessGame *game) {
     if (!debug_mode) return;
     
     char *fen = board_to_fen(game);
-    FILE *fen_file = fopen("debug_position.fen", "w");
+    FILE *fen_file = fopen("debug_position.fen", "a");
     if (fen_file) {
         fprintf(fen_file, "%s\n", fen);
         fclose(fen_file);
-        printf("Debug: FEN saved to debug_position.fen\n");
+        printf("Debug: FEN appended to debug_position.fen\n");
     } else {
         printf("Debug: Failed to save FEN file\n");
     }
