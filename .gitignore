@@ -1,1 +1,3 @@
 *.o
+.obsidian/
+Claude_Chess.code-workspace
