@@ -654,3 +654,181 @@ void restore_game_state(ChessGame *game) {
 bool can_undo_move(ChessGame *game) {
     return game->can_undo;
 }
+
+/* ========================================================================
+ * FEN PARSING AND BOARD SETUP FUNCTIONS
+ * Functions for parsing FEN (Forsyth-Edwards Notation) strings and
+ * setting up custom board positions for the SETUP command
+ * ======================================================================== */
+
+/**
+ * Convert character to piece type (helper function for FEN parsing)
+ * 
+ * @param c Character representing piece (lowercase)
+ * @return PieceType corresponding to character
+ */
+PieceType char_to_piece_type(char c) {
+    switch (tolower(c)) {
+        case 'p': return PAWN;
+        case 'r': return ROOK;
+        case 'n': return KNIGHT;
+        case 'b': return BISHOP;
+        case 'q': return QUEEN;
+        case 'k': return KING;
+        default:  return EMPTY;
+    }
+}
+
+/**
+ * Validate FEN string format
+ * Performs basic validation of FEN string structure and content
+ * 
+ * @param fen FEN string to validate
+ * @return true if FEN appears valid, false otherwise
+ */
+bool validate_fen_string(const char* fen) {
+    if (!fen || strlen(fen) == 0) return false;
+    
+    // Count slashes (should be 7 for 8 ranks)
+    int slash_count = 0;
+    int board_chars = 0;
+    const char* ptr = fen;
+    
+    // Parse board section (until first space)
+    while (*ptr && *ptr != ' ') {
+        if (*ptr == '/') {
+            slash_count++;
+        } else if (isdigit(*ptr)) {
+            int empty_squares = *ptr - '0';
+            if (empty_squares < 1 || empty_squares > 8) return false;
+            board_chars += empty_squares;
+        } else if (strchr("rnbqkpRNBQKP", *ptr)) {
+            board_chars++;
+        } else {
+            return false; // Invalid character
+        }
+        ptr++;
+    }
+    
+    // Should have exactly 7 slashes and 64 board positions
+    if (slash_count != 7 || board_chars != 64) return false;
+    
+    // Should have at least one space (separating board from other FEN components)
+    if (*ptr != ' ') return false;
+    
+    return true;
+}
+
+/**
+ * Setup board from FEN string
+ * Parses FEN string and configures game state accordingly
+ * Updates board position, current player, king positions, and castling rights
+ * 
+ * @param game Game state to modify
+ * @param fen Valid FEN string
+ * @return true if successful, false if parsing failed
+ */
+bool setup_board_from_fen(ChessGame *game, const char* fen) {
+    if (!validate_fen_string(fen)) {
+        return false;
+    }
+    
+    // Clear the board
+    for (int row = 0; row < BOARD_SIZE; row++) {
+        for (int col = 0; col < BOARD_SIZE; col++) {
+            game->board[row][col].type = EMPTY;
+            game->board[row][col].color = WHITE;
+        }
+    }
+    
+    // Parse board position
+    int row = 0, col = 0;
+    const char* ptr = fen;
+    
+    while (*ptr && *ptr != ' ' && row < BOARD_SIZE) {
+        if (*ptr == '/') {
+            row++;
+            col = 0;
+        } else if (isdigit(*ptr)) {
+            col += (*ptr - '0');
+        } else {
+            PieceType piece_type = char_to_piece_type(tolower(*ptr));
+            Color piece_color = isupper(*ptr) ? WHITE : BLACK;
+            
+            if (row < BOARD_SIZE && col < BOARD_SIZE) {
+                game->board[row][col].type = piece_type;
+                game->board[row][col].color = piece_color;
+                
+                // Track king positions for efficient check detection
+                if (piece_type == KING) {
+                    if (piece_color == WHITE) {
+                        game->white_king_pos.row = row;
+                        game->white_king_pos.col = col;
+                    } else {
+                        game->black_king_pos.row = row;
+                        game->black_king_pos.col = col;
+                    }
+                }
+            }
+            col++;
+        }
+        ptr++;
+    }
+    
+    // Parse active color (whose turn it is)
+    if (*ptr == ' ') ptr++;
+    if (*ptr == 'w' || *ptr == 'W') {
+        game->current_player = WHITE;
+    } else if (*ptr == 'b' || *ptr == 'B') {
+        game->current_player = BLACK;
+    } else {
+        game->current_player = WHITE; // Default to white
+    }
+    
+    // Skip to castling rights
+    while (*ptr && *ptr != ' ') ptr++;
+    if (*ptr == ' ') ptr++;
+    
+    // Parse castling rights and set movement flags accordingly
+    game->white_king_moved = true;   // Assume moved unless castling available
+    game->black_king_moved = true;   // Assume moved unless castling available
+    game->white_rook_a_moved = true;
+    game->white_rook_h_moved = true;
+    game->black_rook_a_moved = true;
+    game->black_rook_h_moved = true;
+    
+    while (*ptr && *ptr != ' ') {
+        switch (*ptr) {
+            case 'K': 
+                game->white_king_moved = false;
+                game->white_rook_h_moved = false;
+                break;
+            case 'Q':
+                game->white_king_moved = false;
+                game->white_rook_a_moved = false;
+                break;
+            case 'k':
+                game->black_king_moved = false;
+                game->black_rook_h_moved = false;
+                break;
+            case 'q':
+                game->black_king_moved = false;
+                game->black_rook_a_moved = false;
+                break;
+        }
+        ptr++;
+    }
+    
+    // Clear captured pieces (starting fresh)
+    game->white_captured.count = 0;
+    game->black_captured.count = 0;
+    
+    // Update check status
+    game->in_check[WHITE] = is_in_check(game, WHITE);
+    game->in_check[BLACK] = is_in_check(game, BLACK);
+    
+    // Reset undo system (can't undo to before setup)
+    game->can_undo = false;
+    
+    return true;
+}

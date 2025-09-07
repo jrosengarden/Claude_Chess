@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #define BOARD_SIZE 8  // Standard 8x8 chess board
 
@@ -184,5 +185,10 @@ char *position_to_string(Position pos);  // Convert Position to algebraic notati
 void save_game_state(ChessGame *game);  // Save current state for undo functionality
 void restore_game_state(ChessGame *game);  // Restore previously saved state  
 bool can_undo_move(ChessGame *game);  // Check if undo is available
+
+// FEN parsing and board setup functions
+bool validate_fen_string(const char* fen);  // Validate FEN string format
+bool setup_board_from_fen(ChessGame *game, const char* fen);  // Parse FEN and set board position
+PieceType char_to_piece_type(char c);  // Convert character to piece type (helper function)
 
 #endif

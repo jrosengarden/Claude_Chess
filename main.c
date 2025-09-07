@@ -64,6 +64,24 @@ void save_fen_log(ChessGame *game) {
 }
 
 /**
+ * Reset FEN logging for SETUP command
+ * Deletes the current FEN log file and creates a new timestamped file.
+ * Then logs the new starting position from the SETUP command.
+ * 
+ * @param game Current game state to save as new starting position
+ */
+void reset_fen_log_for_setup(ChessGame *game) {
+    // Delete the current FEN log file
+    remove(fen_log_filename);
+    
+    // Generate a new FEN log filename for the setup position
+    generate_fen_filename();
+    
+    // Log the new starting position 
+    save_fen_log(game);
+}
+
+/**
  * Clear the terminal screen using ANSI escape codes
  * Used throughout the UI to maintain clean single-board display
  */
@@ -100,6 +118,7 @@ void print_help() {
     printf("Type 'hint' to get Stockfish's best move suggestion for White\n");
     printf("Type 'fen' to display current board position in FEN notation\n");
     printf("Type 'title' to re-display the game title and info screen\n");
+    printf("Type 'setup' to setup a custom board position from FEN string\n");
     printf("Type 'undo' to undo the last move pair (White + AI moves)\n");
     printf("Type 'quit' to exit the game\n");
     printf("Type a piece position to see its possible moves (marked with * or [])\n");
@@ -238,6 +257,40 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         } else {
             printf("\nNo moves to undo!\n");
         }
+        printf("Press Enter to continue...");
+        getchar();
+        return;
+    }
+    
+    if (strcmp(input, "setup") == 0 || strcmp(input, "SETUP") == 0) {
+        char fen_input[256];
+        printf("\nEnter FEN string for board setup: ");
+        fflush(stdout);
+        
+        if (!fgets(fen_input, sizeof(fen_input), stdin)) {
+            printf("Failed to read FEN string.\n");
+            printf("Press Enter to continue...");
+            getchar();
+            return;
+        }
+        
+        // Remove newline character
+        fen_input[strcspn(fen_input, "\n")] = '\0';
+        
+        // Validate and setup board from FEN
+        if (setup_board_from_fen(game, fen_input)) {
+            printf("\nBoard setup successful from FEN: %s\n", fen_input);
+            
+            // Reset FEN logging with new position
+            reset_fen_log_for_setup(game);
+            printf("New FEN log file created: %s\n", fen_log_filename);
+            
+            printf("\nGame will continue from this custom position.\n");
+        } else {
+            printf("\nInvalid FEN string! Board setup failed.\n");
+            printf("Please check FEN format and try again.\n");
+        }
+        
         printf("Press Enter to continue...");
         getchar();
         return;

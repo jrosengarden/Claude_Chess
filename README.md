@@ -20,7 +20,8 @@ A complete chess implementation in C featuring:
 - **Castling Support**: Full kingside (O-O) and queenside (O-O-O) castling with proper rule validation
 - **AI Integration**: Uses Stockfish engine for intelligent computer moves
 - **Game State Detection**: Detects checkmate and stalemate conditions
-- **Interactive Commands**: Help, hints, position analysis, undo, and game information
+- **Interactive Commands**: Help, hints, position analysis, undo, custom board setup, and game information
+- **Custom Board Setup**: Setup any chess position using FEN notation with the SETUP command
 - **FEN Logging**: FEN logging to file (based on date & time at game start) for all moves
 - **FEN to PGN Utility**: Standalone tool to convert FEN position files to PGN format (compatible with new FEN logging)
 
@@ -72,9 +73,10 @@ A complete chess implementation in C featuring:
 1. **Starting the Game**: You play as White, AI plays as Black. The startup screen shows game information - press Enter to continue.
 2. **Clean Interface**: The screen shows only the current game state with a single chess board at any time.
 3. **Making Moves**: Enter moves in algebraic notation format: `e2 e4`. For castling, move the king two squares: `e1 g1` (kingside) or `e1 c1` (queenside). After each move, press Enter to continue.
-4. **Undo Moves**: Type `undo` to revert both your last move and the AI's response. Only one level of undo is supported.
-5. **Viewing Possible Moves**: Enter just a position (e.g., `e2`) to see highlighted moves on the board.
-6. **Special Displays**:
+4. **Custom Board Setup**: Type `setup` to enter a FEN string and configure any chess position. The game will continue from your custom position with a new FEN log file.
+5. **Undo Moves**: Type `undo` to revert both your last move and the AI's response. Only one level of undo is supported.
+6. **Viewing Possible Moves**: Enter just a position (e.g., `e2`) to see highlighted moves on the board.
+7. **Special Displays**:
    - `*` = Empty square you can move to
    - `[piece]` = Enemy piece you can capture
    - Check warnings appear when your king is threatened
@@ -85,12 +87,32 @@ A complete chess implementation in C featuring:
 - `hint` - Get Stockfish's best move suggestion for White
 - `fen` - Display current board position in FEN notation
 - `title` - Re-display the game title and startup information
+- `setup` - Setup custom board position from FEN string (creates new FEN log file)
 - `undo` - Undo the last move pair (White + AI moves) - single level only
 - `quit` - Exit the game
 - `e2 e4` - Move from e2 to e4
 - `e2` - Show possible moves from e2
 
 **Note**: All commands pause after displaying information, allowing you to read the output before returning to the game board.
+
+## Custom Board Setup (SETUP Command)
+
+The SETUP command allows you to configure any chess position using FEN (Forsyth-Edwards Notation):
+
+1. **Usage**: Type `setup` during White's turn
+2. **FEN Input**: Enter a valid FEN string when prompted
+3. **Automatic Management**: 
+   - Current FEN log file is deleted
+   - New timestamped FEN log file is created
+   - Game continues from your custom position
+4. **FEN Format**: Standard FEN notation including board position, active player, castling rights, en passant, and move counts
+
+**Example FEN Strings:**
+- Starting position: `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1`
+- Italian Game: `r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 4 4`
+- Empty board: `8/8/8/8/8/8/8/8 w - - 0 1`
+
+**Validation**: Invalid FEN strings are rejected with helpful error messages.
 
 ## Board Representation
 
@@ -135,29 +157,40 @@ This is useful for development and troubleshooting engine communication.
 
 ## Testing
 
-The project includes an automated test suite for castling functionality:
+The project includes multiple testing approaches:
 
+### Micro-Testing Framework (Safe for Development)
 ```bash
-# Run castling tests
-./test_castling.sh
+# Run safe, minimal-output tests
+make test
+```
+This runs targeted tests of specific chess functions with minimal output, safe for use during development.
+
+### Compilation Testing (Always Safe)
+```bash
+# Test that code compiles and basic functionality works
+./test_compile_only.sh
 ```
 
-**Test Coverage:**
-- ✅ **Kingside Castling**: Verifies e1→g1 king movement with rook repositioning
-- ✅ **Castling Prevention**: Ensures castling blocked after king/rook moves  
-- 🔄 **Queenside Castling**: Tests e1→c1 movement (may be AI-dependent)
-- 🔄 **Move Display**: Verifies castling moves appear in possible moves list
+### Full Feature Testing (Run Manually Outside Development Sessions)
+For comprehensive end-to-end testing including full game scenarios, castling integration, and AI interactions, use manual testing during gameplay. The micro-testing framework validates core logic, while manual gameplay testing validates full integration.
 
-Tests are designed for regression testing to ensure castling functionality remains stable across code changes.
+**Test Coverage:**
+- ✅ **Micro-Tests**: Board initialization, position conversion, move validation, castling rights, piece operations, FEN parsing, FEN validation, character conversion
+- ✅ **Compilation Tests**: Code builds successfully, executables created, basic startup functionality  
+- ✅ **Integration Tests**: Manual gameplay testing for full feature validation
+
+The testing approach is designed to prevent development session crashes while ensuring code quality.
 
 ## Files
 
 - `chess.h/chess.c` - Core chess logic and move validation
 - `stockfish.h/stockfish.c` - Stockfish AI engine integration  
 - `main.c` - Game loop and user interface
-- `fen_to_pgn.c` - Standalone FEN to PGN conversion utility (updated for new FEN logging compatibility)
-- `Makefile` - Build configuration (builds both chess game and fen_to_pgn utility)
-- `test_castling.sh` - Automated test suite for castling functionality
+- `fen_to_pgn.c` - Standalone FEN to PGN conversion utility
+- `micro_test.c` - Safe micro-testing framework for development
+- `test_compile_only.sh` - Safe compilation and basic functionality tests
+- `Makefile` - Build configuration (builds chess, fen_to_pgn, and micro_test)
 - `CLAUDE.md` - Development notes and technical documentation
 
 ## Troubleshooting
