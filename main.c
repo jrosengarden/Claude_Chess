@@ -19,42 +19,53 @@
 
 #include "chess.h"
 #include "stockfish.h"
+#include <time.h>
 
 // Global debug flag for diagnostic output
 bool debug_mode = false;
 
+// Global FEN log filename for current game session
+char fen_log_filename[256];
+
 /**
- * Clean up debug FEN file at startup
- * Only called when debug_mode is enabled at startup to ensure no old debug data
- * remains from previous sessions that could cause confusion during debugging.
+ * Generate timestamp-based FEN filename for current game session
+ * Creates filename in format: CHESS_mmddyy_HHMMSS.fen
+ * This allows multiple game sessions to maintain separate FEN logs
  */
-void cleanup_debug_fen() {
-    if (!debug_mode) return;
+void generate_fen_filename() {
+    time_t now = time(NULL);
+    struct tm *local = localtime(&now);
     
-    if (remove("debug_position.fen") == 0) {
-        printf("Debug: Cleared previous debug_position.fen file\n");
-    }
-    // Don't report if file doesn't exist - that's expected for first run
+    snprintf(fen_log_filename, sizeof(fen_log_filename), 
+             "CHESS_%02d%02d%02d_%02d%02d%02d.fen",
+             local->tm_mon + 1,    // Month (1-12)
+             local->tm_mday,       // Day (1-31)
+             local->tm_year % 100, // Year (2-digit)
+             local->tm_hour,       // Hour (0-23)
+             local->tm_min,        // Minute (0-59)
+             local->tm_sec);       // Second (0-59)
 }
 
 /**
- * Save current board position to debug FEN file
- * Only called when debug_mode is enabled. Overwrites previous FEN.
- * This allows debugging of positions when errors occur.
+ * Save current board position to FEN log file
+ * Appends current board state to the session's FEN log file.
+ * Called after every half-move to create complete game history.
  * 
  * @param game Current game state to save as FEN
  */
-void save_debug_fen(ChessGame *game) {
-    if (!debug_mode) return;
-    
+void save_fen_log(ChessGame *game) {
     char *fen = board_to_fen(game);
-    FILE *fen_file = fopen("debug_position.fen", "a");
+    FILE *fen_file = fopen(fen_log_filename, "a");
     if (fen_file) {
         fprintf(fen_file, "%s\n", fen);
         fclose(fen_file);
-        printf("Debug: FEN appended to debug_position.fen\n");
+        if (debug_mode) {
+            printf("Debug: FEN appended to %s\n", fen_log_filename);
+        }
     } else {
-        printf("Debug: Failed to save FEN file\n");
+        if (debug_mode) {
+            printf("Debug: Failed to save FEN to %s\n", fen_log_filename);
+        }
     }
 }
 
@@ -307,7 +318,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     
     if (make_move(game, from, to)) {
         printf("Move made: %s to %s\n", from_str, to_str);
-        save_debug_fen(game);  // Save FEN after White's move in debug mode
+        save_fen_log(game);  // Save FEN after White's move
         printf("Press Enter to continue...");
         getchar();
         clear_screen();
@@ -343,7 +354,7 @@ void handle_black_turn(ChessGame *game, StockfishEngine *engine) {
                 strcpy(from_str, position_to_string(from_pos));
                 strcpy(to_str, position_to_string(to_pos));
                 printf("\nAI played: %s to %s\n", from_str, to_str);
-                save_debug_fen(game);  // Save FEN after AI's move in debug mode
+                save_fen_log(game);  // Save FEN after AI's move
                 printf("Press Enter to continue...");
                 getchar();
                 clear_screen();
@@ -385,8 +396,8 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    // Clean up any existing debug files if in debug mode
-    cleanup_debug_fen();
+    // Generate FEN log filename for this game session
+    generate_fen_filename();
     
     // Clear screen at startup
     clear_screen();
@@ -423,6 +434,9 @@ int main(int argc, char *argv[]) {
     print_help();
     
     init_board(&game);
+    
+    // Log initial board position to FEN file
+    save_fen_log(&game);
     
     while (true) {
         clear_screen();

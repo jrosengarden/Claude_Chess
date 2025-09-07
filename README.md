@@ -21,7 +21,7 @@ A complete chess implementation in C featuring:
 - **AI Integration**: Uses Stockfish engine for intelligent computer moves
 - **Game State Detection**: Detects checkmate and stalemate conditions
 - **Interactive Commands**: Help, hints, position analysis, undo, and game information
-- **FEN to PGN Utility**: Standalone tool to convert FEN position files to PGN format
+- **FEN to PGN Utility**: Standalone tool to convert FEN position files to PGN format (compatible with new FEN logging)
 
 ## Requirements
 
@@ -64,6 +64,7 @@ A complete chess implementation in C featuring:
    ./fen_to_pgn
    ```
    The utility will prompt for a filename and create a PGN file with the same base name.
+   **Note**: The utility now properly handles FEN files that include the initial board position.
 
 ## How to Play
 
@@ -111,18 +112,23 @@ A complete chess implementation in C featuring:
 - **Lowercase = Black pieces** (displayed in bold cyan)
 - `.` = Empty square
 
+## FEN Position Logging
+
+Every game automatically creates a timestamped FEN log file:
+- **Filename format**: `CHESS_mmddyy_HHMMSS.fen` (e.g., `CHESS_090725_143022.fen`)
+- **Complete game history**: Each board state is appended after every half-move (one FEN per line)  
+- **Session tracking**: Each game gets its own unique timestamped log file
+- **Always enabled**: Available for all games for analysis and review
+- **FEN to PGN compatible**: Files include initial position and work directly with the conversion utility
+- Enables step-by-step examination of game progression and position analysis
+
 ## Debug Mode
 
 Run the game with `./chess DEBUG` to enable debug output that shows:
 - Raw Stockfish move strings (e.g., "e7e5") 
 - Parsed move coordinates for AI moves and hints
 - Additional diagnostic information during gameplay
-- **FEN Position Logging**: Automatic append of board positions to `debug_position.fen` after every half-move
-  - Any existing debug FEN file is deleted at startup to prevent confusion with old data
-  - Each board state is appended to file, creating complete game history (one FEN per line)
-  - Shows "Debug: Cleared previous debug_position.fen file" at startup (if old file existed)
-  - Shows "Debug: FEN appended to debug_position.fen" confirmation message after each move
-  - Enables step-by-step examination of game progression when debugging
+- FEN logging confirmation messages
 
 This is useful for development and troubleshooting engine communication.
 
@@ -148,7 +154,7 @@ Tests are designed for regression testing to ensure castling functionality remai
 - `chess.h/chess.c` - Core chess logic and move validation
 - `stockfish.h/stockfish.c` - Stockfish AI engine integration  
 - `main.c` - Game loop and user interface
-- `fen_to_pgn.c` - Standalone FEN to PGN conversion utility
+- `fen_to_pgn.c` - Standalone FEN to PGN conversion utility (updated for new FEN logging compatibility)
 - `Makefile` - Build configuration (builds both chess game and fen_to_pgn utility)
 - `test_castling.sh` - Automated test suite for castling functionality
 - `CLAUDE.md` - Development notes and technical documentation

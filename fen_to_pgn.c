@@ -91,9 +91,8 @@ int main() {
     
     printf("Converting FEN positions to PGN moves...\n");
     
-    // Initialize with standard starting position
-    const char* starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    parse_fen(starting_fen, prev_board, &to_move, castling, en_passant, &halfmove, &fullmove);
+    // Read first FEN position as the starting position
+    int first_position = 1;
     
     // Read FEN positions line by line
     while (fgets(line, sizeof(line), input_file)) {
@@ -103,6 +102,13 @@ int main() {
         
         // Parse current FEN position
         parse_fen(line, curr_board, &to_move, castling, en_passant, &halfmove, &fullmove);
+        
+        if (first_position) {
+            // First position becomes our starting point - no move to analyze yet
+            copy_board(curr_board, prev_board);
+            first_position = 0;
+            continue;
+        }
         
         // Compare with previous position to find the move
         Move move = {0};

@@ -32,6 +32,8 @@ make clean             # Clean build artifacts for both executables
 - ✅ **FEN to PGN Utility**: Complete standalone conversion tool
   - Built separate `fen_to_pgn.c` utility for converting FEN position files to PGN format
   - Prompts user for input filename and creates corresponding .pgn output file
+  - **Updated for new FEN logging**: Now correctly processes FEN files that include initial position
+  - Uses first FEN line as starting position instead of hardcoded chess starting position
   - Integrated into Makefile build system alongside main chess executable
   - Location: `fen_to_pgn.c` with build target in Makefile
 - ✅ **Castling Implementation**: Complete kingside and queenside castling support
@@ -175,17 +177,21 @@ make clean             # Clean build artifacts for both executables
   - **Note**: Queenside test may occasionally fail due to unpredictable AI moves (documented)
 - ✅ Ready to proceed with next chess rules (en passant, pawn promotion)
 
+### Game Features
+
+#### FEN Position Logging
+- **Automatic FEN logging**: Every game session creates a timestamped FEN log file
+- **Filename format**: `CHESS_mmddyy_HHMMSS.fen` (e.g., `CHESS_090725_143022.fen`)
+- **Complete game history**: Each board state is appended after every half-move
+- **One position per line**: Easy to analyze game progression step-by-step
+- **Always enabled**: No longer requires DEBUG mode - available in all games
+
 ### Debug Information
 - Run with `DEBUG` flag to see:
   - Raw Stockfish move strings
   - Parsed move coordinates
   - AI communication details
-  - **FEN Position Logging**: Automatic append of board positions to `debug_position.fen` after every half-move
-    - Any existing debug FEN file is deleted at startup to prevent confusion with old data
-    - Each board state is appended to file, creating complete game history (one FEN per line)
-    - Shows "Debug: Cleared previous debug_position.fen file" at startup (if old file existed)
-    - Shows "Debug: FEN appended to debug_position.fen" confirmation message after each move
-    - Allows step-by-step examination of game progression when debugging
+  - Additional FEN logging confirmation messages
 
 ## Technical Architecture Details
 
@@ -228,6 +234,8 @@ make clean             # Clean build artifacts for both executables
 - `fen_to_pgn.c` - Standalone FEN to PGN conversion utility
   - Reads FEN position files and converts to PGN format
   - Creates output files with .pgn extension matching input filename
+  - **Compatible with new FEN logging**: Uses first FEN line as starting position
+  - Properly processes complete game sessions including initial board state
   - Independent executable built alongside main chess game
 
 ### Key Features Implementation
@@ -291,14 +299,19 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - **Enhanced command line argument parsing**: Added support for command line options with initial DEBUG flag implementation
 - **Added FEN command**: Players can now type `fen` to display the current board position in standard FEN (Forsyth-Edwards Notation) format, invaluable for debugging and testing specific positions
 - **Fixed FEN malloc error**: Removed incorrect `free()` call on static buffer returned by `board_to_fen()`
-- ✅ **FEN Position Logging (DEBUG mode)**: Complete automatic FEN position logging after every half-move
-  - Cleans up any existing debug FEN file at startup to prevent confusion with old data
-  - Appends each board state to `debug_position.fen` file in DEBUG mode only  
+- ✅ **FEN Position Logging**: Complete automatic FEN position logging after every half-move
+  - Creates timestamped FEN log file for each game session: `CHESS_mmddyy_HHMMSS.fen`
+  - Appends each board state to session log file automatically (no longer DEBUG-only)
   - File contains complete game history with one FEN position per line for analysis
-  - Shows "Debug: Cleared previous debug_position.fen file" at startup (if old file existed)
-  - Shows confirmation message "Debug: FEN appended to debug_position.fen" after each move
-  - Enables precise debugging of board states when issues occur
-  - Location: `cleanup_debug_fen()` function in main.c:31-38, `save_debug_fen()` function in main.c:47-59
+  - Always enabled for all game sessions to maintain comprehensive game records
+  - Shows confirmation message "Debug: FEN appended to [filename]" in DEBUG mode only
+  - Enables precise analysis of board states and game progression
+  - Location: `generate_fen_filename()` function in main.c:35-47, `save_fen_log()` function in main.c:56-70
+- ✅ **FEN_TO_PGN Utility Correction**: Fixed compatibility with new FEN logging system
+  - Removed hardcoded starting position that was compensating for missing initial position
+  - Now uses first FEN line from file as starting position (proper behavior)
+  - Correctly processes complete game sessions including initial board state
+  - Generates accurate PGN files from timestamped FEN logs
 
 ### All Completed Features
 - Full chess piece movement rules including castling (kingside and queenside)
@@ -320,7 +333,8 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - DEBUG mode with diagnostic output
 - Command line argument parsing
 - **Pauseable startup sequence for reading game information**
-- **FEN Position Logging in DEBUG mode for complete game history debugging**
+- **Automatic FEN Position Logging for complete game history tracking**
+- **FEN_TO_PGN utility with proper FEN file compatibility**
 
 ### Development Standards
 - **Documentation Requirement**: All new code must include comprehensive comments
