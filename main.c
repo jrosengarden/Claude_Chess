@@ -82,6 +82,39 @@ void reset_fen_log_for_setup(ChessGame *game) {
 }
 
 /**
+ * Convert current session's FEN file to PGN format automatically
+ * Creates a PGN file with the same base name as the FEN file.
+ * This function performs the conversion silently without user prompts.
+ */
+void convert_fen_to_pgn() {
+    // Create PGN filename from FEN filename
+    char pgn_filename[256];
+    char* base_name = strdup(fen_log_filename);
+    
+    // Remove .fen extension if present
+    char* dot = strrchr(base_name, '.');
+    if (dot) *dot = '\0';
+    
+    snprintf(pgn_filename, sizeof(pgn_filename), "%s.pgn", base_name);
+    free(base_name);
+    
+    // Open FEN file for reading
+    FILE* fen_file = fopen(fen_log_filename, "r");
+    if (!fen_file) {
+        // FEN file doesn't exist or can't be opened, exit silently
+        return;
+    }
+    
+    // Use system call to run fen_to_pgn utility with input redirection
+    // This avoids duplicating the complex conversion logic
+    char command[512];
+    snprintf(command, sizeof(command), "echo '%s' | ./fen_to_pgn > /dev/null 2>&1", fen_log_filename);
+    system(command);
+    
+    fclose(fen_file);
+}
+
+/**
  * Clear the terminal screen using ANSI escape codes
  * Used throughout the UI to maintain clean single-board display
  */
@@ -187,6 +220,8 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     }
     
     if (strcmp(input, "quit") == 0) {
+        // Convert FEN log to PGN before exiting
+        convert_fen_to_pgn();
         exit(0);
     }
     
@@ -492,11 +527,13 @@ int main(int argc, char *argv[]) {
         if (is_checkmate(&game, game.current_player)) {
             Color winner = (game.current_player == WHITE) ? BLACK : WHITE;
             printf("\n*** CHECKMATE! %s WINS! ***\n", winner == WHITE ? "WHITE" : "BLACK");
+            convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
             break;
         }
         
         if (is_stalemate(&game, game.current_player)) {
             printf("\n*** STALEMATE! IT'S A DRAW! ***\n");
+            convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
             break;
         }
         

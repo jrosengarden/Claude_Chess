@@ -23,6 +23,7 @@ A complete chess implementation in C featuring:
 - **Interactive Commands**: Help, hints, position analysis, undo, custom board setup, and game information
 - **Custom Board Setup**: Setup any chess position using FEN notation with the SETUP command
 - **FEN Logging**: FEN logging to file (based on date & time at game start) for all moves
+- **Automatic PGN Generation**: Automatically converts FEN logs to PGN format on game exit (quit, checkmate, stalemate)
 - **FEN to PGN Utility**: Standalone tool to convert FEN position files to PGN format (compatible with new FEN logging)
 
 ## Requirements
@@ -135,15 +136,27 @@ The SETUP command allows you to configure any chess position using FEN (Forsyth-
 - **Lowercase = Black pieces** (displayed in bold cyan)
 - `.` = Empty square
 
-## FEN Position Logging
+## Game History and File Generation
 
+### FEN Position Logging
 Every game automatically creates a timestamped FEN log file:
 - **Filename format**: `CHESS_mmddyy_HHMMSS.fen` (e.g., `CHESS_090725_143022.fen`)
 - **Complete game history**: Each board state is appended after every half-move (one FEN per line)  
 - **Session tracking**: Each game gets its own unique timestamped log file
 - **Always enabled**: Available for all games for analysis and review - operates silently in background
 - **Never deleted**: FEN files persist after games end - new games create new timestamped files
-- **FEN to PGN compatible**: Files include initial position and work directly with the conversion utility
+
+### Automatic PGN Generation
+When any game ends (quit, checkmate, or stalemate), the system automatically:
+- **Silent conversion**: Converts the session's FEN log to PGN format without user prompts
+- **Matching filenames**: Creates PGN file with same base name as FEN file (e.g., `CHESS_090725_143022.pgn`)
+- **Standard format**: Generates proper PGN with headers, move notation, and algebraic notation
+- **No manual steps**: Happens automatically - no need to run separate utility
+- **Both formats preserved**: You get both FEN log for position analysis and PGN for sharing/importing
+
+### Manual FEN to PGN Conversion
+For older FEN files or manual conversion, use the standalone utility:
+- **FEN to PGN compatible**: All FEN files include initial position and work directly with the conversion utility
 - Enables step-by-step examination of game progression and position analysis
 
 ## Debug Mode

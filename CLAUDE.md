@@ -36,6 +36,13 @@ make clean             # Clean build artifacts for all executables
 ## Current Development Status
 
 ### Recently Completed  
+- ✅ **Automatic PGN Generation on Game Exit**: Complete automatic conversion from FEN to PGN format
+  - Added `convert_fen_to_pgn()` function for silent, automatic conversion
+  - Triggers on all game exit points: quit command, checkmate, stalemate
+  - Creates PGN file with matching base name as FEN log file
+  - Uses existing fen_to_pgn utility logic to avoid code duplication
+  - Silent operation - no user prompts or visible output during conversion
+  - Location: New function in main.c (lines 89-115), exit point modifications (lines 224, 530, 536)
 - ✅ **SETUP Command**: Complete custom board setup feature using FEN notation
   - Added FEN string validation with comprehensive format checking
   - Added FEN parsing to set board position, active player, castling rights
@@ -280,6 +287,14 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 ## Complete Development History
 
 ### Recent Changes
+- **AUTOMATIC PGN GENERATION**: Complete automatic PGN conversion on game exit
+  - **Silent operation**: Converts FEN logs to PGN format automatically when game ends
+  - **Universal triggers**: Activates on quit command, checkmate, and stalemate
+  - **Seamless integration**: Uses existing fen_to_pgn utility logic internally  
+  - **Matching file names**: Creates PGN files with same base name as FEN logs
+  - **No user intervention**: Operates completely in background without prompts
+  - **Preserves both formats**: Users get both FEN logs and PGN files for complete game records
+  - Location: New convert_fen_to_pgn() function in main.c with exit point integrations
 - **COMPREHENSIVE CODE DOCUMENTATION**: Complete commenting effort across entire codebase
   - **chess.h**: Detailed API documentation with struct descriptions and function signatures
   - **chess.c**: Core chess engine with algorithmic explanations and move generation details
@@ -333,7 +348,8 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 
 ### All Completed Features
 - Full chess piece movement rules including castling (kingside and queenside)
-- **Custom board setup using FEN notation with SETUP command (NEW)**
+- **Automatic PGN generation on game exit (quit, checkmate, stalemate) - NEW**
+- **Custom board setup using FEN notation with SETUP command**
 - **Comprehensive code documentation across entire codebase**
 - **Single-level UNDO functionality for move pairs (White + AI)**
 - **Clean single-board UI with screen clearing after each action**
@@ -363,4 +379,4 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - **Inline Comments**: Complex logic, algorithms, and design decisions explained
 
 ---
-*Last updated: After comprehensive code documentation effort and preparation for testing phase*
+*Last updated: After implementing automatic PGN generation on game exit*
