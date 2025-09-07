@@ -32,10 +32,17 @@ make clean             # Clean build artifacts for all executables
 - `validate_fen_string()` - FEN string format validation (chess.c)
 - `setup_board_from_fen()` - Parse FEN and configure game state (chess.c)
 - `reset_fen_log_for_setup()` - FEN log file management for SETUP command (main.c)
+- `truncate_fen_log_for_undo()` - FEN file synchronization for undo operations (main.c)
 
 ## Current Development Status
 
 ### Recently Completed  
+- ✅ **FEN Log Synchronization for Undo**: Complete FEN file synchronization with undo functionality
+  - Added `truncate_fen_log_for_undo()` function to remove last 2 FEN entries when undo is executed
+  - Ensures FEN log file stays perfectly synchronized with game state after undo operations
+  - Handles up to 1000 moves (500 move pairs) safely with memory-based truncation
+  - Integrated seamlessly into existing undo command handler
+  - Location: New function in main.c (lines 89-117), undo handler update (line 326)
 - ✅ **Automatic PGN Generation on Game Exit**: Complete automatic conversion from FEN to PGN format
   - Added `convert_fen_to_pgn()` function for silent, automatic conversion
   - Triggers on all game exit points: quit command, checkmate, stalemate
@@ -78,12 +85,13 @@ make clean             # Clean build artifacts for all executables
   - Professional documentation standards established for future development
   - Files documented: `chess.h`, `chess.c`, `main.c`, `stockfish.c`
   - **Going Forward**: All new code and features will include comprehensive comments
-- ✅ **UNDO Feature**: Complete single-level undo system for move pairs
+- ✅ **UNDO Feature**: Complete single-level undo system for move pairs with FEN synchronization
   - Saves complete game state before White's move (board, captured pieces, king positions, castling rights, check status)
   - `undo` command restores previous game state, undoing both White's move and AI's response
+  - FEN log file is automatically synchronized by removing last 2 entries to match reverted game state
   - Single-level undo only - after using undo, new moves must be made before undo becomes available again
   - New structures: `GameState` struct, `can_undo` flag, save/restore functions
-  - Location: New functions in `chess.c`, command handler in `main.c`, updated help text
+  - Location: New functions in `chess.c`, command handler in `main.c`, FEN sync function in `main.c`, updated help text
 - ✅ **UI Cleanup - Single Board Interface**: Complete overhaul of user interface
   - Screen clears after each move/command showing only current game state
   - "Press Enter to continue" prompts added throughout for user control
@@ -287,6 +295,13 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 ## Complete Development History
 
 ### Recent Changes
+- **FEN LOG SYNCHRONIZATION WITH UNDO**: Complete FEN file synchronization for undo operations
+  - **Automatic truncation**: Removes last 2 FEN entries when undo command is executed
+  - **Perfect synchronization**: FEN log file now matches game state exactly after undo operations
+  - **Memory-safe implementation**: Handles up to 1000 moves with safe memory management
+  - **Seamless integration**: Works transparently with existing undo functionality
+  - **No user intervention**: Operates automatically without any additional user commands
+  - Location: New truncate_fen_log_for_undo() function in main.c with undo handler integration
 - **AUTOMATIC PGN GENERATION**: Complete automatic PGN conversion on game exit
   - **Silent operation**: Converts FEN logs to PGN format automatically when game ends
   - **Universal triggers**: Activates on quit command, checkmate, and stalemate
@@ -348,10 +363,11 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 
 ### All Completed Features
 - Full chess piece movement rules including castling (kingside and queenside)
-- **Automatic PGN generation on game exit (quit, checkmate, stalemate) - NEW**
+- **FEN log synchronization with undo operations for accurate game history**
+- **Automatic PGN generation on game exit (quit, checkmate, stalemate)**
 - **Custom board setup using FEN notation with SETUP command**
 - **Comprehensive code documentation across entire codebase**
-- **Single-level UNDO functionality for move pairs (White + AI)**
+- **Single-level UNDO functionality for move pairs (White + AI) with FEN file synchronization**
 - **Clean single-board UI with screen clearing after each action**
 - **Interactive command system with proper pause/continue prompts**
 - Visual board with move highlighting (`*` and `[piece]`)
@@ -377,6 +393,7 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - **Function Documentation**: Parameter descriptions, return values, and purpose explanation
 - **File Headers**: Complete description of file purpose, features, and architecture
 - **Inline Comments**: Complex logic, algorithms, and design decisions explained
+- **README.md Formatting**: All changes to README.md must maintain page width formatting (~80 characters per line) for printability - do not exceed normal page width
 
 ---
-*Last updated: After implementing automatic PGN generation on game exit*
+*Last updated: After implementing FEN log synchronization with undo operations*

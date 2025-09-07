@@ -82,6 +82,41 @@ void reset_fen_log_for_setup(ChessGame *game) {
 }
 
 /**
+ * Remove last two moves from FEN log file for undo functionality
+ * When undo is executed, both White's move and AI's response are reverted,
+ * so we need to remove the last 2 FEN entries to keep the file synchronized.
+ */
+void truncate_fen_log_for_undo() {
+    FILE *file = fopen(fen_log_filename, "r");
+    if (!file) return;
+    
+    // Read all lines into memory
+    char lines[1000][256];  // Support up to 1000 moves (500 move pairs)
+    int line_count = 0;
+    
+    while (fgets(lines[line_count], sizeof(lines[line_count]), file) && line_count < 1000) {
+        // Remove newline character for easier handling
+        lines[line_count][strcspn(lines[line_count], "\n")] = '\0';
+        line_count++;
+    }
+    fclose(file);
+    
+    // If we have at least 2 lines to remove, truncate by 2
+    if (line_count >= 2) {
+        line_count -= 2;
+        
+        // Rewrite the file with the truncated content
+        file = fopen(fen_log_filename, "w");
+        if (file) {
+            for (int i = 0; i < line_count; i++) {
+                fprintf(file, "%s\n", lines[i]);
+            }
+            fclose(file);
+        }
+    }
+}
+
+/**
  * Convert current session's FEN file to PGN format automatically
  * Creates a PGN file with the same base name as the FEN file.
  * This function performs the conversion silently without user prompts.
@@ -288,6 +323,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     if (strcmp(input, "undo") == 0 || strcmp(input, "UNDO") == 0) {
         if (can_undo_move(game)) {
             restore_game_state(game);
+            truncate_fen_log_for_undo();  // Remove last 2 FEN entries to sync with undo
             printf("\nMove pair undone! Restored to previous position.\n");
         } else {
             printf("\nNo moves to undo!\n");
