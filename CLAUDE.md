@@ -2,18 +2,21 @@
 
 ## Build Commands
 ```bash
-make                    # Compile the chess game
-make run               # Compile and run the game
-./chess                # Run directly
-./chess DEBUG          # Run with debug output
+make                    # Compile both chess game and fen_to_pgn utility
+make run               # Compile and run the chess game
+./chess                # Run chess game directly
+./chess DEBUG          # Run chess game with debug output
+./fen_to_pgn           # Run FEN to PGN conversion utility
 make install-deps      # Install Stockfish dependency
+make clean             # Clean build artifacts for both executables
 ```
 
 ## Project Structure
 - `main.c` - Game loop, UI, command handling (286 lines)
 - `chess.h/chess.c` - Core chess logic, move validation (2050+ lines)
 - `stockfish.h/stockfish.c` - AI engine integration via UCI protocol
-- `Makefile` - Build configuration
+- `fen_to_pgn.c` - Standalone FEN to PGN conversion utility
+- `Makefile` - Build configuration (builds both chess and fen_to_pgn executables)
 
 ## Key Function Entry Points
 - `get_possible_moves()` - Main move generation (chess.c)
@@ -26,6 +29,11 @@ make install-deps      # Install Stockfish dependency
 ## Current Development Status
 
 ### Recently Completed
+- ✅ **FEN to PGN Utility**: Complete standalone conversion tool
+  - Built separate `fen_to_pgn.c` utility for converting FEN position files to PGN format
+  - Prompts user for input filename and creates corresponding .pgn output file
+  - Integrated into Makefile build system alongside main chess executable
+  - Location: `fen_to_pgn.c` with build target in Makefile
 - ✅ **Castling Implementation**: Complete kingside and queenside castling support
   - Added castling moves to king move generation with proper rule validation
   - Cannot castle while in check, through check, or into check
@@ -73,9 +81,10 @@ make install-deps      # Install Stockfish dependency
 ### Active Development Focus
 - **Next Major Feature: Complete Chess Rules Implementation**
   - ✅ Priority 1: Castling (kingside and queenside) - COMPLETED
+  - ✅ Priority 1b: FEN to PGN conversion utility - COMPLETED
   - Priority 2: En passant capture
   - Priority 3: Pawn promotion
-  - Priority 4: PGN file generation (after core chess rules complete)
+  - Priority 4: Enhanced PGN file generation for game history (after core chess rules complete)
 - Testing against Stockfish v17 engine
 - Using FEN command for position debugging
 
@@ -216,6 +225,10 @@ make install-deps      # Install Stockfish dependency
   - AI move processing
   - Board display with move highlighting
   - Game end detection (checkmate/stalemate)
+- `fen_to_pgn.c` - Standalone FEN to PGN conversion utility
+  - Reads FEN position files and converts to PGN format
+  - Creates output files with .pgn extension matching input filename
+  - Independent executable built alongside main chess game
 
 ### Key Features Implementation
 1. **Board Representation**: 8x8 array with piece type and color
@@ -236,7 +249,8 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - Compiler: GCC with C99 standard
 - Dependencies: Stockfish chess engine
 - Platform: POSIX-compatible (macOS/Linux)
-- Build system: Make
+- Build system: Make (builds both chess game and fen_to_pgn utility)
+- Executables: `chess` (main game), `fen_to_pgn` (conversion utility)
 
 ## Complete Development History
 

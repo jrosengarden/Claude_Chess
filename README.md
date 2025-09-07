@@ -21,6 +21,7 @@ A complete chess implementation in C featuring:
 - **AI Integration**: Uses Stockfish engine for intelligent computer moves
 - **Game State Detection**: Detects checkmate and stalemate conditions
 - **Interactive Commands**: Help, hints, position analysis, undo, and game information
+- **FEN to PGN Utility**: Standalone tool to convert FEN position files to PGN format
 
 ## Requirements
 
@@ -46,6 +47,7 @@ A complete chess implementation in C featuring:
    ```bash
    make
    ```
+   This builds both the main chess game (`chess`) and the FEN to PGN utility (`fen_to_pgn`).
 
 3. **Run the game**:
    ```bash
@@ -56,6 +58,12 @@ A complete chess implementation in C featuring:
    # Run with debug output
    ./chess DEBUG
    ```
+
+4. **Use the FEN to PGN utility**:
+   ```bash
+   ./fen_to_pgn
+   ```
+   The utility will prompt for a filename and create a PGN file with the same base name.
 
 ## How to Play
 
@@ -140,7 +148,8 @@ Tests are designed for regression testing to ensure castling functionality remai
 - `chess.h/chess.c` - Core chess logic and move validation
 - `stockfish.h/stockfish.c` - Stockfish AI engine integration  
 - `main.c` - Game loop and user interface
-- `Makefile` - Build configuration
+- `fen_to_pgn.c` - Standalone FEN to PGN conversion utility
+- `Makefile` - Build configuration (builds both chess game and fen_to_pgn utility)
 - `test_castling.sh` - Automated test suite for castling functionality
 - `CLAUDE.md` - Development notes and technical documentation
 
