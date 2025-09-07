@@ -5,3 +5,4 @@ Claude_Chess.code-workspace
 *.pgn
 chess
 fen_to_pgn
+fen_to_pgn.dSYM/
