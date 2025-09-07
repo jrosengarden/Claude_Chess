@@ -191,7 +191,6 @@ make clean             # Clean build artifacts for both executables
   - Raw Stockfish move strings
   - Parsed move coordinates
   - AI communication details
-  - Additional FEN logging confirmation messages
 
 ## Technical Architecture Details
 
@@ -301,12 +300,13 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - **Fixed FEN malloc error**: Removed incorrect `free()` call on static buffer returned by `board_to_fen()`
 - ✅ **FEN Position Logging**: Complete automatic FEN position logging after every half-move
   - Creates timestamped FEN log file for each game session: `CHESS_mmddyy_HHMMSS.fen`
-  - Appends each board state to session log file automatically (no longer DEBUG-only)
+  - Appends each board state to session log file automatically after every half-move
   - File contains complete game history with one FEN position per line for analysis
   - Always enabled for all game sessions to maintain comprehensive game records
-  - Shows confirmation message "Debug: FEN appended to [filename]" in DEBUG mode only
+  - No debug messages - operates silently in background for clean gameplay
+  - FEN files are never deleted - each new game creates a new timestamped file
   - Enables precise analysis of board states and game progression
-  - Location: `generate_fen_filename()` function in main.c:35-47, `save_fen_log()` function in main.c:56-70
+  - Location: `generate_fen_filename()` function in main.c:35-47, `save_fen_log()` function in main.c:56-64
 - ✅ **FEN_TO_PGN Utility Correction**: Fixed compatibility with new FEN logging system
   - Removed hardcoded starting position that was compensating for missing initial position
   - Now uses first FEN line from file as starting position (proper behavior)

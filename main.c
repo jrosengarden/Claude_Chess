@@ -59,14 +59,8 @@ void save_fen_log(ChessGame *game) {
     if (fen_file) {
         fprintf(fen_file, "%s\n", fen);
         fclose(fen_file);
-        if (debug_mode) {
-            printf("Debug: FEN appended to %s\n", fen_log_filename);
-        }
-    } else {
-        if (debug_mode) {
-            printf("Debug: Failed to save FEN to %s\n", fen_log_filename);
-        }
     }
+    // Note: FEN logging is always enabled - no debug messages needed
 }
 
 /**

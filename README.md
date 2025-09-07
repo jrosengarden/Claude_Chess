@@ -21,6 +21,7 @@ A complete chess implementation in C featuring:
 - **AI Integration**: Uses Stockfish engine for intelligent computer moves
 - **Game State Detection**: Detects checkmate and stalemate conditions
 - **Interactive Commands**: Help, hints, position analysis, undo, and game information
+- **FEN Logging**: FEN logging to file (based on date & time at game start) for all moves
 - **FEN to PGN Utility**: Standalone tool to convert FEN position files to PGN format (compatible with new FEN logging)
 
 ## Requirements
@@ -118,7 +119,8 @@ Every game automatically creates a timestamped FEN log file:
 - **Filename format**: `CHESS_mmddyy_HHMMSS.fen` (e.g., `CHESS_090725_143022.fen`)
 - **Complete game history**: Each board state is appended after every half-move (one FEN per line)  
 - **Session tracking**: Each game gets its own unique timestamped log file
-- **Always enabled**: Available for all games for analysis and review
+- **Always enabled**: Available for all games for analysis and review - operates silently in background
+- **Never deleted**: FEN files persist after games end - new games create new timestamped files
 - **FEN to PGN compatible**: Files include initial position and work directly with the conversion utility
 - Enables step-by-step examination of game progression and position analysis
 
@@ -128,7 +130,6 @@ Run the game with `./chess DEBUG` to enable debug output that shows:
 - Raw Stockfish move strings (e.g., "e7e5") 
 - Parsed move coordinates for AI moves and hints
 - Additional diagnostic information during gameplay
-- FEN logging confirmation messages
 
 This is useful for development and troubleshooting engine communication.
 
