@@ -1,17 +1,23 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99 -g
 TARGET = chess
+FEN_TARGET = fen_to_pgn
 SOURCES = main.c chess.c stockfish.c
 OBJECTS = $(SOURCES:.c=.o)
 
+all: $(TARGET) $(FEN_TARGET)
+
 $(TARGET): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(TARGET)
+
+$(FEN_TARGET): fen_to_pgn.c
+	$(CC) $(CFLAGS) fen_to_pgn.c -o $(FEN_TARGET)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f $(OBJECTS) $(TARGET) $(FEN_TARGET)
 
 install-deps:
 	@echo "Installing Stockfish..."
@@ -32,4 +38,4 @@ install-deps:
 run: $(TARGET)
 	./$(TARGET)
 
-.PHONY: clean install-deps run
+.PHONY: clean install-deps run all
