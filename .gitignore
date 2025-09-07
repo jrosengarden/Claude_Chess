@@ -1,3 +1,4 @@
 *.o
 .obsidian/
 Claude_Chess.code-workspace
+debug_position.fen
