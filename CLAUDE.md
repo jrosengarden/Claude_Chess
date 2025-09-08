@@ -113,7 +113,7 @@ make clean             # Clean build artifacts for all executables
 - **Next Major Feature: Complete Chess Rules Implementation**
   - ✅ Priority 1: Castling (kingside and queenside) - COMPLETED
   - ✅ Priority 1b: FEN to PGN conversion utility - COMPLETED
-  - Priority 2: Draw and resign commands
+  - ✅ Priority 2: Resign command - COMPLETED
   - Priority 3: 50-move rule implementation for automatic draw detection
   - Priority 4: En passant capture
   - Priority 5: Pawn promotion
@@ -135,7 +135,6 @@ make clean             # Clean build artifacts for all executables
 - `title` - Re-display game title and startup information (with pause)
 - `setup` - Setup custom board position from FEN string (NEW, with pause)
 - `undo` - Undo last move pair (White + AI moves) - single level only (with pause)
-- `draw` - Offer/claim a draw (NEW - to be implemented)
 - `resign` - Resign the game (NEW - to be implemented)
 - `quit` - Exit the game
 - `e2 e4` - Move from e2 to e4 (with pause after move confirmation)
@@ -155,7 +154,7 @@ make clean             # Clean build artifacts for all executables
 ### Active Development Focus 
 - **Current Priority**: Implement remaining core chess rules
   - ✅ **Castling**: Complete and verified working
-  - **Next**: Draw and resign commands implementation
+  - ✅ **Resign**: Complete and verified working
   - **Next**: 50-move rule automatic draw detection
   - **Next**: En passant capture implementation
   - **Next**: Pawn promotion implementation
@@ -164,7 +163,7 @@ make clean             # Clean build artifacts for all executables
 
 #### Immediate Priority (Core Chess Rules)
 - ✅ **Castling support** (kingside and queenside) - **COMPLETE AND VERIFIED** 
-- **Draw and resign commands** - HIGH PRIORITY
+- ✅ **Resign command** - **COMPLETE AND VERIFIED**
 - **50-move rule implementation** - HIGH PRIORITY (automatic draw detection)
 - **En passant capture support** - HIGH PRIORITY  
 - **Pawn promotion handling** - HIGH PRIORITY
@@ -188,6 +187,7 @@ make clean             # Clean build artifacts for all executables
 - Chess clock implementation with time controls (e.g., `go wtime/btime`)
 - Infinite search with manual stop capability
 - Dynamic search depth based on position complexity
+- **Threefold repetition automatic draw** - LOW PRIORITY (automatic draw detection when same position occurs three times)
 
 #### Implementation Order Rationale
 **Why Core Chess Rules Before PGN:**

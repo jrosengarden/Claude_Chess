@@ -188,6 +188,7 @@ void print_help() {
     printf("Type 'title' to re-display the game title and info screen\n");
     printf("Type 'setup' to setup a custom board position from FEN string\n");
     printf("Type 'undo' to undo the last move pair (White + AI moves)\n");
+    printf("Type 'resign' to resign the game (with confirmation)\n");
     printf("Type 'quit' to exit the game\n");
     printf("Type a piece position to see its possible moves (marked with * or highlighted)\n");
     printf("* = empty square you can move to\n");
@@ -331,6 +332,40 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         printf("Press Enter to continue...");
         getchar();
         return;
+    }
+    
+    if (strcmp(input, "resign") == 0 || strcmp(input, "RESIGN") == 0) {
+        printf("\nYou are indicating that you are resigning the game. Are you sure?\n");
+        printf("Type 'YES' to resign or 'NO' to cancel: ");
+        fflush(stdout);
+        
+        char confirmation[10];
+        if (!fgets(confirmation, sizeof(confirmation), stdin)) {
+            printf("Failed to read confirmation.\n");
+            printf("Press Enter to continue...");
+            getchar();
+            return;
+        }
+        
+        // Remove newline character
+        confirmation[strcspn(confirmation, "\n")] = '\0';
+        
+        if (strcmp(confirmation, "YES") == 0 || strcmp(confirmation, "yes") == 0) {
+            printf("\n*** WHITE RESIGNS! BLACK WINS! ***\n");
+            printf("Game ended by resignation.\n");
+            
+            // Convert FEN log to PGN before exiting
+            convert_fen_to_pgn();
+            
+            printf("Press Enter to exit...");
+            getchar();
+            exit(0);
+        } else {
+            printf("\nResignation cancelled. Game continues.\n");
+            printf("Press Enter to continue...");
+            getchar();
+            return;
+        }
     }
     
     if (strcmp(input, "setup") == 0 || strcmp(input, "SETUP") == 0) {
