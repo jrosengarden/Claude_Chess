@@ -288,6 +288,9 @@ while ensuring code quality.
    installed
 3. **Permission errors**: Ensure the compiled binary has execute 
    permissions
+4. **Testing timeout issues on macOS**: The testing script requires 
+   `gtimeout` (from GNU coreutils) instead of the standard `timeout` 
+   command. Install with `brew install coreutils` if needed.
 
 ## Development
 

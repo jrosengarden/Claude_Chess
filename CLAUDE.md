@@ -225,6 +225,7 @@ make clean             # Clean build artifacts for all executables and debug pro
   - ✅ **Compilation Tests**: `test_compile_only.sh` verifies builds work correctly  
   - ✅ **Session Crash Issue Resolved**: No more crashes from excessive test output
   - ✅ **FEN Functionality Tests**: Added 3 micro-tests for FEN validation, parsing, and character conversion
+  - ✅ **macOS Compatibility Fix**: `test_compile_only.sh` uses `gtimeout` instead of `timeout` for cross-platform compatibility (both Intel and ARM Macs). Linux systems typically use `timeout`, while macOS requires `gtimeout` from GNU coreutils.
 - ✅ Compilation successful  
 - ✅ Basic gameplay tested
 - ✅ AI integration verified

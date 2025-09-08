@@ -38,7 +38,7 @@ echo "TEST 3: Basic functionality check"
 echo "Running chess with immediate quit (minimal output)..."
 
 # Create minimal test that just starts and quits immediately
-echo "quit" | timeout 5s ./chess > /dev/null 2>&1
+echo "quit" | gtimeout 5s ./chess > /dev/null 2>&1
 exit_code=$?
 
 if [ $exit_code -eq 0 ] || [ $exit_code -eq 124 ]; then  # 0=success, 124=timeout (both OK)
