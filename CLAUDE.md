@@ -103,7 +103,7 @@ make clean             # Clean build artifacts for all executables
   - `fen` command displays FEN notation with pause  
   - `title` command added to re-display greeting screen (NEW)
   - `undo` command added to revert last move pair (NEW)
-  - Piece position lookup (e.g., "e2") shows moves with pause
+  - Piece position lookup (e.g., "e2") shows moves with pause (using * and highlighted pieces with inverted colors)
 - ✅ **FEN Command**: Added `fen` command to display current board position in FEN notation
   - Location: `main.c:114-118`
   - Fixed malloc error by removing incorrect `free()` call on static buffer
@@ -136,7 +136,7 @@ make clean             # Clean build artifacts for all executables
 - `undo` - Undo last move pair (White + AI moves) - single level only (with pause)
 - `quit` - Exit the game
 - `e2 e4` - Move from e2 to e4 (with pause after move confirmation)
-- `e2` - Show possible moves from e2 (with pause after display)
+- `e2` - Show possible moves from e2 (with pause after display, using * and highlighted pieces with inverted colors)
 
 ### Known Issues
 - **No current critical issues identified**
@@ -370,7 +370,7 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - **Single-level UNDO functionality for move pairs (White + AI) with FEN file synchronization**
 - **Clean single-board UI with screen clearing after each action**
 - **Interactive command system with proper pause/continue prompts**
-- Visual board with move highlighting (`*` and `[piece]`)
+- Visual board with move highlighting (`*` and highlighted pieces with inverted colors)
 - Capture tracking for both sides
 - Check detection and restricted movement during check
 - Stockfish AI integration via UCI protocol

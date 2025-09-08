@@ -110,7 +110,12 @@ void print_board(ChessGame *game, Position possible_moves[], int move_count) {
             if (is_possible_move && piece_char == '.') {
                 printf("* ");
             } else if (is_possible_move) {
-                printf("[%c]", piece_char);
+                // Capturable piece - use reverse/inverted colors for highlighting
+                if (piece_char >= 'A' && piece_char <= 'Z') {
+                    printf("\033[7;1;95m%c\033[0m ", piece_char); // Inverted bold magenta for white pieces
+                } else {
+                    printf("\033[7;1;96m%c\033[0m ", piece_char); // Inverted bold cyan for black pieces
+                }
             } else {
                 if (piece_char != '.') {
                     if (piece_char >= 'A' && piece_char <= 'Z') {

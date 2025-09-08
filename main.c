@@ -189,9 +189,9 @@ void print_help() {
     printf("Type 'setup' to setup a custom board position from FEN string\n");
     printf("Type 'undo' to undo the last move pair (White + AI moves)\n");
     printf("Type 'quit' to exit the game\n");
-    printf("Type a piece position to see its possible moves (marked with * or [])\n");
+    printf("Type a piece position to see its possible moves (marked with * or highlighted)\n");
     printf("* = empty square you can move to\n");
-    printf("[piece] = piece you can capture\n\n");
+    printf("highlighted piece = piece you can capture\n\n");
 }
 
 bool has_legal_moves(ChessGame *game, Color color) {

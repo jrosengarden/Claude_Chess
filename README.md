@@ -18,7 +18,7 @@ A complete chess implementation in C featuring:
   (White + AI) with automatic FEN log synchronization
 - **Visual Board**: Clear ASCII representation with coordinates (a-h, 1-8)
 - **Move Visualization**: Shows possible moves with `*` for empty squares 
-  and `[piece]` for captures
+  and highlighted pieces for captures
 - **Capture Tracking**: Displays "Black Has Captured:" and "White Has 
   Captured:" with color-coded labels (ordered to match board layout)
 - **Check Protection**: When king is in check, only allows moves that 
@@ -103,7 +103,7 @@ A complete chess implementation in C featuring:
    highlighted moves on the board.
 7. **Special Displays**:
    - `*` = Empty square you can move to
-   - `[piece]` = Enemy piece you can capture
+   - highlighted piece = Enemy piece you can capture (inverted colors)
    - Check warnings appear when your king is threatened
 
 ## Game Controls
