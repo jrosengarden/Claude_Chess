@@ -3,10 +3,11 @@ CFLAGS = -Wall -Wextra -std=c99 -g
 TARGET = chess
 FEN_TARGET = fen_to_pgn
 MICROTEST_TARGET = micro_test
+DEBUG_TARGETS = debug_position debug_castling debug_input debug_move debug_castle_input debug_queenside
 SOURCES = main.c chess.c stockfish.c
 OBJECTS = $(SOURCES:.c=.o)
 
-all: $(TARGET) $(FEN_TARGET) $(MICROTEST_TARGET)
+all: $(TARGET) $(FEN_TARGET) $(MICROTEST_TARGET) $(DEBUG_TARGETS)
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(TARGET)
@@ -21,7 +22,8 @@ $(MICROTEST_TARGET): micro_test.c chess.o
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJECTS) $(TARGET) $(FEN_TARGET) $(MICROTEST_TARGET)
+	rm -f $(OBJECTS) $(TARGET) $(FEN_TARGET) $(MICROTEST_TARGET) $(DEBUG_TARGETS)
+	rm -rf *.dSYM
 
 install-deps:
 	@echo "Installing Stockfish..."
@@ -45,4 +47,28 @@ run: $(TARGET)
 test: $(MICROTEST_TARGET)
 	./$(MICROTEST_TARGET)
 
-.PHONY: clean install-deps run all test
+# Debug programs compilation (cross-platform compatible)
+debug: $(DEBUG_TARGETS)
+
+debug_position: debug_position.c chess.o
+	$(CC) $(CFLAGS) debug_position.c chess.o -o debug_position
+
+debug_castling: debug_castling.c chess.o
+	$(CC) $(CFLAGS) debug_castling.c chess.o -o debug_castling
+
+debug_input: debug_input.c chess.o
+	$(CC) $(CFLAGS) debug_input.c chess.o -o debug_input
+
+debug_move: debug_move.c chess.o
+	$(CC) $(CFLAGS) debug_move.c chess.o -o debug_move
+
+debug_castle_input: debug_castle_input.c chess.o
+	$(CC) $(CFLAGS) debug_castle_input.c chess.o -o debug_castle_input
+
+debug_queenside: debug_queenside.c chess.o
+	$(CC) $(CFLAGS) debug_queenside.c chess.o -o debug_queenside
+
+clean-debug:
+	rm -f $(DEBUG_TARGETS)
+
+.PHONY: clean install-deps run all test debug clean-debug

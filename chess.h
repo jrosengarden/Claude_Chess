@@ -88,31 +88,6 @@ typedef struct {
     int count;                  // Number of pieces currently captured
 } CapturedPieces;
 
-/**
- * GameState - Complete snapshot of game state for undo functionality
- * Contains all information needed to restore the game to a previous state
- * This is a copy of the main game state used for single-level undo
- */
-typedef struct {
-    Piece board[BOARD_SIZE][BOARD_SIZE];  // Complete board state
-    Color current_player;                 // Whose turn it is
-    CapturedPieces white_captured;        // Pieces captured by White
-    CapturedPieces black_captured;        // Pieces captured by Black
-    
-    // Castling eligibility tracking (for future castling implementation)
-    bool white_king_moved;     // Has White king moved (affects castling)
-    bool black_king_moved;     // Has Black king moved (affects castling)
-    bool white_rook_a_moved;   // Has White queenside rook moved
-    bool white_rook_h_moved;   // Has White kingside rook moved  
-    bool black_rook_a_moved;   // Has Black queenside rook moved
-    bool black_rook_h_moved;   // Has Black kingside rook moved
-    
-    // King position tracking (for efficient check detection)
-    Position white_king_pos;   // Current position of White king
-    Position black_king_pos;   // Current position of Black king
-    
-    bool in_check[2];         // Check status for each player [WHITE, BLACK]
-} GameState;
 
 /**
  * ChessGame - Main game state structure
@@ -142,9 +117,6 @@ typedef struct {
     Move last_move;           // Most recent move made (for move validation)
     bool in_check[2];         // Check status [WHITE, BLACK]
     
-    // Undo system (single-level undo of move pairs)
-    GameState saved_state;    // Saved state for undo functionality
-    bool can_undo;           // True if undo is available
 } ChessGame;
 
 /* ========================================================================
@@ -181,10 +153,6 @@ char piece_to_char(Piece piece);  // Convert piece to display character
 Position char_to_position(char *input);  // Convert algebraic notation (e.g. "e4") to Position
 char *position_to_string(Position pos);  // Convert Position to algebraic notation string
 
-// Undo system functions  
-void save_game_state(ChessGame *game);  // Save current state for undo functionality
-void restore_game_state(ChessGame *game);  // Restore previously saved state  
-bool can_undo_move(ChessGame *game);  // Check if undo is available
 
 // FEN parsing and board setup functions
 bool validate_fen_string(const char* fen);  // Validate FEN string format

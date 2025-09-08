@@ -14,8 +14,8 @@ A complete chess implementation in C featuring:
   capturing, check detection, and castling (kingside and queenside)
 - **Clean Single-Board UI**: Screen clears after each move showing only 
   current game state
-- **Undo Functionality**: Single-level undo to revert the last move pair 
-  (White + AI) with automatic FEN log synchronization
+- **Unlimited Undo Functionality**: Unlimited undo to revert any number of 
+  move pairs using FEN log-based restoration
 - **Visual Board**: Clear ASCII representation with coordinates (a-h, 1-8)
 - **Move Visualization**: Shows possible moves with `*` for empty squares 
   and highlighted pieces for captures
@@ -96,9 +96,9 @@ A complete chess implementation in C featuring:
 4. **Custom Board Setup**: Type `setup` to enter a FEN string and 
    configure any chess position. The game will continue from your custom 
    position with a new FEN log file.
-5. **Undo Moves**: Type `undo` to revert both your last move and the AI's 
-   response. Only one level of undo is supported. The FEN log file is 
-   automatically synchronized to match the reverted game state.
+5. **Unlimited Undo**: Type `undo` to revert any number of move pairs. 
+   You can undo back to the beginning of the game. The system will ask 
+   how many move pairs to undo if multiple are available.
 6. **Viewing Possible Moves**: Enter just a position (e.g., `e2`) to see 
    highlighted moves on the board.
 7. **Special Displays**:
@@ -114,8 +114,8 @@ A complete chess implementation in C featuring:
 - `title` - Re-display the game title and startup information
 - `setup` - Setup custom board position from FEN string (creates new 
   FEN log file)
-- `undo` - Undo the last move pair (White + AI moves) with FEN log 
-  synchronization - single level only
+- `undo` - Unlimited undo of move pairs using FEN log restoration 
+  (can undo back to game start)
 - `resign` - Resign the game (with YES/NO confirmation) - triggers 
   automatic PGN generation
 - `quit` - Exit the game

@@ -5,12 +5,13 @@
 make                    # Compile chess game, fen_to_pgn utility, and micro_test framework
 make run               # Compile and run the chess game
 make test              # Run safe micro-testing framework
+make debug             # Compile all debug programs for development testing
 ./chess                # Run chess game directly
 ./chess DEBUG          # Run chess game with debug output
 ./fen_to_pgn           # Run FEN to PGN conversion utility
 ./test_compile_only.sh  # Run safe compilation tests
 make install-deps      # Install Stockfish dependency
-make clean             # Clean build artifacts for all executables
+make clean             # Clean build artifacts for all executables and debug programs
 ```
 
 ## Project Structure
@@ -37,6 +38,15 @@ make clean             # Clean build artifacts for all executables
 ## Current Development Status
 
 ### Recently Completed  
+- ✅ **Comprehensive Makefile Enhancement**: Complete build system overhaul with debug program integration
+  - Added all debug programs (debug_castle_input, debug_castling, debug_input, debug_move, debug_position, debug_queenside) to build system
+  - Integrated debug programs into ALL target for complete project compilation
+  - Added debug programs to CLEAN target for thorough artifact removal
+  - Created individual targets for each debug program with proper dependencies
+  - Optimized compilation with shared object files (chess.o, stockfish.o) for efficient builds
+  - Enhanced make clean functionality to remove all executables and object files
+  - Improved build performance by reusing compiled objects across all targets
+  - Location: Completely restructured Makefile with comprehensive target management
 - ✅ **FEN Log Synchronization for Undo**: Complete FEN file synchronization with undo functionality
   - Added `truncate_fen_log_for_undo()` function to remove last 2 FEN entries when undo is executed
   - Ensures FEN log file stays perfectly synchronized with game state after undo operations
@@ -85,13 +95,13 @@ make clean             # Clean build artifacts for all executables
   - Professional documentation standards established for future development
   - Files documented: `chess.h`, `chess.c`, `main.c`, `stockfish.c`
   - **Going Forward**: All new code and features will include comprehensive comments
-- ✅ **UNDO Feature**: Complete single-level undo system for move pairs with FEN synchronization
-  - Saves complete game state before White's move (board, captured pieces, king positions, castling rights, check status)
-  - `undo` command restores previous game state, undoing both White's move and AI's response
-  - FEN log file is automatically synchronized by removing last 2 entries to match reverted game state
-  - Single-level undo only - after using undo, new moves must be made before undo becomes available again
-  - New structures: `GameState` struct, `can_undo` flag, save/restore functions
-  - Location: New functions in `chess.c`, command handler in `main.c`, FEN sync function in `main.c`, updated help text
+- ✅ **UNLIMITED UNDO Feature**: Complete FEN-based unlimited undo system
+  - Unlimited undo capability - can undo any number of move pairs back to game start
+  - FEN log-based restoration - uses existing FEN logging for accurate game state restoration
+  - Interactive undo count selection - system asks how many move pairs to undo if multiple available
+  - Automatic FEN file synchronization - removes appropriate number of FEN entries during undo
+  - Completely replaced old GameState-based single-level system with cleaner FEN-based approach
+  - Location: New functions in `main.c` (count_available_undos, truncate_fen_log_by_moves, restore_from_fen_log)
 - ✅ **UI Cleanup - Single Board Interface**: Complete overhaul of user interface
   - Screen clears after each move/command showing only current game state
   - "Press Enter to continue" prompts added throughout for user control
@@ -134,7 +144,7 @@ make clean             # Clean build artifacts for all executables
 - `fen` - Display current board position in FEN notation (with pause)
 - `title` - Re-display game title and startup information (with pause)
 - `setup` - Setup custom board position from FEN string (NEW, with pause)
-- `undo` - Undo last move pair (White + AI moves) - single level only (with pause)
+- `undo` - Unlimited undo of move pairs back to game start (with pause)
 - `resign` - Resign the game (NEW - to be implemented)
 - `quit` - Exit the game
 - `e2 e4` - Move from e2 to e4 (with pause after move confirmation)
@@ -323,13 +333,14 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
   - **stockfish.c**: AI integration with UCI protocol and process management details
   - Established professional documentation standards for all future development
   - All new features and modifications will include comprehensive comments
-- **UNDO FUNCTIONALITY**: Complete single-level undo system implementation
-  - Added `GameState` struct to capture complete game state snapshots (chess.h)
-  - Added `save_game_state()` and `restore_game_state()` functions (chess.c)
-  - Added `can_undo` flag to ChessGame struct to track undo availability
-  - Integrated state saving before White's moves and undo command in main.c
-  - Updated help text and all documentation to include undo feature
-  - Tested and verified: undoes both White's move and AI's response as a pair
+- **UNLIMITED UNDO FUNCTIONALITY**: Complete FEN-based unlimited undo system implementation
+  - Removed old GameState struct and related functions for cleaner codebase
+  - Implemented FEN log-based restoration using existing setup_board_from_fen() function
+  - Added count_available_undos() to determine available undo moves from FEN file
+  - Added truncate_fen_log_by_moves() for flexible FEN file truncation
+  - Added restore_from_fen_log() for game state restoration from FEN entries
+  - Interactive undo system - asks user how many move pairs to undo if multiple available
+  - Tested and verified: can undo unlimited move pairs back to game start
 - **MAJOR UI OVERHAUL**: Complete redesign of user interface for clean, single-board experience
   - Added screen clearing after every move and command using existing `clear_screen()` function
   - Implemented "Press Enter to continue" prompts throughout the application
@@ -373,7 +384,7 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - **Automatic PGN generation on game exit (quit, checkmate, stalemate)**
 - **Custom board setup using FEN notation with SETUP command**
 - **Comprehensive code documentation across entire codebase**
-- **Single-level UNDO functionality for move pairs (White + AI) with FEN file synchronization**
+- **Unlimited UNDO functionality using FEN log-based restoration**
 - **Clean single-board UI with screen clearing after each action**
 - **Interactive command system with proper pause/continue prompts**
 - Visual board with move highlighting (`*` and highlighted pieces with inverted colors)

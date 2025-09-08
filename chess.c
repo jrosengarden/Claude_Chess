@@ -57,7 +57,6 @@ void init_board(ChessGame *game) {
     // Initialize check status and undo system
     game->in_check[0] = false;  // White not in check
     game->in_check[1] = false;  // Black not in check  
-    game->can_undo = false;     // No moves to undo yet
     
     // Define starting piece arrangements for back ranks
     // Standard chess setup: Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook
@@ -584,81 +583,8 @@ char *position_to_string(Position pos) {
     return str;
 }
 
-/**
- * Save current game state for undo functionality
- * Creates a complete snapshot of the game state including board position,
- * captured pieces, king positions, and all game flags. This enables
- * single-level undo of move pairs.
- * 
- * @param game Current game state to save
- */
-void save_game_state(ChessGame *game) {
-    // Copy the current board state
-    for (int row = 0; row < BOARD_SIZE; row++) {
-        for (int col = 0; col < BOARD_SIZE; col++) {
-            game->saved_state.board[row][col] = game->board[row][col];
-        }
-    }
-    
-    // Save game state variables
-    game->saved_state.current_player = game->current_player;
-    game->saved_state.white_captured = game->white_captured;
-    game->saved_state.black_captured = game->black_captured;
-    game->saved_state.white_king_moved = game->white_king_moved;
-    game->saved_state.black_king_moved = game->black_king_moved;
-    game->saved_state.white_rook_a_moved = game->white_rook_a_moved;
-    game->saved_state.white_rook_h_moved = game->white_rook_h_moved;
-    game->saved_state.black_rook_a_moved = game->black_rook_a_moved;
-    game->saved_state.black_rook_h_moved = game->black_rook_h_moved;
-    game->saved_state.white_king_pos = game->white_king_pos;
-    game->saved_state.black_king_pos = game->black_king_pos;
-    game->saved_state.in_check[WHITE] = game->in_check[WHITE];
-    game->saved_state.in_check[BLACK] = game->in_check[BLACK];
-    
-    // Mark that undo is now available
-    game->can_undo = true;
-}
 
-/**
- * Restore previously saved game state for undo functionality
- * Restores the complete game state from the saved snapshot, effectively
- * undoing all moves made since the last save. Clears undo availability
- * after restoration (single-level undo).
- * 
- * @param game Current game state (will be overwritten with saved state)
- */
-void restore_game_state(ChessGame *game) {
-    if (!game->can_undo) return;
-    
-    // Restore the board state
-    for (int row = 0; row < BOARD_SIZE; row++) {
-        for (int col = 0; col < BOARD_SIZE; col++) {
-            game->board[row][col] = game->saved_state.board[row][col];
-        }
-    }
-    
-    // Restore game state variables
-    game->current_player = game->saved_state.current_player;
-    game->white_captured = game->saved_state.white_captured;
-    game->black_captured = game->saved_state.black_captured;
-    game->white_king_moved = game->saved_state.white_king_moved;
-    game->black_king_moved = game->saved_state.black_king_moved;
-    game->white_rook_a_moved = game->saved_state.white_rook_a_moved;
-    game->white_rook_h_moved = game->saved_state.white_rook_h_moved;
-    game->black_rook_a_moved = game->saved_state.black_rook_a_moved;
-    game->black_rook_h_moved = game->saved_state.black_rook_h_moved;
-    game->white_king_pos = game->saved_state.white_king_pos;
-    game->black_king_pos = game->saved_state.black_king_pos;
-    game->in_check[WHITE] = game->saved_state.in_check[WHITE];
-    game->in_check[BLACK] = game->saved_state.in_check[BLACK];
-    
-    // Clear undo availability (single level undo)
-    game->can_undo = false;
-}
 
-bool can_undo_move(ChessGame *game) {
-    return game->can_undo;
-}
 
 /* ========================================================================
  * FEN PARSING AND BOARD SETUP FUNCTIONS
@@ -832,8 +758,6 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
     game->in_check[WHITE] = is_in_check(game, WHITE);
     game->in_check[BLACK] = is_in_check(game, BLACK);
     
-    // Reset undo system (can't undo to before setup)
-    game->can_undo = false;
     
     return true;
 }

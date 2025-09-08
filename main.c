@@ -86,7 +86,31 @@ void reset_fen_log_for_setup(ChessGame *game) {
  * When undo is executed, both White's move and AI's response are reverted,
  * so we need to remove the last 2 FEN entries to keep the file synchronized.
  */
-void truncate_fen_log_for_undo() {
+/**
+ * Count available undo moves from FEN log file
+ * Returns number of move pairs that can be undone (each pair = White + AI move)
+ */
+int count_available_undos() {
+    FILE *file = fopen(fen_log_filename, "r");
+    if (!file) return 0;
+    
+    int line_count = 0;
+    char buffer[256];
+    
+    while (fgets(buffer, sizeof(buffer), file)) {
+        line_count++;
+    }
+    fclose(file);
+    
+    // Each move pair requires 2 FEN entries, but we need at least 1 entry to remain (starting position)
+    return (line_count > 2) ? (line_count - 1) / 2 : 0;
+}
+
+/**
+ * Truncate FEN log file by specified number of move pairs
+ * Each move pair removes 2 FEN entries (White move + AI response)
+ */
+void truncate_fen_log_by_moves(int move_pairs_to_undo) {
     FILE *file = fopen(fen_log_filename, "r");
     if (!file) return;
     
@@ -101,9 +125,10 @@ void truncate_fen_log_for_undo() {
     }
     fclose(file);
     
-    // If we have at least 2 lines to remove, truncate by 2
-    if (line_count >= 2) {
-        line_count -= 2;
+    // Remove 2 lines per move pair to undo
+    int lines_to_remove = move_pairs_to_undo * 2;
+    if (line_count > lines_to_remove) {
+        line_count -= lines_to_remove;
         
         // Rewrite the file with the truncated content
         file = fopen(fen_log_filename, "w");
@@ -114,6 +139,32 @@ void truncate_fen_log_for_undo() {
             fclose(file);
         }
     }
+}
+
+/**
+ * Restore game state from last FEN entry in log file
+ * Reads the FEN file and uses the last entry to restore game state
+ */
+bool restore_from_fen_log(ChessGame *game) {
+    FILE *file = fopen(fen_log_filename, "r");
+    if (!file) return false;
+    
+    char last_fen[256] = "";
+    char buffer[256];
+    
+    // Read all lines to find the last one
+    while (fgets(buffer, sizeof(buffer), file)) {
+        strcpy(last_fen, buffer);
+    }
+    fclose(file);
+    
+    // Remove newline character
+    last_fen[strcspn(last_fen, "\n")] = '\0';
+    
+    if (strlen(last_fen) == 0) return false;
+    
+    // Restore game state from FEN
+    return setup_board_from_fen(game, last_fen);
 }
 
 /**
@@ -187,7 +238,7 @@ void print_help() {
     printf("Type 'fen' to display current board position in FEN notation\n");
     printf("Type 'title' to re-display the game title and info screen\n");
     printf("Type 'setup' to setup a custom board position from FEN string\n");
-    printf("Type 'undo' to undo the last move pair (White + AI moves)\n");
+    printf("Type 'undo' for unlimited undo (undo any number of move pairs)\n");
     printf("Type 'resign' to resign the game (with confirmation)\n");
     printf("Type 'quit' to exit the game\n");
     printf("Type a piece position to see its possible moves (marked with * or highlighted)\n");
@@ -322,10 +373,41 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     }
     
     if (strcmp(input, "undo") == 0 || strcmp(input, "UNDO") == 0) {
-        if (can_undo_move(game)) {
-            restore_game_state(game);
-            truncate_fen_log_for_undo();  // Remove last 2 FEN entries to sync with undo
-            printf("\nMove pair undone! Restored to previous position.\n");
+        int available_undos = count_available_undos();
+        
+        if (available_undos > 0) {
+            // Ask how many move pairs to undo for unlimited undo
+            if (available_undos > 1) {
+                printf("\nYou can undo up to %d move pairs. How many would you like to undo? (1-%d): ", 
+                       available_undos, available_undos);
+                fflush(stdout);
+                
+                char undo_input[10];
+                if (fgets(undo_input, sizeof(undo_input), stdin)) {
+                    int undo_count = atoi(undo_input);
+                    if (undo_count >= 1 && undo_count <= available_undos) {
+                        truncate_fen_log_by_moves(undo_count);
+                        if (restore_from_fen_log(game)) {
+                            printf("\n%d move pair%s undone! Restored to previous position.\n", 
+                                   undo_count, undo_count > 1 ? "s" : "");
+                        } else {
+                            printf("\nError restoring game state from FEN log.\n");
+                        }
+                    } else {
+                        printf("\nInvalid undo count. Must be between 1 and %d.\n", available_undos);
+                    }
+                } else {
+                    printf("\nFailed to read undo count.\n");
+                }
+            } else {
+                // Single undo available
+                truncate_fen_log_by_moves(1);
+                if (restore_from_fen_log(game)) {
+                    printf("\nMove pair undone! Restored to previous position.\n");
+                } else {
+                    printf("\nError restoring game state from FEN log.\n");
+                }
+            }
         } else {
             printf("\nNo moves to undo!\n");
         }
@@ -466,8 +548,6 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         return;
     }
     
-    // Save game state before making White's move (for undo functionality)
-    save_game_state(game);
     
     if (make_move(game, from, to)) {
         printf("Move made: %s to %s\n", from_str, to_str);
