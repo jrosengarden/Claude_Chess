@@ -117,6 +117,10 @@ typedef struct {
     Move last_move;           // Most recent move made (for move validation)
     bool in_check[2];         // Check status [WHITE, BLACK]
     
+    // FEN move counters
+    int halfmove_clock;       // Number of halfmoves since last pawn move or capture
+    int fullmove_number;      // Number of completed move pairs (increments after Black's move)
+    
 } ChessGame;
 
 /* ========================================================================

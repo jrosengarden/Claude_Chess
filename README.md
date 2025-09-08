@@ -178,6 +178,8 @@ Every game automatically creates a timestamped FEN log file:
   (e.g., `CHESS_090725_143022.fen`)
 - **Complete game history**: Each board state is appended after every 
   half-move (one FEN per line)
+- **Accurate FEN notation**: Includes proper halfmove clock and fullmove 
+  number tracking according to chess standards
 - **Session tracking**: Each game gets its own unique timestamped log file
 - **Always enabled**: Available for all games for analysis and review - 
   operates silently in background
@@ -185,6 +187,8 @@ Every game automatically creates a timestamped FEN log file:
   new timestamped files
 - **Undo synchronization**: When undo command is used, the FEN file is 
   automatically truncated to match the reverted game state
+- **SETUP preservation**: Custom board positions via SETUP command 
+  correctly preserve original halfmove clock and fullmove numbers
 
 ### Automatic PGN Generation
 When any game ends (quit, checkmate, or stalemate), the system 
@@ -206,6 +210,19 @@ For older FEN files or manual conversion, use the standalone utility:
   work directly with the conversion utility
 - Enables step-by-step examination of game progression and position 
   analysis
+
+### FEN Notation Accuracy
+The game now implements complete FEN notation standards:
+- **Halfmove Clock**: Automatically tracks halfmoves since last pawn move 
+  or capture (resets to 0 on pawn moves/captures, increments on piece moves)
+- **Fullmove Number**: Correctly increments after each Black move 
+  (standard chess move pair counting)
+- **SETUP Command**: Preserves exact halfmove clock and fullmove numbers 
+  from input FEN strings (no longer resets to "0 1")
+- **Standards Compliant**: All generated FEN strings follow official 
+  Forsyth-Edwards Notation specification
+- **50-Move Rule Ready**: Halfmove clock tracking prepares for future 
+  automatic draw detection implementation
 
 ## Debug Mode
 

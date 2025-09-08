@@ -26,18 +26,28 @@ make clean             # Clean build artifacts for all executables and debug pro
 ## Key Function Entry Points
 - `get_possible_moves()` - Main move generation (chess.c)
 - `is_valid_move()` - Move validation with check prevention (chess.c)
-- `make_move()` - Execute move and update game state (chess.c)
+- `make_move()` - Execute move and update game state with FEN counter tracking (chess.c)
 - `is_in_check()` - Check detection (chess.c)
 - `get_best_move()` - AI move request via Stockfish (stockfish.c)
-- `board_to_fen()` - Convert board to FEN notation (stockfish.c)
+- `board_to_fen()` - Convert board to FEN notation with accurate counters (stockfish.c)
 - `validate_fen_string()` - FEN string format validation (chess.c)
-- `setup_board_from_fen()` - Parse FEN and configure game state (chess.c)
+- `setup_board_from_fen()` - Parse FEN and configure game state preserving counters (chess.c)
 - `reset_fen_log_for_setup()` - FEN log file management for SETUP command (main.c)
 - `truncate_fen_log_for_undo()` - FEN file synchronization for undo operations (main.c)
 
 ## Current Development Status
 
 ### Recently Completed  
+- ✅ **FEN Counter Implementation**: Complete halfmove clock and fullmove number tracking
+  - Added `halfmove_clock` and `fullmove_number` fields to ChessGame struct
+  - Implemented proper FEN counter logic in `make_move()` function following chess standards
+  - Halfmove clock resets to 0 on pawn moves or captures, increments on piece moves
+  - Fullmove number increments after Black's move (standard chess move pair counting)
+  - Updated `setup_board_from_fen()` to parse and preserve original halfmove/fullmove values from input FEN
+  - Updated `board_to_fen()` to use stored counters instead of hardcoded "0 1"
+  - Fixed SETUP command bug where custom FEN strings had counters reset to "0 1"
+  - Prepares foundation for future 50-move rule automatic draw detection
+  - Location: ChessGame struct in chess.h, make_move() in chess.c (lines 546-561), setup_board_from_fen() in chess.c (lines 757-776), board_to_fen() in stockfish.c (line 200)
 - ✅ **Comprehensive Makefile Enhancement**: Complete build system overhaul with debug program integration
   - Added all debug programs (debug_castle_input, debug_castling, debug_input, debug_move, debug_position, debug_queenside) to build system
   - Integrated debug programs into ALL target for complete project compilation
@@ -136,6 +146,7 @@ make clean             # Clean build artifacts for all executables and debug pro
 - Move validation: Two-phase validation (generate moves, then filter illegal moves)
 - AI communication: Fork/pipe with Stockfish via UCI protocol
 - Memory management: `board_to_fen()` returns static buffer (do NOT free!)
+- **FEN Counter Tracking**: `halfmove_clock` and `fullmove_number` fields maintain accurate chess notation
 - **Code Documentation**: Comprehensive comments throughout all source files for maintainability
 
 ### Game Commands
@@ -160,12 +171,14 @@ make clean             # Clean build artifacts for all executables and debug pro
   - ✅ Input stream synchronization issues fixed  
   - ✅ UI display issues resolved (commands showing properly)
   - ✅ FEN command malloc error resolved
+  - ✅ SETUP command FEN counter bug resolved (halfmove/fullmove preservation)
 
 ### Active Development Focus 
 - **Current Priority**: Implement remaining core chess rules
   - ✅ **Castling**: Complete and verified working
   - ✅ **Resign**: Complete and verified working
-  - **Next**: 50-move rule automatic draw detection
+  - ✅ **FEN Counter Tracking**: Complete and verified working (foundation for 50-move rule)
+  - **Next**: 50-move rule automatic draw detection (halfmove_clock tracking ready)
   - **Next**: En passant capture implementation
   - **Next**: Pawn promotion implementation
 
@@ -311,6 +324,17 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 ## Complete Development History
 
 ### Recent Changes
+- **FEN COUNTER IMPLEMENTATION**: Complete halfmove clock and fullmove number tracking system
+  - **ChessGame struct enhancement**: Added `halfmove_clock` and `fullmove_number` fields to maintain accurate FEN notation
+  - **make_move() function update**: Implemented proper FEN counter logic following chess standards
+  - **Halfmove clock logic**: Resets to 0 on pawn moves or captures, increments on piece moves
+  - **Fullmove number logic**: Increments after Black's move (standard chess move pair counting)
+  - **setup_board_from_fen() enhancement**: Now parses and preserves original halfmove/fullmove values from input FEN strings
+  - **board_to_fen() correction**: Uses stored counter values instead of hardcoded "0 1"
+  - **SETUP command bug fix**: Custom FEN strings now preserve exact halfmove clock and fullmove numbers from input
+  - **50-move rule preparation**: Halfmove clock tracking provides foundation for future automatic draw detection
+  - **Standards compliance**: All generated FEN strings now follow official Forsyth-Edwards Notation specification
+  - Location: ChessGame struct (chess.h:121-122), make_move() (chess.c:546-561), setup_board_from_fen() (chess.c:757-776), board_to_fen() (stockfish.c:200), init_board() (chess.c:61-63)
 - **FEN LOG SYNCHRONIZATION WITH UNDO**: Complete FEN file synchronization for undo operations
   - **Automatic truncation**: Removes last 2 FEN entries when undo command is executed
   - **Perfect synchronization**: FEN log file now matches game state exactly after undo operations
@@ -414,4 +438,4 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - **Git Repository Management**: Claude Code MUST NOT perform any git operations (commit, push, pull, branch, etc.). User maintains all local and remote repository management personally.
 
 ---
-*Last updated: After implementing FEN log synchronization with undo operations*
+*Last updated: After implementing FEN counter tracking and fixing SETUP command bug*

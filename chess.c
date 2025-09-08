@@ -56,7 +56,11 @@ void init_board(ChessGame *game) {
     
     // Initialize check status and undo system
     game->in_check[0] = false;  // White not in check
-    game->in_check[1] = false;  // Black not in check  
+    game->in_check[1] = false;  // Black not in check
+    
+    // Initialize FEN move counters to standard starting values
+    game->halfmove_clock = 0;    // No halfmoves since start
+    game->fullmove_number = 1;   // First move pair  
     
     // Define starting piece arrangements for back ranks
     // Standard chess setup: Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook
@@ -539,6 +543,23 @@ bool make_move(ChessGame *game, Position from, Position to) {
         }
     }
     
+    // Update FEN move counters according to chess rules
+    bool was_capture = (captured_piece.type != EMPTY);
+    bool was_pawn_move = (moving_piece.type == PAWN);
+    
+    if (was_pawn_move || was_capture) {
+        // Halfmove clock resets to 0 on pawn moves or captures
+        game->halfmove_clock = 0;
+    } else {
+        // Otherwise increment halfmove clock
+        game->halfmove_clock++;
+    }
+    
+    // Fullmove number increments after Black's move (when switching from BLACK to WHITE)
+    if (game->current_player == BLACK) {
+        game->fullmove_number++;
+    }
+    
     game->current_player = (game->current_player == WHITE) ? BLACK : WHITE;
     
     game->in_check[WHITE] = is_in_check(game, WHITE);
@@ -748,6 +769,27 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
                 break;
         }
         ptr++;
+    }
+    
+    // Skip en passant field (not implemented yet)
+    while (*ptr && *ptr == ' ') ptr++;  // Skip spaces
+    while (*ptr && *ptr != ' ') ptr++;  // Skip en passant field
+    
+    // Parse halfmove clock
+    while (*ptr && *ptr == ' ') ptr++;  // Skip spaces
+    if (*ptr && isdigit(*ptr)) {
+        game->halfmove_clock = atoi(ptr);
+        while (*ptr && isdigit(*ptr)) ptr++;  // Skip past the number
+    } else {
+        game->halfmove_clock = 0;  // Default value
+    }
+    
+    // Parse fullmove number
+    while (*ptr && *ptr == ' ') ptr++;  // Skip spaces
+    if (*ptr && isdigit(*ptr)) {
+        game->fullmove_number = atoi(ptr);
+    } else {
+        game->fullmove_number = 1;  // Default value
     }
     
     // Clear captured pieces (starting fresh)

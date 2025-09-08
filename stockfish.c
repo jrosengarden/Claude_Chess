@@ -197,7 +197,8 @@ char* board_to_fen(ChessGame *game) {
     }
     if (strlen(castling) == 0) strcpy(castling, "-");
     
-    sprintf(fen, "%s %c %s - 0 1", board_str, active_color, castling);
+    sprintf(fen, "%s %c %s - %d %d", board_str, active_color, castling, 
+            game->halfmove_clock, game->fullmove_number);
     return fen;
 }
 
