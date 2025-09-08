@@ -113,9 +113,10 @@ make clean             # Clean build artifacts for all executables
 - **Next Major Feature: Complete Chess Rules Implementation**
   - ✅ Priority 1: Castling (kingside and queenside) - COMPLETED
   - ✅ Priority 1b: FEN to PGN conversion utility - COMPLETED
-  - Priority 2: En passant capture
-  - Priority 3: Pawn promotion
-  - Priority 4: Enhanced PGN file generation for game history (after core chess rules complete)
+  - Priority 2: Draw and resign commands
+  - Priority 3: 50-move rule implementation for automatic draw detection
+  - Priority 4: En passant capture
+  - Priority 5: Pawn promotion
 - Testing against Stockfish v17 engine
 - Using FEN command for position debugging
 
@@ -134,6 +135,8 @@ make clean             # Clean build artifacts for all executables
 - `title` - Re-display game title and startup information (with pause)
 - `setup` - Setup custom board position from FEN string (NEW, with pause)
 - `undo` - Undo last move pair (White + AI moves) - single level only (with pause)
+- `draw` - Offer/claim a draw (NEW - to be implemented)
+- `resign` - Resign the game (NEW - to be implemented)
 - `quit` - Exit the game
 - `e2 e4` - Move from e2 to e4 (with pause after move confirmation)
 - `e2` - Show possible moves from e2 (with pause after display, using * and highlighted pieces with inverted colors)
@@ -152,14 +155,17 @@ make clean             # Clean build artifacts for all executables
 ### Active Development Focus 
 - **Current Priority**: Implement remaining core chess rules
   - ✅ **Castling**: Complete and verified working
+  - **Next**: Draw and resign commands implementation
+  - **Next**: 50-move rule automatic draw detection
   - **Next**: En passant capture implementation
-  - **Next**: Pawn promotion implementation  
-  - **Future**: PGN file generation after core rules complete
+  - **Next**: Pawn promotion implementation
 
 ### Future Enhancement Opportunities
 
 #### Immediate Priority (Core Chess Rules)
 - ✅ **Castling support** (kingside and queenside) - **COMPLETE AND VERIFIED** 
+- **Draw and resign commands** - HIGH PRIORITY
+- **50-move rule implementation** - HIGH PRIORITY (automatic draw detection)
 - **En passant capture support** - HIGH PRIORITY  
 - **Pawn promotion handling** - HIGH PRIORITY
 
