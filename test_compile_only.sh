@@ -1,5 +1,7 @@
 #!/bin/bash
 
+clear
+
 # SAFE TESTING SCRIPT FOR CLAUDE SESSIONS
 # This script only tests compilation - no game execution that could cause crashes
 # Full functionality testing should be done manually by the user
@@ -50,6 +52,10 @@ echo "=== SAFE TESTING COMPLETE ==="
 echo ""
 echo "NOTE: This script only tests compilation and basic startup."
 echo "For full feature testing (castling, moves, etc.), run:"
-echo "  ./test_castling.sh"
+echo "  ./debug_input  ./debug_move  ./debug_position  ./debug_queenside"
+echo "  ./debug_castle_input  ./debug_castling"
 echo ""
 echo "But ONLY run full tests outside of Claude sessions to prevent crashes."
+echo "Press any key to continue..."
+read -n1 -s; echo
+make clean
