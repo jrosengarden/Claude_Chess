@@ -411,6 +411,7 @@ The game communicates with Stockfish using the Universal Chess Interface (UCI) p
 - **File Headers**: Complete description of file purpose, features, and architecture
 - **Inline Comments**: Complex logic, algorithms, and design decisions explained
 - **README.md Formatting**: All changes to README.md must maintain page width formatting (~80 characters per line) for printability - do not exceed normal page width
+- **Git Repository Management**: Claude Code MUST NOT perform any git operations (commit, push, pull, branch, etc.). User maintains all local and remote repository management personally.
 
 ---
 *Last updated: After implementing FEN log synchronization with undo operations*
