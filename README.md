@@ -116,8 +116,7 @@ A complete chess implementation in C featuring:
   FEN log file)
 - `undo` - Unlimited undo of move pairs using FEN log restoration 
   (can undo back to game start)
-- `resign` - Resign the game (with YES/NO confirmation) - triggers 
-  automatic PGN generation
+- `resign` - Resign the game (with YES/NO confirmation)
 - `quit` - Exit the game
 - `e2 e4` - Move from e2 to e4
 - `e2` - Show possible moves from e2

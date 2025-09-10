@@ -221,7 +221,7 @@ make clean             # Clean build artifacts for all executables and debug
 - `title` - Re-display game title and startup information (with pause)
 - `setup` - Setup custom board position from FEN string (NEW, with pause)
 - `undo` - Unlimited undo of move pairs back to game start (with pause)
-- `resign` - Resign the game (NEW - to be implemented)
+- `resign` - Resign the game (NEW)
 - `quit` - Exit the game
 - `e2 e4` - Move from e2 to e4 (with pause after move confirmation)
 - `e2` - Show possible moves from e2 (with pause after display, using * and 
@@ -263,16 +263,15 @@ make clean             # Clean build artifacts for all executables and debug
 - **Pawn promotion handling** - HIGH PRIORITY
 
 #### Major Features (After Core Rules)
-- **PGN File Generation** - Analyzed and designed, ready for implementation
-  - Move history tracking system
-  - Algebraic notation conversion (e.g., e2→e4 becomes "e4", include O-O 
-    for castling)
-  - PGN file writing with proper headers (Event, Date, Players, Result)
-  - Disambiguation logic for multiple piece moves
-  - Integration with `pgn` command in user interface
+- ✅ **PGN File Generation** - **COMPLETE AND VERIFIED**
+  - ✅ Automatic PGN generation on game exit (quit, checkmate, stalemate)
+  - ✅ Silent conversion from FEN logs to PGN format
+  - ✅ Proper PGN file creation with matching base names
+  - ✅ Integration with existing fen_to_pgn utility logic
+  - ✅ No user intervention required - operates in background
 
 #### Additional Enhancements
-- Multi-level undo functionality (undo multiple move pairs)
+- ✅ **Multi-level undo functionality** - **COMPLETE AND VERIFIED** (unlimited undo of move pairs using FEN log-based restoration)
 - Move history display/navigation
 - Save/load game ability
 - Difficulty level adjustment for AI
@@ -286,13 +285,12 @@ make clean             # Clean build artifacts for all executables and debug
   detection when same position occurs three times)
 
 #### Implementation Order Rationale
-**Why Core Chess Rules Before PGN:**
-1. PGN notation must handle all chess moves (castling as "O-O", en passant 
-   notation)
-2. Avoids implementing PGN twice (once now, again after adding special 
-   moves)
-3. Core chess rules affect game quality; PGN is documentation feature
-4. Complete chess implementation enables thorough PGN testing
+**Why Core Chess Rules Before Advanced PGN Features:**
+1. Advanced PGN notation must handle all chess moves (castling as "O-O", en 
+   passant notation)
+2. Basic automatic PGN generation is now complete and working
+3. Core chess rules affect game quality more than advanced PGN features
+4. Complete chess implementation enables thorough testing of all PGN features
 
 ### Testing Notes
 - ✅ **New Safe Testing Framework**: Micro-testing prevents Claude session 
@@ -348,25 +346,19 @@ make clean             # Clean build artifacts for all executables and debug
 
 ## Technical Architecture Details
 
-### Upcoming Feature Analysis: PGN Generation
+### Completed Feature: PGN Generation
 
-**PGN (Portable Game Notation) Implementation Assessment:**
-- **Complexity**: Medium - chess logic exists, need move history and 
-  notation conversion
-- **Current Strengths**: Move tracking with `Move` struct, position 
-  conversion, board state management
-- **Missing Components**: 
-  - Move history storage (currently only `last_move`)
-  - Algebraic notation conversion with disambiguation
-  - Check/checkmate notation ("+", "#")
-  - Special move notation (castling, en passant, promotion)
-- **Implementation Strategy**:
-  1. Expand move tracking to full history array
-  2. Add algebraic notation conversion functions  
-  3. Implement PGN file I/O with proper headers
-  4. Add `pgn` command to user interface
-- **Decision**: Implement after completing core chess rules to avoid double 
-  work
+**PGN (Portable Game Notation) Implementation Status:**
+- ✅ **COMPLETE**: Basic automatic PGN generation is fully implemented and working
+- ✅ **Automatic conversion**: FEN logs automatically convert to PGN on game exit
+- ✅ **Silent operation**: No user intervention required - works in background
+- ✅ **File management**: Creates matching PGN files with same base names as FEN logs
+- ✅ **Integration**: Uses existing fen_to_pgn utility logic to avoid code duplication
+- **Future Enhancement Opportunities**: 
+  - Advanced algebraic notation with disambiguation
+  - Check/checkmate notation ("+", "#")  
+  - Enhanced special move notation (en passant, promotion)
+  - Live PGN command for viewing current game notation
 
 ### Project Structure Details
 - `chess.h` - Chess game data structures and function declarations
