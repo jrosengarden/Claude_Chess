@@ -698,11 +698,14 @@ int main(int argc, char *argv[]) {
         clear_screen();
         print_game_info(&game);
         
+        // Check for game ending conditions
         if (is_checkmate(&game, game.current_player)) {
             Color winner = (game.current_player == WHITE) ? BLACK : WHITE;
             printf("\n*** CHECKMATE! %s WINS! ***\n", winner == WHITE ? "WHITE" : "BLACK");
             convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
             show_game_files();
+            printf("Press Enter to exit...");
+            getchar();
             break;
         }
         
@@ -710,11 +713,22 @@ int main(int argc, char *argv[]) {
             printf("\n*** STALEMATE! IT'S A DRAW! ***\n");
             convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
             show_game_files();
+            printf("Press Enter to exit...");
+            getchar();
             break;
         }
         
-        Position empty_moves[0];
-        print_board(&game, empty_moves, 0);
+        if (is_fifty_move_rule_draw(&game)) {
+            printf("\n*** 50-MOVE RULE DRAW! ***\n");
+            printf("50 moves have passed without a pawn move or capture.\n");
+            convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
+            show_game_files();
+            printf("Press Enter to exit...");
+            getchar();
+            break;
+        }
+        
+        print_board(&game, NULL, 0);
         
         if (game.current_player == WHITE) {
             handle_white_turn(&game, &engine);

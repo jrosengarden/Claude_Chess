@@ -217,6 +217,84 @@ void test_char_to_piece_type() {
 }
 
 /**
+ * Test complex FEN string setup and check detection
+ * Tests: Complex FEN parsing, is_in_check(), and is_square_attacked() functions
+ * This test specifically targets the previous infinite recursion bug
+ */
+void test_complex_fen_and_check_detection() {
+    printf("Testing complex FEN setup and check detection... ");
+    
+    ChessGame game;
+    // The problematic FEN string that previously caused infinite recursion
+    const char* complex_fen = "rnbqk2r/pppp1ppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 98 5";
+    
+    // Test FEN setup succeeds
+    assert(setup_board_from_fen(&game, complex_fen) == true);
+    
+    // Test king positions are correct
+    assert(game.white_king_pos.row == 7 && game.white_king_pos.col == 4);  // e1
+    assert(game.black_king_pos.row == 0 && game.black_king_pos.col == 4);  // e8
+    
+    // Test halfmove clock and fullmove number were parsed correctly
+    assert(game.halfmove_clock == 98);
+    assert(game.fullmove_number == 5);
+    
+    // Test that is_in_check works without infinite recursion
+    bool white_check = is_in_check(&game, WHITE);
+    bool black_check = is_in_check(&game, BLACK);
+    // Both should be false for this position (we don't assert specific values,
+    // just that the function completes without crashing)
+    (void)white_check; (void)black_check;  // Suppress unused variable warnings
+    
+    // Test that is_square_attacked works without infinite recursion
+    bool e1_attacked = is_square_attacked(&game, (Position){7, 4}, BLACK);
+    bool e8_attacked = is_square_attacked(&game, (Position){0, 4}, WHITE);
+    (void)e1_attacked; (void)e8_attacked;  // Suppress unused variable warnings
+    
+    printf("PASSED\n");
+}
+
+/**
+ * Test 50-move rule detection with complex FEN
+ * Tests: is_fifty_move_rule_draw() function with both basic and complex scenarios
+ */
+void test_fifty_move_rule() {
+    printf("Testing 50-move rule detection... ");
+    
+    ChessGame game;
+    init_board(&game);
+    
+    // Test that initial position is not 50-move rule draw
+    assert(is_fifty_move_rule_draw(&game) == false);
+    
+    // Test with halfmove clock at 99 (not yet 50-move rule)
+    game.halfmove_clock = 99;
+    assert(is_fifty_move_rule_draw(&game) == false);
+    
+    // Test with halfmove clock at 100 (exactly 50 moves, should be draw)
+    game.halfmove_clock = 100;
+    assert(is_fifty_move_rule_draw(&game) == true);
+    
+    // Test with halfmove clock above 100 (more than 50 moves, should be draw)
+    game.halfmove_clock = 120;
+    assert(is_fifty_move_rule_draw(&game) == true);
+    
+    // Test with complex FEN that has high halfmove clock
+    const char* complex_fen = "rnbqk2r/pppp1ppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 98 5";
+    assert(setup_board_from_fen(&game, complex_fen) == true);
+    assert(game.halfmove_clock == 98);
+    assert(is_fifty_move_rule_draw(&game) == false);  // 98 < 100, so not yet a draw
+    
+    // Test the same position but with 100+ halfmove clock
+    const char* fifty_move_fen = "rnbqk2r/pppp1ppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 100 5";
+    assert(setup_board_from_fen(&game, fifty_move_fen) == true);
+    assert(game.halfmove_clock == 100);
+    assert(is_fifty_move_rule_draw(&game) == true);  // 100 = 50 moves, should be draw
+    
+    printf("PASSED\n");
+}
+
+/**
  * Run all micro-tests
  * Executes all test functions with minimal output
  */
@@ -232,6 +310,8 @@ int main() {
     test_char_to_piece_type();
     test_fen_validation();
     test_fen_setup();
+    test_complex_fen_and_check_detection();
+    test_fifty_move_rule();
     
     printf("\n✅ ALL MICRO-TESTS PASSED\n");
     printf("=== TESTING COMPLETE ===\n");

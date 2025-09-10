@@ -86,6 +86,9 @@ void init_board(ChessGame *game) {
 char piece_to_char(Piece piece) {
     if (piece.type == EMPTY) return '.';
     
+    // Bounds check to prevent segfault
+    if (piece.type < 0 || piece.type > KING) return '?';
+    
     char symbols[] = {' ', 'P', 'R', 'N', 'B', 'Q', 'K'};
     char c = symbols[piece.type];
     
@@ -102,10 +105,12 @@ void print_board(ChessGame *game, Position possible_moves[], int move_count) {
         for (int col = 0; col < BOARD_SIZE; col++) {
             bool is_possible_move = false;
             
-            for (int i = 0; i < move_count; i++) {
-                if (possible_moves[i].row == row && possible_moves[i].col == col) {
-                    is_possible_move = true;
-                    break;
+            if (possible_moves != NULL) {
+                for (int i = 0; i < move_count; i++) {
+                    if (possible_moves[i].row == row && possible_moves[i].col == col) {
+                        is_possible_move = true;
+                        break;
+                    }
                 }
             }
             
@@ -285,7 +290,7 @@ int get_queen_moves(ChessGame *game, Position from, Position moves[]) {
     return count;
 }
 
-int get_king_moves(ChessGame *game, Position from, Position moves[]) {
+int get_king_moves_no_castling(ChessGame *game, Position from, Position moves[]) {
     int count = 0;
     Piece piece = get_piece_at(game, from.row, from.col);
     
@@ -307,6 +312,14 @@ int get_king_moves(ChessGame *game, Position from, Position moves[]) {
             }
         }
     }
+    
+    return count;
+}
+
+int get_king_moves(ChessGame *game, Position from, Position moves[]) {
+    // Get standard moves first
+    int count = get_king_moves_no_castling(game, from, moves);
+    Piece piece = get_piece_at(game, from.row, from.col);
     
     // Castling moves
     if (!game->in_check[piece.color]) { // Cannot castle while in check
@@ -394,7 +407,13 @@ bool is_square_attacked(ChessGame *game, Position pos, Color by_color) {
                     Color original_player = game->current_player;
                     game->current_player = by_color;
                     
-                    int move_count = get_possible_moves(game, (Position){row, col}, moves);
+                    int move_count;
+                    // Use special king function to avoid infinite recursion
+                    if (piece.type == KING) {
+                        move_count = get_king_moves_no_castling(game, (Position){row, col}, moves);
+                    } else {
+                        move_count = get_possible_moves(game, (Position){row, col}, moves);
+                    }
                     
                     game->current_player = original_player;
                     
@@ -685,6 +704,12 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
         return false;
     }
     
+    // Initialize king positions to invalid values
+    game->white_king_pos.row = -1;
+    game->white_king_pos.col = -1;
+    game->black_king_pos.row = -1;
+    game->black_king_pos.col = -1;
+    
     // Clear the board
     for (int row = 0; row < BOARD_SIZE; row++) {
         for (int col = 0; col < BOARD_SIZE; col++) {
@@ -788,6 +813,7 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
     while (*ptr && *ptr == ' ') ptr++;  // Skip spaces
     if (*ptr && isdigit(*ptr)) {
         game->fullmove_number = atoi(ptr);
+        while (*ptr && isdigit(*ptr)) ptr++;  // Skip past the number
     } else {
         game->fullmove_number = 1;  // Default value
     }
@@ -796,10 +822,36 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
     game->white_captured.count = 0;
     game->black_captured.count = 0;
     
-    // Update check status
+    // Verify both kings were found during parsing
+    if (game->white_king_pos.row == -1 || game->black_king_pos.row == -1) {
+        return false;  // Invalid FEN - missing king(s)
+    }
+    
+    // Update check status  
     game->in_check[WHITE] = is_in_check(game, WHITE);
     game->in_check[BLACK] = is_in_check(game, BLACK);
     
     
     return true;
+}
+
+/**
+ * is_fifty_move_rule_draw() - Check if 50-move rule draw condition is met
+ * 
+ * The 50-move rule states that a player can claim a draw if 50 moves have been
+ * made without a pawn move or capture. Since halfmove_clock counts halfmoves,
+ * the draw condition is met when halfmove_clock reaches 100 (50 full moves).
+ * 
+ * @param game: Pointer to ChessGame structure containing current game state
+ * @return: true if 50-move rule draw condition is met, false otherwise
+ * 
+ * Implementation notes:
+ * - Uses the existing halfmove_clock field which is automatically maintained
+ *   by the make_move() function according to chess rules
+ * - Halfmove clock resets to 0 on any pawn move or capture
+ * - Increments by 1 on all other moves
+ * - 50 full moves without pawn move/capture = 100 halfmoves
+ */
+bool is_fifty_move_rule_draw(ChessGame *game) {
+    return game->halfmove_clock >= 100;
 }

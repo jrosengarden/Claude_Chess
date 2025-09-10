@@ -41,10 +41,27 @@ make clean             # Clean build artifacts for all executables and debug
   (main.c)
 - `truncate_fen_log_for_undo()` - FEN file synchronization for undo 
   operations (main.c)
+- `is_fifty_move_rule_draw()` - 50-move rule draw detection (chess.c)
+- `get_king_moves_no_castling()` - King moves without castling for attack 
+  checking (chess.c)
 
 ## Current Development Status
 
 ### Recently Completed  
+- ✅ **50-Move Rule Implementation**: Complete automatic draw detection after 
+  50 moves without pawn moves or captures
+  - Added `is_fifty_move_rule_draw()` function to chess.c for draw detection
+  - **FIXED**: Integrated 50-move rule checking into main game loop in main.c 
+    (was missing from original implementation)
+  - Automatic game termination with clear notification to users
+  - Uses existing halfmove_clock counter which resets on pawn moves/captures
+  - Added comprehensive micro-test for 50-move rule functionality
+  - Enhanced testing with complex FEN strings including high halfmove clocks
+  - Follows chess standards: 50 full moves = 100 halfmoves triggers draw
+  - **Verified working**: Manual testing with complex FEN strings confirms 
+    automatic draw detection
+  - Location: Function in chess.c (lines 855-857), game loop integration 
+    in main.c (lines 721-729), comprehensive tests in micro_test.c
 - ✅ **File Notification on Game Exit**: Complete user notification system 
   for generated files
   - Added `show_game_files()` function to display FEN and PGN filenames 
@@ -225,18 +242,13 @@ make clean             # Clean build artifacts for all executables and debug
 - **Code Documentation**: Comprehensive comments throughout all source files 
   for maintainability
 
-### Game Commands
-- `help` - Show help message (with pause)
-- `hint` - Get Stockfish's best move suggestion for White (with pause)
-- `fen` - Display current board position in FEN notation (with pause)
-- `title` - Re-display game title and startup information (with pause)
-- `setup` - Setup custom board position from FEN string (NEW, with pause)
-- `undo` - Unlimited undo of move pairs back to game start (with pause)
-- `resign` - Resign the game (NEW)
-- `quit` - Exit the game
-- `e2 e4` - Move from e2 to e4 (with pause after move confirmation)
-- `e2` - Show possible moves from e2 (with pause after display, using * and 
-  highlighted pieces with inverted colors)
+### Game Rules (Automatic Detection)
+- **50-Move Rule**: Automatically draws game after 50 moves without pawn 
+  moves or captures
+- **Checkmate Detection**: Automatically ends game when player has no legal 
+  moves and king is in check
+- **Stalemate Detection**: Automatically draws game when player has no legal 
+  moves but king is not in check
 
 ### Known Issues
 - **No current critical issues identified**
@@ -244,22 +256,36 @@ make clean             # Clean build artifacts for all executables and debug
   - Queenside castling automated test may occasionally fail due to 
     unpredictable AI moves (castling logic itself verified working)
   - Some test output parsing could be more robust for edge cases
-- All previous issues resolved:
+- Previously resolved issues:
   - ✅ Castling implementation completed and verified
   - ✅ Input stream synchronization issues fixed  
   - ✅ UI display issues resolved (commands showing properly)
   - ✅ FEN command malloc error resolved
   - ✅ SETUP command FEN counter bug resolved (halfmove/fullmove 
     preservation)
+  - ✅ FEN parsing pointer advancement bug fixed (setup_board_from_fen)
+  - ✅ **CRITICAL BUG FIXED: is_in_check() Infinite Recursion with Complex 
+    FEN Strings**
+    - **Root Cause**: Infinite recursion between `is_in_check()` → 
+      `is_square_attacked()` → `get_possible_moves()` → `get_king_moves()` 
+      → `is_square_attacked()`
+    - **Solution**: Created `get_king_moves_no_castling()` function and 
+      modified `is_square_attacked()` to use it for kings
+    - **Trigger FEN**: `rnbqk2r/pppp1ppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 98 5`
+    - **Status**: FULLY RESOLVED - checkmate/stalemate detection re-enabled
+    - **Location**: Fixed in chess.c (new function lines 293-317, 
+      is_square_attacked modification lines 410-416), main.c workaround 
+      removed (lines 701-719)
 
 ### Active Development Focus 
 - **Current Priority**: Implement remaining core chess rules
   - ✅ **Castling**: Complete and verified working
   - ✅ **Resign**: Complete and verified working
-  - ✅ **FEN Counter Tracking**: Complete and verified working (foundation 
-    for 50-move rule)
-  - **Next**: 50-move rule automatic draw detection (halfmove_clock tracking 
-    ready)
+  - ✅ **FEN Counter Tracking**: Complete and verified working
+  - ✅ **50-Move Rule**: **FULLY COMPLETE** - Automatic draw detection 
+    working with game loop integration and complex FEN support
+  - ✅ **Complex FEN String Bug**: **FULLY RESOLVED** - Infinite recursion 
+    fixed with proper king move handling
   - **Next**: En passant capture implementation
   - **Next**: Pawn promotion implementation
 
@@ -269,7 +295,8 @@ make clean             # Clean build artifacts for all executables and debug
 - ✅ **Castling support** (kingside and queenside) - **COMPLETE AND 
   VERIFIED** 
 - ✅ **Resign command** - **COMPLETE AND VERIFIED**
-- **50-move rule implementation** - HIGH PRIORITY (automatic draw detection)
+- ✅ **50-move rule implementation** - **COMPLETE AND VERIFIED** 
+  (automatic draw detection)
 - **En passant capture support** - HIGH PRIORITY  
 - **Pawn promotion handling** - HIGH PRIORITY
 
@@ -304,6 +331,19 @@ make clean             # Clean build artifacts for all executables and debug
 4. Complete chess implementation enables thorough testing of all PGN features
 
 ### Testing Notes
+- **CRITICAL: Claude Session Crash Prevention**
+  - **NEVER run full games during internal testing** - Claude sessions ALWAYS 
+    crash when testing games with 100+ moves/lines of output
+  - **ALWAYS use micro_test.c for internal testing** - Safe, targeted function 
+    tests only
+  - **NEVER use ./chess directly for testing** - Only for user demonstration 
+    after fixes are complete
+  - **If testing is needed**: Use micro_test.c to create specific, limited 
+    tests for the exact function/feature being debugged
+  - **User can manually test full games** - User opens separate terminal 
+    sessions to test full games without crashing Claude session
+  - **Session crashes are the #1 cause of lost development progress** - 
+    These restrictions are mandatory
 - ✅ **New Safe Testing Framework**: Micro-testing prevents Claude session 
   crashes
   - ✅ **Micro-Tests Available**: `make test` runs targeted function tests 
@@ -572,6 +612,8 @@ The game communicates with Stockfish using the Universal Chess Interface
 ### All Completed Features
 - Full chess piece movement rules including castling (kingside and 
   queenside)
+- **50-move rule automatic draw detection after 50 moves without pawn 
+  moves or captures**
 - **File notification system showing generated FEN and PGN filenames on 
   game exit**
 - **FEN log synchronization with undo operations for accurate game history**
@@ -610,9 +652,9 @@ The game communicates with Stockfish using the Universal Chess Interface
   architecture
 - **Inline Comments**: Complex logic, algorithms, and design decisions 
   explained
-- **CLAUDE.md Formatting**: All changes to CLAUDE.md must maintain 80-
-  character line width formatting for printability - do not exceed normal 
-  page width
+- **Documentation Formatting**: All changes to CLAUDE.md and README.md must 
+  maintain 80-character line width formatting for printability - do not 
+  exceed normal page width while keeping content legible and readable
 - **Git Repository Management**: Claude Code MUST NOT perform any git 
   operations (commit, push, pull, branch, etc.). User maintains all local 
   and remote repository management personally.

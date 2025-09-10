@@ -11,7 +11,8 @@ A complete chess implementation in C featuring:
 ## Features
 
 - **Complete Chess Rules**: All standard chess piece movements, 
-  capturing, check detection, and castling (kingside and queenside)
+  capturing, check detection, castling (kingside and queenside), and 
+  50-move rule automatic draw detection
 - **Clean Single-Board UI**: Screen clears after each move showing only 
   current game state
 - **Unlimited Undo Functionality**: Unlimited undo to revert any number of 
@@ -26,7 +27,8 @@ A complete chess implementation in C featuring:
 - **Castling Support**: Full kingside (O-O) and queenside (O-O-O) 
   castling with proper rule validation
 - **AI Integration**: Uses Stockfish engine for intelligent computer moves
-- **Game State Detection**: Detects checkmate and stalemate conditions
+- **Game State Detection**: Detects checkmate, stalemate, and 50-move 
+  rule draw conditions automatically
 - **Interactive Commands**: Help, hints, position analysis, undo, custom 
   board setup, and game information
 - **Custom Board Setup**: Setup any chess position using FEN notation 
@@ -103,10 +105,14 @@ A complete chess implementation in C featuring:
    how many move pairs to undo if multiple are available.
 6. **Viewing Possible Moves**: Enter just a position (e.g., `e2`) to see 
    highlighted moves on the board.
-7. **Special Displays**:
+7. **Automatic Draw Detection**: The game automatically detects and ends 
+   in a draw when the 50-move rule is triggered (50 moves without pawn 
+   moves or captures).
+8. **Special Displays**:
    - `*` = Empty square you can move to
    - highlighted piece = Enemy piece you can capture (inverted colors)
    - Check warnings appear when your king is threatened
+   - Draw notifications for 50-move rule
 
 ## Game Controls
 
@@ -221,11 +227,13 @@ The game now implements complete FEN notation standards:
 - **Fullmove Number**: Correctly increments after each Black move 
   (standard chess move pair counting)
 - **SETUP Command**: Preserves exact halfmove clock and fullmove numbers 
-  from input FEN strings (no longer resets to "0 1")
+  from input FEN strings
+- **Complex FEN Support**: Handles complex board positions with high move 
+  counts and advanced game states without crashes or infinite recursion
+- **50-Move Rule Integration**: Automatically detects draw conditions when 
+  halfmove clock reaches 100 (50 full moves without pawn move or capture)
 - **Standards Compliant**: All generated FEN strings follow official 
   Forsyth-Edwards Notation specification
-- **50-Move Rule Ready**: Halfmove clock tracking prepares for future 
-  automatic draw detection implementation
 
 ## Debug Mode
 
@@ -236,53 +244,18 @@ Run the game with `./chess DEBUG` to enable debug output that shows:
 
 This is useful for development and troubleshooting engine communication.
 
-## Testing
+## Building and Testing
 
-The project includes multiple testing approaches:
-
-### Micro-Testing Framework (Safe for Development)
 ```bash
-# Run safe, minimal-output tests
+# Compile the game
+make
+
+# Run the chess game  
+./chess
+
+# Test that everything works
 make test
 ```
-This runs targeted tests of specific chess functions with minimal output, 
-safe for use during development.
-
-### Compilation Testing (Always Safe)
-```bash
-# Test that code compiles and basic functionality works
-./test_compile_only.sh
-```
-
-### Full Feature Testing (Run Manually Outside Development Sessions)
-For comprehensive end-to-end testing including full game scenarios, 
-castling integration, and AI interactions, use manual testing during 
-gameplay. The micro-testing framework validates core logic, while manual 
-gameplay testing validates full integration.
-
-**Test Coverage:**
-- ✅ **Micro-Tests**: Board initialization, position conversion, move 
-  validation, castling rights, piece operations, FEN parsing, FEN 
-  validation, character conversion
-- ✅ **Compilation Tests**: Code builds successfully, executables created, 
-  basic startup functionality
-- ✅ **Integration Tests**: Manual gameplay testing for full feature 
-  validation
-
-The testing approach is designed to prevent development session crashes 
-while ensuring code quality.
-
-## Files
-
-- `chess.h/chess.c` - Core chess logic and move validation
-- `stockfish.h/stockfish.c` - Stockfish AI engine integration
-- `main.c` - Game loop and user interface
-- `fen_to_pgn.c` - Standalone FEN to PGN conversion utility
-- `micro_test.c` - Safe micro-testing framework for development
-- `test_compile_only.sh` - Safe compilation and basic functionality tests
-- `Makefile` - Build configuration (builds chess, fen_to_pgn, and 
-  micro_test)
-- `CLAUDE.md` - Development notes and technical documentation
 
 ## Troubleshooting
 

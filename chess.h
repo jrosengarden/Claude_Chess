@@ -150,6 +150,7 @@ bool is_in_check(ChessGame *game, Color color);  // Determine if player is in ch
 bool would_be_in_check_after_move(ChessGame *game, Position from, Position to);  // Test if move would leave king in check
 bool can_block_or_capture_threat(ChessGame *game, Color color);  // Check if player can escape check
 bool is_square_attacked(ChessGame *game, Position pos, Color by_color);  // Check if square is attacked by given color
+int get_king_moves_no_castling(ChessGame *game, Position from, Position moves[]);  // Get king moves without castling (for attack checking)
 
 // Display and formatting utilities
 void print_captured_pieces(CapturedPieces *captured, const char* color_code, const char* player_name);  // Display captured pieces for UI
@@ -162,5 +163,8 @@ char *position_to_string(Position pos);  // Convert Position to algebraic notati
 bool validate_fen_string(const char* fen);  // Validate FEN string format
 bool setup_board_from_fen(ChessGame *game, const char* fen);  // Parse FEN and set board position
 PieceType char_to_piece_type(char c);  // Convert character to piece type (helper function)
+
+// Draw conditions
+bool is_fifty_move_rule_draw(ChessGame *game);  // Check if 50-move rule draw condition is met
 
 #endif
