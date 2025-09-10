@@ -293,6 +293,25 @@ bool get_position_evaluation(StockfishEngine *engine, ChessGame *game, int *cent
     return false;
 }
 
+/**
+ * Set Stockfish skill level (0-20)
+ * Uses UCI protocol to set the engine's playing strength.
+ * 
+ * @param engine Pointer to initialized StockfishEngine
+ * @param skill_level Skill level from 0 (weakest) to 20 (strongest)
+ * @return true if command sent successfully, false on failure
+ */
+bool set_skill_level(StockfishEngine *engine, int skill_level) {
+    if (!engine->is_ready || skill_level < 0 || skill_level > 20) {
+        return false;
+    }
+    
+    char command[64];
+    sprintf(command, "setoption name Skill Level value %d", skill_level);
+    
+    return send_command(engine, command);
+}
+
 bool get_stockfish_version(StockfishEngine *engine, char *version_str, size_t buffer_size) {
     if (!engine->to_engine || !engine->from_engine) return false;
     

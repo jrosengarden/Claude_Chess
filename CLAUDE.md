@@ -48,6 +48,17 @@ make clean             # Clean build artifacts for all executables and debug
 ## Current Development Status
 
 ### Recently Completed  
+- ✅ **AI Difficulty Control System**: Complete UCI skill level implementation 
+  with game state protection
+  - Added `set_skill_level()` function in stockfish.c for UCI communication
+  - Implemented SKILL command with range validation (0-20)
+  - Added game state tracking to prevent mid-game difficulty changes
+  - Created comprehensive input validation and error handling
+  - Integrated clear user feedback and help documentation
+  - Uses Stockfish's built-in UCI skill level system for consistent difficulty
+  - Timing restriction ensures fair gameplay by locking skill after first move
+  - Location: Functions in stockfish.c (set_skill_level), main.c (game_started 
+    flag, skill command handler), help system integration
 - ✅ **Position Evaluation System**: Complete on-demand Stockfish evaluation 
   with visual scoring scale
   - Added `get_position_evaluation()` function in stockfish.c for UCI 
@@ -233,6 +244,7 @@ make clean             # Clean build artifacts for all executables and debug
   - `hint` command shows Stockfish suggestions with pause
   - `score` command displays real-time position evaluation with visual scale (NEW)
   - `scale` command shows centipawn conversion chart in two-page format (NEW)
+  - `skill N` command sets AI difficulty level with game state protection (NEW)
   - `fen` command displays FEN notation with pause  
   - `title` command added to re-display greeting screen (NEW)
   - `undo` command added to revert last move pair (NEW)
@@ -337,9 +349,9 @@ make clean             # Clean build artifacts for all executables and debug
 
 #### Additional Enhancements
 - ✅ **Multi-level undo functionality** - **COMPLETE AND VERIFIED** (unlimited undo of move pairs using FEN log-based restoration)
+- ✅ **Difficulty level adjustment for AI** - **COMPLETE AND VERIFIED** (UCI skill level system with game state protection)
 - Move history display/navigation
 - Save/load game ability
-- Difficulty level adjustment for AI
 - Time controls implementation
 - Multi-game tournament mode
 - Time-based AI search (e.g., `go movetime 5000` for 5-second searches)
@@ -423,6 +435,36 @@ make clean             # Clean build artifacts for all executables and debug
   - AI communication details
 
 ## Technical Architecture Details
+
+### Completed Feature: AI Difficulty Control System
+
+**AI Difficulty Implementation Status:**
+- ✅ **COMPLETE**: UCI skill level control with game state protection
+- ✅ **Range Validation**: Accepts only valid skill levels (0-20)
+- ✅ **Timing Restriction**: Prevents changes after gameplay begins
+- ✅ **UCI Integration**: Uses Stockfish's native skill level system
+- ✅ **User Feedback**: Clear confirmation and error messages
+- ✅ **Help Integration**: Command documented in help system
+
+**Technical Implementation Details:**
+- **UCI Command**: Uses "setoption name Skill Level value N" protocol
+- **State Tracking**: Global `game_started` flag prevents mid-game changes
+- **Input Parsing**: Validates numeric input and range constraints
+- **Error Handling**: Graceful failure with informative messages
+- **Integration Point**: Set before any moves are made in handle_white_turn()
+- **Default Behavior**: Stockfish runs at full strength (level 20) if not set
+
+**Game State Protection Logic:**
+- **Before first move**: `game_started = false` allows skill changes
+- **After first move**: `game_started = true` blocks skill changes
+- **Reset condition**: New games reset the flag to allow fresh difficulty setting
+- **Command validation**: Checks state before attempting UCI communication
+
+**Skill Level Effects:**
+- **0-5**: Introduces tactical blunders and positional mistakes
+- **6-12**: Reduces search depth and evaluation accuracy
+- **13-17**: Slightly weakened but still strong tactical play
+- **18-20**: Near full-strength play with minimal reduction
 
 ### Completed Feature: Position Evaluation System
 
@@ -715,6 +757,8 @@ The game communicates with Stockfish using the Universal Chess Interface
 - SCORE command for real-time position evaluation with visual scale (with 
   proper display)
 - SCALE command for viewing centipawn conversion chart (with proper display)
+- SKILL command for setting AI difficulty level with game state protection 
+  (with proper display)
 - FEN command for displaying current board position in FEN notation (with 
   proper display)
 - TITLE command for re-displaying game information

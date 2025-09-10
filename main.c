@@ -27,6 +27,9 @@ bool debug_mode = false;
 // Global FEN log filename for current game session
 char fen_log_filename[256];
 
+// Global flag to track if gameplay has started (prevents skill level changes)
+bool game_started = false;
+
 /**
  * Generate timestamp-based FEN filename for current game session
  * Creates filename in format: CHESS_mmddyy_HHMMSS.fen
@@ -383,6 +386,7 @@ void print_help() {
     printf("Type 'hint' to get Stockfish's best move suggestion for White\n");
     printf("Type 'score' to display current game evaluation score\n");
     printf("Type 'scale' to view the score conversion chart (centipawns to -9/+9 scale)\n");
+    printf("Type 'skill N' to set AI difficulty level (0=easiest, 20=strongest, only before first move)\n");
     printf("Type 'fen' to display current board position in FEN notation\n");
     printf("Type 'title' to re-display the game title and info screen\n");
     printf("Type 'setup' to setup a custom board position from FEN string\n");
@@ -501,6 +505,30 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         clear_screen();
         print_scale_chart();
         printf("\nPress Enter to continue...");
+        getchar();
+        return;
+    }
+    
+    if (strncmp(input, "skill ", 6) == 0 || strncmp(input, "SKILL ", 6) == 0) {
+        if (game_started) {
+            printf("\nSkill level cannot be changed after the game has started!\n");
+            printf("Use this command only before making your first move.\n");
+        } else {
+            char *level_str = input + 6;  // Skip "skill "
+            int skill_level = atoi(level_str);
+            
+            if (skill_level >= 0 && skill_level <= 20) {
+                if (set_skill_level(engine, skill_level)) {
+                    printf("\nStockfish skill level set to %d (0=easiest, 20=strongest)\n", skill_level);
+                } else {
+                    printf("\nFailed to set skill level. Make sure Stockfish is ready.\n");
+                }
+            } else {
+                printf("\nInvalid skill level. Please enter a number from 0 to 20.\n");
+                printf("0 = easiest, 20 = strongest (default)\n");
+            }
+        }
+        printf("Press Enter to continue...");
         getchar();
         return;
     }
@@ -730,6 +758,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     
     
     if (make_move(game, from, to)) {
+        game_started = true;  // Mark game as started after first move
         printf("Move made: %s to %s\n", from_str, to_str);
         save_fen_log(game);  // Save FEN after White's move
         printf("Press Enter to continue...");

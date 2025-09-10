@@ -26,7 +26,8 @@ A complete chess implementation in C featuring:
   resolve the check
 - **Castling Support**: Full kingside (O-O) and queenside (O-O-O) 
   castling with proper rule validation
-- **AI Integration**: Uses Stockfish engine for intelligent computer moves
+- **AI Integration**: Uses Stockfish engine for intelligent computer moves 
+  with adjustable difficulty levels (0-20)
 - **Game State Detection**: Detects checkmate, stalemate, and 50-move 
   rule draw conditions automatically
 - **Interactive Commands**: Help, hints, position analysis, undo, custom 
@@ -123,6 +124,7 @@ A complete chess implementation in C featuring:
 - `hint` - Get Stockfish's best move suggestion for White
 - `score` - Display current position evaluation with visual scale
 - `scale` - View the score conversion chart (centipawns to -9/+9 scale)
+- `skill N` - Set AI difficulty level (0-20, only before first move)
 - `fen` - Display current board position in FEN notation
 - `title` - Re-display the game title and startup information
 - `setup` - Setup custom board position from FEN string (creates new 
@@ -169,6 +171,44 @@ The evaluation system is designed to be non-intrusive:
 - **No automatic display**: Keeps the board clean during normal play
 - **Fast analysis**: Uses existing Stockfish communication for quick results
 - **User-controlled**: Only analyzes when you specifically request it
+
+## AI Difficulty Control
+
+The game allows you to adjust the AI's playing strength to match your skill 
+level:
+
+### Skill Level Command
+- **Usage**: Type `skill N` where N is a number from 0 to 20
+- **Range**: 
+  - **0**: Easiest (beginner friendly, makes obvious mistakes)
+  - **10**: Intermediate (good for casual players)
+  - **20**: Strongest (default, full Stockfish strength)
+- **Timing Restriction**: Can ONLY be set before making your first move
+- **Purpose**: Ensures fair games by preventing mid-game difficulty changes
+
+### Setting Difficulty
+1. **Start the game**: Launch chess normally
+2. **Before moving**: Type `skill 5` (or your preferred level)
+3. **Confirmation**: Game confirms the skill level is set
+4. **Play normally**: AI will play at the chosen difficulty level
+5. **No changes allowed**: Once you make your first move, skill level is locked
+
+### Skill Level Guidelines
+- **Beginners (0-5)**: AI makes tactical mistakes and doesn't see complex patterns
+- **Intermediate (6-12)**: AI plays solidly but may miss deeper combinations  
+- **Advanced (13-17)**: Strong tactical play with good positional understanding
+- **Expert (18-20)**: Near-maximum strength, suitable for strong players
+
+### Example Usage
+```
+White's turn. Enter move (e.g., 'e2 e4') or 'help': skill 8
+Stockfish skill level set to 8 (0=easiest, 20=strongest)
+
+[After first move attempt...]
+White's turn. Enter move (e.g., 'e2 e4') or 'help': skill 12
+Skill level cannot be changed after the game has started!
+Use this command only before making your first move.
+```
 
 ## Custom Board Setup (SETUP Command)
 
