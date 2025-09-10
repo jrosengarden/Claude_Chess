@@ -45,6 +45,17 @@ make clean             # Clean build artifacts for all executables and debug
 ## Current Development Status
 
 ### Recently Completed  
+- ✅ **File Notification on Game Exit**: Complete user notification system 
+  for generated files
+  - Added `show_game_files()` function to display FEN and PGN filenames 
+    on game exit
+  - Integrated notification into all exit points: quit, resign, checkmate, 
+    stalemate
+  - Users now see "Game files created:" message with both FEN log and PGN 
+    file paths
+  - Improves user awareness of automatically generated game records
+  - Location: New function in main.c with calls at all exit points 
+    (lines 311, 440, 681, 687)
 - ✅ **FEN Counter Implementation**: Complete halfmove clock and fullmove 
   number tracking
   - Added `halfmove_clock` and `fullmove_number` fields to ChessGame struct
@@ -561,6 +572,8 @@ The game communicates with Stockfish using the Universal Chess Interface
 ### All Completed Features
 - Full chess piece movement rules including castling (kingside and 
   queenside)
+- **File notification system showing generated FEN and PGN filenames on 
+  game exit**
 - **FEN log synchronization with undo operations for accurate game history**
 - **Automatic PGN generation on game exit (quit, checkmate, stalemate)**
 - **Custom board setup using FEN notation with SETUP command**
@@ -605,5 +618,4 @@ The game communicates with Stockfish using the Universal Chess Interface
   and remote repository management personally.
 
 ---
-*Last updated: After implementing FEN counter tracking and fixing SETUP 
-command bug*
+*Last updated: After adding file notification system for game exit*

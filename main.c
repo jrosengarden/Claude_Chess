@@ -201,6 +201,27 @@ void convert_fen_to_pgn() {
 }
 
 /**
+ * Display the generated game files to inform the user
+ * Shows both the FEN log file and the converted PGN file names
+ */
+void show_game_files() {
+    // Create PGN filename from FEN filename
+    char pgn_filename[256];
+    char* base_name = strdup(fen_log_filename);
+    
+    // Remove .fen extension if present
+    char* dot = strrchr(base_name, '.');
+    if (dot) *dot = '\0';
+    
+    snprintf(pgn_filename, sizeof(pgn_filename), "%s.pgn", base_name);
+    free(base_name);
+    
+    printf("\nGame files created:\n");
+    printf("  FEN log: %s\n", fen_log_filename);
+    printf("  PGN file: %s\n", pgn_filename);
+}
+
+/**
  * Clear the terminal screen using ANSI escape codes
  * Used throughout the UI to maintain clean single-board display
  */
@@ -309,6 +330,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     if (strcmp(input, "quit") == 0) {
         // Convert FEN log to PGN before exiting
         convert_fen_to_pgn();
+        show_game_files();
         exit(0);
     }
     
@@ -438,6 +460,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
             
             // Convert FEN log to PGN before exiting
             convert_fen_to_pgn();
+            show_game_files();
             
             printf("Press Enter to exit...");
             getchar();
@@ -679,12 +702,14 @@ int main(int argc, char *argv[]) {
             Color winner = (game.current_player == WHITE) ? BLACK : WHITE;
             printf("\n*** CHECKMATE! %s WINS! ***\n", winner == WHITE ? "WHITE" : "BLACK");
             convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
+            show_game_files();
             break;
         }
         
         if (is_stalemate(&game, game.current_player)) {
             printf("\n*** STALEMATE! IT'S A DRAW! ***\n");
             convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
+            show_game_files();
             break;
         }
         

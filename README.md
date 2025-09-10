@@ -35,6 +35,8 @@ A complete chess implementation in C featuring:
   start) for all moves
 - **Automatic PGN Generation**: Automatically converts FEN logs to PGN 
   format on game exit (quit, checkmate, stalemate)
+- **File Notification**: Shows generated FEN and PGN filenames when games 
+  end so users know where their game records are saved
 - **FEN to PGN Utility**: Standalone tool to convert FEN position files 
   to PGN format (compatible with new FEN logging)
 
@@ -202,6 +204,8 @@ automatically:
   utility
 - **Both formats preserved**: You get both FEN log for position analysis 
   and PGN for sharing/importing
+- **File notification**: Shows both generated filenames so you know exactly 
+  where your game records are saved
 
 ### Manual FEN to PGN Conversion
 For older FEN files or manual conversion, use the standalone utility:
