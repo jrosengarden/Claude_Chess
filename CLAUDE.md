@@ -350,6 +350,7 @@ make clean             # Clean build artifacts for all executables and debug
 #### Additional Enhancements
 - ✅ **Multi-level undo functionality** - **COMPLETE AND VERIFIED** (unlimited undo of move pairs using FEN log-based restoration)
 - ✅ **Difficulty level adjustment for AI** - **COMPLETE AND VERIFIED** (UCI skill level system with game state protection)
+- Configurable analysis depth settings for score evaluation and AI moves
 - Move history display/navigation
 - Save/load game ability
 - Time controls implementation

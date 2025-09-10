@@ -30,6 +30,9 @@ char fen_log_filename[256];
 // Global flag to track if gameplay has started (prevents skill level changes)
 bool game_started = false;
 
+// Global skill level tracking (default 20 = full strength)
+int current_skill_level = 20;
+
 /**
  * Generate timestamp-based FEN filename for current game session
  * Creates filename in format: CHESS_mmddyy_HHMMSS.fen
@@ -326,6 +329,7 @@ void print_evaluation_line(int evaluation) {
 void print_game_info(ChessGame *game) {
     printf("\n=== CHESS GAME ===\n");
     printf("Current player: %s\n", game->current_player == WHITE ? "WHITE" : "BLACK");
+    printf("Stockfish Skill Level: %d\n", current_skill_level);
     
     // Display captured pieces for both players
     printf("\n");
@@ -519,6 +523,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
             
             if (skill_level >= 0 && skill_level <= 20) {
                 if (set_skill_level(engine, skill_level)) {
+                    current_skill_level = skill_level;  // Update global tracking
                     printf("\nStockfish skill level set to %d (0=easiest, 20=strongest)\n", skill_level);
                 } else {
                     printf("\nFailed to set skill level. Make sure Stockfish is ready.\n");
