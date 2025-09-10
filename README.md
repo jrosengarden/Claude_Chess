@@ -30,7 +30,9 @@ A complete chess implementation in C featuring:
 - **Game State Detection**: Detects checkmate, stalemate, and 50-move 
   rule draw conditions automatically
 - **Interactive Commands**: Help, hints, position analysis, undo, custom 
-  board setup, and game information
+  board setup, game information, and on-demand position evaluation
+- **Position Evaluation System**: Real-time Stockfish analysis with visual 
+  scoring scale from -9 (Black winning) to +9 (White winning)
 - **Custom Board Setup**: Setup any chess position using FEN notation 
   with the SETUP command
 - **FEN Logging**: FEN logging to file (based on date & time at game 
@@ -119,6 +121,8 @@ A complete chess implementation in C featuring:
 
 - `help` - Show help message
 - `hint` - Get Stockfish's best move suggestion for White
+- `score` - Display current position evaluation with visual scale
+- `scale` - View the score conversion chart (centipawns to -9/+9 scale)
 - `fen` - Display current board position in FEN notation
 - `title` - Re-display the game title and startup information
 - `setup` - Setup custom board position from FEN string (creates new 
@@ -132,6 +136,39 @@ A complete chess implementation in C featuring:
 
 **Note**: All commands pause after displaying information, allowing you to 
 read the output before returning to the game board.
+
+## Position Evaluation System
+
+The game includes a sophisticated position evaluation system powered by 
+Stockfish that helps players understand the current state of the game:
+
+### Score Command
+- **Usage**: Type `score` during your turn to get real-time position analysis
+- **Display**: Shows a visual scale from -9 (Black winning) to +9 (White winning)
+- **Analysis Depth**: Uses Stockfish depth 15 for thorough position evaluation
+- **Information Provided**:
+  - Visual scale with tick marks and position indicator
+  - In DEBUG mode: Raw centipawn score from Stockfish
+
+### Scale Command  
+- **Usage**: Type `scale` to view the conversion chart
+- **Purpose**: Shows exactly how Stockfish centipawn evaluations map to the 
+  -9 to +9 visual scale
+- **Format**: Two-page display for easy reading on any terminal size
+- **Content**: Complete breakdown of all evaluation ranges from "crushing" 
+  to "barely ahead"
+
+### Understanding the Scale
+- **-9 to -1**: Black advantage (larger numbers = bigger advantage)
+- **0**: Perfectly equal position
+- **+1 to +9**: White advantage (larger numbers = bigger advantage)
+- **Reference**: 100 centipawns ≈ 1 pawn advantage in material value
+
+### On-Demand Analysis
+The evaluation system is designed to be non-intrusive:
+- **No automatic display**: Keeps the board clean during normal play
+- **Fast analysis**: Uses existing Stockfish communication for quick results
+- **User-controlled**: Only analyzes when you specifically request it
 
 ## Custom Board Setup (SETUP Command)
 

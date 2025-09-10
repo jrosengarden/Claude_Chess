@@ -48,6 +48,23 @@ make clean             # Clean build artifacts for all executables and debug
 ## Current Development Status
 
 ### Recently Completed  
+- ✅ **Position Evaluation System**: Complete on-demand Stockfish evaluation 
+  with visual scoring scale
+  - Added `get_position_evaluation()` function in stockfish.c for UCI 
+    communication
+  - Created `centipawns_to_scale()` conversion function mapping centipawns 
+    to -9/+9 scale
+  - Implemented SCORE command for real-time position analysis using 
+    Stockfish depth 15
+  - Added visual evaluation line with tick marks, labels, and position 
+    indicator
+  - Created SCALE command showing complete centipawn conversion chart
+  - Designed two-page scale display for terminal compatibility
+  - Integrated DEBUG mode centipawn display for development
+  - On-demand analysis maintains clean board interface during gameplay
+  - Location: Functions in main.c (print_evaluation_line, centipawns_to_scale, 
+    print_scale_chart), stockfish.c (get_position_evaluation), command 
+    handlers in main.c handle_white_turn
 - ✅ **Game Ending Board Display Fix**: Complete fix for board disappearing 
   during game endings
   - Fixed board display for checkmate, stalemate, and 50-move rule endings
@@ -214,6 +231,8 @@ make clean             # Clean build artifacts for all executables and debug
 - ✅ **Enhanced Commands with Proper Display**:
   - `help` command now displays properly with pause
   - `hint` command shows Stockfish suggestions with pause
+  - `score` command displays real-time position evaluation with visual scale (NEW)
+  - `scale` command shows centipawn conversion chart in two-page format (NEW)
   - `fen` command displays FEN notation with pause  
   - `title` command added to re-display greeting screen (NEW)
   - `undo` command added to revert last move pair (NEW)
@@ -404,6 +423,33 @@ make clean             # Clean build artifacts for all executables and debug
   - AI communication details
 
 ## Technical Architecture Details
+
+### Completed Feature: Position Evaluation System
+
+**Position Evaluation Implementation Status:**
+- ✅ **COMPLETE**: On-demand Stockfish evaluation with visual display
+- ✅ **UCI Integration**: Real-time communication with Stockfish for evaluation
+- ✅ **Visual Scale**: Clean -9 to +9 display with tick marks and indicators
+- ✅ **Conversion System**: Intelligent centipawn to scale mapping
+- ✅ **User Documentation**: Complete scale reference chart
+- ✅ **Debug Integration**: Raw centipawn display in DEBUG mode
+
+**Technical Implementation Details:**
+- **UCI Protocol**: Uses "go depth 15" command for thorough analysis
+- **Response Parsing**: Extracts centipawn values from "info score cp" lines
+- **Scale Mapping**: Maps centipawns to intuitive -9/+9 range with logical 
+  breakpoints
+- **Visual Design**: Two-line display with tick marks and position indicator
+- **Terminal Compatibility**: Two-page scale display works on any screen size
+- **Performance**: On-demand only - no performance impact during normal gameplay
+- **Error Handling**: Graceful fallback to neutral display if Stockfish fails
+
+**Scale Conversion Logic:**
+- **Even positions**: 0 centipawns → 0 scale
+- **Slight advantages**: ±10-50 centipawns → ±1-3 scale  
+- **Moderate advantages**: ±50-300 centipawns → ±4-6 scale
+- **Winning positions**: ±300+ centipawns → ±7-9 scale
+- **Reference point**: 100 centipawns ≈ 1 pawn material advantage
 
 ### Completed Feature: PGN Generation
 
@@ -666,6 +712,9 @@ The game communicates with Stockfish using the Universal Chess Interface
 - Checkmate and stalemate detection
 - Proper FEN notation for AI communication
 - HINT command for getting Stockfish move suggestions (with proper display)
+- SCORE command for real-time position evaluation with visual scale (with 
+  proper display)
+- SCALE command for viewing centipawn conversion chart (with proper display)
 - FEN command for displaying current board position in FEN notation (with 
   proper display)
 - TITLE command for re-displaying game information

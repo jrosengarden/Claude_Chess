@@ -253,6 +253,46 @@ Move parse_move_string(const char *move_str) {
     return move;
 }
 
+/**
+ * Get position evaluation from Stockfish in centipawns
+ * Sends position to Stockfish and requests evaluation analysis.
+ * 
+ * @param engine Pointer to initialized StockfishEngine
+ * @param game Current game state to evaluate
+ * @param centipawn_score Pointer to store the evaluation result
+ * @return true if evaluation successful, false on failure
+ */
+bool get_position_evaluation(StockfishEngine *engine, ChessGame *game, int *centipawn_score) {
+    if (!engine->is_ready) return false;
+    
+    char *fen = board_to_fen(game);
+    char position_command[512];
+    sprintf(position_command, "position fen %s", fen);
+    
+    send_command(engine, position_command);
+    send_command(engine, "go depth 15");  // Use deeper analysis for evaluation
+    
+    char buffer[1024];
+    *centipawn_score = 0;  // Default to even position
+    
+    while (read_response(engine, buffer, sizeof(buffer))) {
+        // Look for evaluation info lines like "info depth 15 score cp 142"
+        if (strncmp(buffer, "info", 4) == 0 && strstr(buffer, "score cp")) {
+            char *score_pos = strstr(buffer, "score cp");
+            if (score_pos) {
+                score_pos += 9;  // Skip "score cp "
+                *centipawn_score = atoi(score_pos);
+            }
+        }
+        // Stop when we get the best move (analysis complete)
+        if (strncmp(buffer, "bestmove", 8) == 0) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 bool get_stockfish_version(StockfishEngine *engine, char *version_str, size_t buffer_size) {
     if (!engine->to_engine || !engine->from_engine) return false;
     

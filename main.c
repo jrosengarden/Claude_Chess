@@ -231,6 +231,90 @@ void clear_screen() {
 }
 
 /**
+ * Convert centipawn evaluation to -9 to +9 scale
+ * Stockfish returns evaluations in centipawns (hundredths of a pawn)
+ * We map this to a visual scale from -9 (Black winning) to +9 (White winning)
+ * 
+ * @param centipawns Evaluation in centipawns from Stockfish
+ * @return Evaluation on -9 to +9 scale
+ */
+int centipawns_to_scale(int centipawns) {
+    // Typical centipawn ranges:
+    // 0-50: roughly equal
+    // 50-150: slight advantage
+    // 150-300: moderate advantage  
+    // 300-500: significant advantage
+    // 500+: winning advantage
+    
+    if (centipawns <= -900) return -9;        // Black crushing
+    else if (centipawns <= -500) return -8;   // Black winning big
+    else if (centipawns <= -300) return -7;   // Black significant advantage
+    else if (centipawns <= -200) return -6;   // Black moderate advantage
+    else if (centipawns <= -100) return -5;   // Black small advantage
+    else if (centipawns <= -50) return -4;    // Black slight advantage
+    else if (centipawns <= -25) return -3;    // Black tiny advantage
+    else if (centipawns <= -10) return -2;    // Black very slight edge
+    else if (centipawns < 0) return -1;       // Black barely ahead
+    else if (centipawns == 0) return 0;       // Perfectly equal
+    else if (centipawns <= 10) return 1;      // White barely ahead
+    else if (centipawns <= 25) return 2;      // White very slight edge
+    else if (centipawns <= 50) return 3;      // White tiny advantage
+    else if (centipawns <= 100) return 4;     // White slight advantage
+    else if (centipawns <= 200) return 5;     // White small advantage
+    else if (centipawns <= 300) return 6;     // White moderate advantage
+    else if (centipawns <= 500) return 7;     // White significant advantage
+    else if (centipawns <= 900) return 8;     // White winning big
+    else return 9;                           // White crushing
+}
+
+/**
+ * Display evaluation line showing game score from -9 (Black winning) to +9 (White winning)
+ * 
+ * @param evaluation Current game evaluation (-9 to +9, where 0 is even)
+ */
+void print_evaluation_line(int evaluation) {
+    printf("\n");
+    printf("Black winning -9       -6       -3         0        +3       +6       +9 White winning\n");
+    printf("              ");
+    
+    // Draw the indicator line with position marker
+    // Map evaluation (-9 to +9) to exact positions under the actual numbers
+    // -9=1, -6=10, -3=19, 0=29, +3=39, +6=48, +9=56
+    int position;
+    if (evaluation == -9) position = 1;
+    else if (evaluation == -6) position = 10;
+    else if (evaluation == -3) position = 19;
+    else if (evaluation == 0) position = 29;
+    else if (evaluation == 3) position = 39;
+    else if (evaluation == 6) position = 48;
+    else if (evaluation == 9) position = 56;
+    else position = (evaluation + 9) * 57 / 18;  // Approximate for other values
+    
+    // First line: tick marks and horizontal line
+    for (int i = 0; i < 58; i++) {
+        if (i == 29) {
+            printf("┼");  // Center marker at 0 to match top line
+        } else if (i == 10 || i == 19 || i == 39 || i == 48) {
+            printf("│");  // Tick marks under the actual numbers 6, 3, 3, 6
+        } else {
+            printf("─");
+        }
+    }
+    printf("\n");
+    
+    // Second line: caret indicator
+    printf("              ");
+    for (int i = 0; i < 58; i++) {
+        if (i == position) {
+            printf("^");
+        } else {
+            printf(" ");
+        }
+    }
+    printf("\n");
+}
+
+/**
  * Display current game information including player turn and captured pieces
  * Shows game status header and captured piece summary for both players
  * 
@@ -247,6 +331,47 @@ void print_game_info(ChessGame *game) {
 }
 
 /**
+ * Display the score conversion chart showing centipawn ranges
+ * Shows how Stockfish centipawn evaluations map to our -9 to +9 scale
+ */
+void print_scale_chart() {
+    printf("\n=== SCORE CONVERSION CHART ===\n");
+    printf("Stockfish Centipawns → Game Score Scale\n\n");
+    
+    printf("Black Advantage:\n");
+    printf("  -900+ centipawns  →  -9  (Black crushing)\n");
+    printf("  -500 to -900      →  -8  (Black winning big)\n");
+    printf("  -300 to -500      →  -7  (Black significant advantage)\n");
+    printf("  -200 to -300      →  -6  (Black moderate advantage)\n");
+    printf("  -100 to -200      →  -5  (Black small advantage)\n");
+    printf("   -50 to -100      →  -4  (Black slight advantage)\n");
+    printf("   -25 to -50       →  -3  (Black tiny advantage)\n");
+    printf("   -10 to -25       →  -2  (Black very slight edge)\n");
+    printf("    -1 to -10       →  -1  (Black barely ahead)\n");
+    
+    printf("\nEven Game:\n");
+    printf("     0 centipawns   →   0  (Perfectly equal)\n");
+    
+    printf("\nPress Enter to continue...");
+    getchar();
+    
+    clear_screen();
+    printf("\n=== SCORE CONVERSION CHART (continued) ===\n\n");
+    printf("White Advantage:\n");
+    printf("    +1 to +10       →  +1  (White barely ahead)\n");
+    printf("   +10 to +25       →  +2  (White very slight edge)\n");
+    printf("   +25 to +50       →  +3  (White tiny advantage)\n");
+    printf("   +50 to +100      →  +4  (White slight advantage)\n");
+    printf("  +100 to +200      →  +5  (White small advantage)\n");
+    printf("  +200 to +300      →  +6  (White moderate advantage)\n");
+    printf("  +300 to +500      →  +7  (White significant advantage)\n");
+    printf("  +500 to +900      →  +8  (White winning big)\n");
+    printf("  +900+ centipawns  →  +9  (White crushing)\n");
+    
+    printf("\nNote: 100 centipawns = 1 pawn advantage\n");
+}
+
+/**
  * Display help message with all available commands
  * Shows comprehensive list of user commands and their descriptions
  * Used by the help command and during game startup
@@ -256,6 +381,8 @@ void print_help() {
     printf("Enter moves in format: e2 e4 (from to)\n");
     printf("Type 'help' for this help message\n");
     printf("Type 'hint' to get Stockfish's best move suggestion for White\n");
+    printf("Type 'score' to display current game evaluation score\n");
+    printf("Type 'scale' to view the score conversion chart (centipawns to -9/+9 scale)\n");
     printf("Type 'fen' to display current board position in FEN notation\n");
     printf("Type 'title' to re-display the game title and info screen\n");
     printf("Type 'setup' to setup a custom board position from FEN string\n");
@@ -370,9 +497,39 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         return;
     }
     
+    if (strcmp(input, "scale") == 0 || strcmp(input, "SCALE") == 0) {
+        clear_screen();
+        print_scale_chart();
+        printf("\nPress Enter to continue...");
+        getchar();
+        return;
+    }
+    
     if (strcmp(input, "fen") == 0 || strcmp(input, "FEN") == 0) {
         char *fen = board_to_fen(game);
         printf("\nCurrent FEN: %s\n", fen);
+        printf("Press Enter to continue...");
+        getchar();
+        return;
+    }
+    
+    if (strcmp(input, "score") == 0 || strcmp(input, "SCORE") == 0) {
+        printf("\nGetting evaluation from Stockfish...");
+        fflush(stdout);
+        
+        int centipawn_score;
+        if (get_position_evaluation(engine, game, &centipawn_score)) {
+            int scale_score = centipawns_to_scale(centipawn_score);
+            printf("\nCurrent Game Evaluation (Stockfish depth 15):\n");
+            if (debug_mode) {
+                printf("DEBUG: Raw centipawn score: %+d\n", centipawn_score);
+            }
+            print_evaluation_line(scale_score);
+        } else {
+            printf("\nSorry, couldn't get evaluation from Stockfish.\n");
+            printf("Showing neutral position:\n");
+            print_evaluation_line(0);
+        }
         printf("Press Enter to continue...");
         getchar();
         return;
