@@ -230,7 +230,7 @@ make clean             # Clean build artifacts for all executables and debug
   - ✅ Priority 1: Castling (kingside and queenside) - COMPLETED
   - ✅ Priority 1b: FEN to PGN conversion utility - COMPLETED
   - ✅ Priority 2: Resign command - COMPLETED
-  - Priority 3: 50-move rule implementation for automatic draw detection
+  - ✅ Priority 3: 50-move rule implementation for automatic draw detection - COMPLETED
   - Priority 4: En passant capture
   - Priority 5: Pawn promotion
 - Testing against Stockfish v17 engine
@@ -474,6 +474,30 @@ The game communicates with Stockfish using the Universal Chess Interface
 ## Complete Development History
 
 ### Recent Changes
+- **FEN TO PGN CONVERSION BUG FIX**: Fixed critical bug in capture move 
+  detection for PGN generation
+  - **Problem**: FEN to PGN conversion was missing moves, specifically 
+    capture moves, resulting in incomplete PGN files
+  - **Symptom**: Example game showed "8. Be6 *" instead of correct 
+    "8. dxe5 Be6 *", and reported 15 moves instead of actual 16 moves
+  - **Root Cause**: Flawed logic in `compare_boards()` function in 
+    fen_to_pgn.c that couldn't properly match disappeared/appeared pieces 
+    during captures
+  - **Original Logic Issue**: Sequential "from/to" square detection failed 
+    when multiple pieces changed positions simultaneously (piece moves + 
+    piece captured)
+  - **Solution**: Completely rewrote `compare_boards()` function with 
+    improved two-phase algorithm:
+    1. Collect ALL pieces that disappeared and appeared between positions
+    2. Systematically match disappeared pieces with appeared pieces of 
+       same type/color
+  - **Result**: FEN to PGN conversion now correctly detects all moves 
+    including captures, pawn advances, and piece movements
+  - **Verification**: Fixed game now shows correct "8. dxe5 Be6" and 
+    proper 16-move count
+  - **Impact**: Automatic PGN generation on game exit now produces 
+    accurate, complete PGN files
+  - Location: fen_to_pgn.c compare_boards() function (lines 208-303)
 - **FEN COUNTER IMPLEMENTATION**: Complete halfmove clock and fullmove 
   number tracking system
   - **ChessGame struct enhancement**: Added `halfmove_clock` and 

@@ -206,8 +206,6 @@ void copy_board(Piece src[BOARD_SIZE][BOARD_SIZE], Piece dst[BOARD_SIZE][BOARD_S
 }
 
 int compare_boards(Piece board1[BOARD_SIZE][BOARD_SIZE], Piece board2[BOARD_SIZE][BOARD_SIZE], Move* move) {
-    int from_found = 0, to_found = 0;
-    
     // First check for castling - special case where king and rook both move
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
@@ -236,45 +234,72 @@ int compare_boards(Piece board1[BOARD_SIZE][BOARD_SIZE], Piece board2[BOARD_SIZE
         }
     }
     
-    // Find normal moves (non-castling)
+    // Find normal moves (non-castling) - improved logic to handle captures correctly
+    // First, find all pieces that disappeared and appeared
+    typedef struct {
+        int row, col;
+        PieceType type;
+        Color color;
+    } PieceChange;
+    
+    PieceChange disappeared[64], appeared[64];
+    int disappeared_count = 0, appeared_count = 0;
+    
+    // Find all pieces that disappeared from board1
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
-            // Piece disappeared from board1
             if (board1[i][j].type != EMPTY && 
-                (board2[i][j].type == EMPTY || 
-                 board1[i][j].type != board2[i][j].type ||
-                 board1[i][j].color != board2[i][j].color)) {
-                
-                if (!from_found) {
-                    move->from_row = i;
-                    move->from_col = j;
-                    move->piece_type = board1[i][j].type;
-                    move->piece_color = board1[i][j].color;
-                    from_found = 1;
-                }
-            }
-            
-            // Piece appeared on board2
-            if (board2[i][j].type != EMPTY && 
-                (board1[i][j].type == EMPTY || 
-                 board1[i][j].type != board2[i][j].type ||
-                 board1[i][j].color != board2[i][j].color)) {
-                
-                if (!to_found && !(i == move->from_row && j == move->from_col)) {
-                    move->to_row = i;
-                    move->to_col = j;
-                    
-                    // Check if this was a capture
-                    if (board1[i][j].type != EMPTY) {
-                        move->captured_piece = board1[i][j].type;
-                    }
-                    to_found = 1;
-                }
+                (board2[i][j].type != board1[i][j].type ||
+                 board2[i][j].color != board1[i][j].color)) {
+                disappeared[disappeared_count].row = i;
+                disappeared[disappeared_count].col = j;
+                disappeared[disappeared_count].type = board1[i][j].type;
+                disappeared[disappeared_count].color = board1[i][j].color;
+                disappeared_count++;
             }
         }
     }
     
-    return from_found && to_found;
+    // Find all pieces that appeared on board2
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            if (board2[i][j].type != EMPTY && 
+                (board1[i][j].type != board2[i][j].type ||
+                 board1[i][j].color != board2[i][j].color)) {
+                appeared[appeared_count].row = i;
+                appeared[appeared_count].col = j;
+                appeared[appeared_count].type = board2[i][j].type;
+                appeared[appeared_count].color = board2[i][j].color;
+                appeared_count++;
+            }
+        }
+    }
+    
+    // Match disappeared and appeared pieces to find the actual move
+    // Priority: look for piece that disappeared and reappeared elsewhere
+    for (int d = 0; d < disappeared_count; d++) {
+        for (int a = 0; a < appeared_count; a++) {
+            if (disappeared[d].type == appeared[a].type && 
+                disappeared[d].color == appeared[a].color) {
+                // Found a piece that moved
+                move->from_row = disappeared[d].row;
+                move->from_col = disappeared[d].col;
+                move->to_row = appeared[a].row;
+                move->to_col = appeared[a].col;
+                move->piece_type = disappeared[d].type;
+                move->piece_color = disappeared[d].color;
+                
+                // Check if this was a capture (something was on the destination)
+                if (board1[appeared[a].row][appeared[a].col].type != EMPTY) {
+                    move->captured_piece = board1[appeared[a].row][appeared[a].col].type;
+                }
+                
+                return 1;
+            }
+        }
+    }
+    
+    return 0;
 }
 
 void detect_special_moves(Piece old_board[BOARD_SIZE][BOARD_SIZE], 
