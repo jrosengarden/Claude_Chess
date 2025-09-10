@@ -48,6 +48,14 @@ make clean             # Clean build artifacts for all executables and debug
 ## Current Development Status
 
 ### Recently Completed  
+- ✅ **Game Ending Board Display Fix**: Complete fix for board disappearing 
+  during game endings
+  - Fixed board display for checkmate, stalemate, and 50-move rule endings
+  - Board now remains visible showing final position when game ends
+  - Game ending message displays after board with "Press Enter to continue"
+  - Eliminates jarring experience of board disappearing immediately
+  - Allows players to see final board state that caused game to end
+  - Location: Enhanced game ending conditions in main.c (lines 703, 714, 723)
 - ✅ **50-Move Rule Implementation**: Complete automatic draw detection after 
   50 moves without pawn moves or captures
   - Added `is_fifty_move_rule_draw()` function to chess.c for draw detection
@@ -612,6 +620,8 @@ The game communicates with Stockfish using the Universal Chess Interface
 ### All Completed Features
 - Full chess piece movement rules including castling (kingside and 
   queenside)
+- **Game ending board display with final position visibility for checkmate, 
+  stalemate, and 50-move rule draws**
 - **50-move rule automatic draw detection after 50 moves without pawn 
   moves or captures**
 - **File notification system showing generated FEN and PGN filenames on 

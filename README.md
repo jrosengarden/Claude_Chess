@@ -112,7 +112,8 @@ A complete chess implementation in C featuring:
    - `*` = Empty square you can move to
    - highlighted piece = Enemy piece you can capture (inverted colors)
    - Check warnings appear when your king is threatened
-   - Draw notifications for 50-move rule
+   - Game ending displays show final board position with ending reason 
+     (checkmate, stalemate, 50-move rule draw) and wait for user to continue
 
 ## Game Controls
 
@@ -151,6 +152,7 @@ The SETUP command allows you to configure any chess position using FEN
   `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1`
 - Italian Game: 
   `r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 4 4`
+- 50-move rule draw (immediate): `8/8/8/8/4K3/8/8/4k3 w - - 100 50`
 - Empty board: `8/8/8/8/8/8/8/8 w - - 0 1`
 
 **Validation**: Invalid FEN strings are rejected with helpful error 

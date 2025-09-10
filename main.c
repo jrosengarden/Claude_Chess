@@ -700,6 +700,7 @@ int main(int argc, char *argv[]) {
         
         // Check for game ending conditions
         if (is_checkmate(&game, game.current_player)) {
+            print_board(&game, NULL, 0);
             Color winner = (game.current_player == WHITE) ? BLACK : WHITE;
             printf("\n*** CHECKMATE! %s WINS! ***\n", winner == WHITE ? "WHITE" : "BLACK");
             convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
@@ -710,6 +711,7 @@ int main(int argc, char *argv[]) {
         }
         
         if (is_stalemate(&game, game.current_player)) {
+            print_board(&game, NULL, 0);
             printf("\n*** STALEMATE! IT'S A DRAW! ***\n");
             convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
             show_game_files();
@@ -719,6 +721,7 @@ int main(int argc, char *argv[]) {
         }
         
         if (is_fifty_move_rule_draw(&game)) {
+            print_board(&game, NULL, 0);
             printf("\n*** 50-MOVE RULE DRAW! ***\n");
             printf("50 moves have passed without a pawn move or capture.\n");
             convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
