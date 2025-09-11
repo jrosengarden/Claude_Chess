@@ -48,6 +48,19 @@ make clean             # Clean build artifacts for all executables and debug
 ## Current Development Status
 
 ### Recently Completed  
+- ✅ **Linux Compatibility Fixes**: Complete cross-platform compatibility 
+  for Ubuntu Linux
+  - Fixed compilation warnings by adding `_GNU_SOURCE` feature test macro 
+    to main.c and stockfish.c
+  - Resolved implicit function declarations for `strdup` and `fdopen` on Linux
+  - Updated test_compile_only.sh for cross-platform timeout command support 
+    (timeout on Linux, gtimeout on macOS)
+  - Enhanced test script to gracefully handle missing Stockfish during 
+    compilation testing
+  - Verified clean compilation with no warnings on both macOS and Linux
+  - All micro-tests pass successfully on Linux platform
+  - Location: Feature test macros in main.c:20 and stockfish.c:22, 
+    platform detection in test_compile_only.sh:42-46
 - ✅ **AI Difficulty Control System**: Complete UCI skill level implementation 
   with game state protection
   - Added `set_skill_level()` function in stockfish.c for UCI communication
@@ -295,6 +308,13 @@ make clean             # Clean build artifacts for all executables and debug
   - Queenside castling automated test may occasionally fail due to 
     unpredictable AI moves (castling logic itself verified working)
   - Some test output parsing could be more robust for edge cases
+- **Cross-Platform Notes:**
+  - ✅ **Full Linux Compatibility**: All compilation warnings resolved, 
+    project builds and runs correctly on Ubuntu Linux
+  - ✅ **macOS Compatibility**: Verified to maintain full compatibility 
+    with macOS after Linux fixes
+  - Test script automatically detects platform and uses appropriate timeout 
+    command
 - Previously resolved issues:
   - ✅ Castling implementation completed and verified
   - ✅ Input stream synchronization issues fixed  
@@ -556,13 +576,33 @@ The game communicates with Stockfish using the Universal Chess Interface
 ### Development Environment
 - Compiler: GCC with C99 standard
 - Dependencies: Stockfish chess engine
-- Platform: POSIX-compatible (macOS/Linux)
+- Platform: Cross-platform POSIX-compatible (macOS/Linux verified)
 - Build system: Make (builds both chess game and fen_to_pgn utility)
 - Executables: `chess` (main game), `fen_to_pgn` (conversion utility)
+- **Linux Compatibility**: Full Ubuntu Linux support with clean compilation
 
 ## Complete Development History
 
 ### Recent Changes
+- **LINUX COMPATIBILITY IMPLEMENTATION**: Complete cross-platform support 
+  for Ubuntu Linux
+  - **Problem**: Compilation warnings for implicit function declarations 
+    (`strdup` and `fdopen`) and test script failures on Linux
+  - **Root Cause**: Missing POSIX feature test macros required by Linux but 
+    not macOS, and macOS-specific timeout command usage
+  - **Solution**: Added `#define _GNU_SOURCE` to main.c and stockfish.c to 
+    enable GNU/Linux extensions
+  - **Platform Detection**: Enhanced test_compile_only.sh with automatic 
+    detection of `timeout` (Linux) vs `gtimeout` (macOS) commands
+  - **Graceful Testing**: Modified test script to handle missing Stockfish 
+    as acceptable condition for compilation testing
+  - **Verification**: All micro-tests pass, clean compilation with no 
+    warnings on both platforms
+  - **Impact**: Project now compiles and runs correctly on both macOS and 
+    Ubuntu Linux without modification
+  - Location: Feature test macros in main.c:20 and stockfish.c:22, 
+    platform detection in test_compile_only.sh:42-46, enhanced exit code 
+    handling in test_compile_only.sh:49-57
 - **FEN TO PGN CONVERSION BUG FIX**: Fixed critical bug in capture move 
   detection for PGN generation
   - **Problem**: FEN to PGN conversion was missing moves, specifically 
@@ -788,4 +828,4 @@ The game communicates with Stockfish using the Universal Chess Interface
   and remote repository management personally.
 
 ---
-*Last updated: After adding file notification system for game exit*
+*Last updated: After implementing Linux compatibility fixes for cross-platform support*

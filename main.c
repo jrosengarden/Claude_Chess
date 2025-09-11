@@ -17,6 +17,7 @@
  * - Debug mode for development
  */
 
+#define _GNU_SOURCE  // Enable GNU/Linux extensions like strdup
 #include "chess.h"
 #include "stockfish.h"
 #include <time.h>

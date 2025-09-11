@@ -49,7 +49,8 @@ A complete chess implementation in C featuring:
 
 - GCC compiler (or compatible C compiler)
 - Stockfish chess engine
-- POSIX-compatible system (Linux, macOS, etc.)
+- Cross-platform POSIX-compatible system (Linux, macOS, etc.)
+- **Tested Platforms**: macOS Sequoia 15.6.1, Ubuntu Linux
 
 ## Installation
 
@@ -326,15 +327,26 @@ This is useful for development and troubleshooting engine communication.
 ## Building and Testing
 
 ```bash
-# Compile the game
+# Compile the game (works on both macOS and Linux)
 make
 
 # Run the chess game  
 ./chess
 
-# Test that everything works
+# Test that everything works (cross-platform compatible)
 make test
+
+# Run safe compilation tests (cross-platform)
+./test_compile_only.sh
 ```
+
+### Cross-Platform Notes
+- **macOS & Linux**: Project compiles cleanly on both platforms with no 
+  warnings
+- **Automatic platform detection**: Build and test scripts automatically 
+  adapt to your operating system
+- **Full compatibility**: All features work identically on both macOS and 
+  Linux
 
 ## Troubleshooting
 
@@ -343,9 +355,13 @@ make test
    installed
 3. **Permission errors**: Ensure the compiled binary has execute 
    permissions
-4. **Testing timeout issues on macOS**: The testing script requires 
-   `gtimeout` (from GNU coreutils) instead of the standard `timeout` 
-   command. Install with `brew install coreutils` if needed.
+4. **Cross-platform timeout issues**: 
+   - **macOS**: The testing script may require `gtimeout` (from GNU 
+     coreutils) instead of the standard `timeout` command. Install with 
+     `brew install coreutils` if needed.
+   - **Linux**: Uses standard `timeout` command (usually pre-installed)
+   - **Automatic detection**: The test script automatically detects and 
+     uses the correct timeout command for your platform
 
 ## Development
 

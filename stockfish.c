@@ -19,6 +19,7 @@
  * - Engine cleanup and termination
  */
 
+#define _GNU_SOURCE  // Enable GNU/Linux extensions like fdopen
 #include "stockfish.h"
 
 /**
