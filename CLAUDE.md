@@ -812,6 +812,27 @@ The game communicates with Stockfish using the Universal Chess Interface
 - **FEN_TO_PGN utility with proper FEN file compatibility**
 
 ### Development Standards
+- **MANDATORY DUAL OS COMPATIBILITY**: CRITICAL REQUIREMENT - All code 
+  changes MUST maintain compatibility with BOTH target operating systems 
+  AT ALL TIMES:
+  - **Target OS Versions**: macOS 15.6.1 (Sequoia) and Ubuntu 22.04.2
+  - **Compilation Requirement**: Code MUST compile cleanly with no warnings 
+    on both operating systems
+  - **Runtime Requirement**: All features MUST work identically on both 
+    platforms
+  - **Testing Mandate**: ANY code change MUST be verified to compile and 
+    run correctly on both macOS and Ubuntu before completion
+  - **Feature Test Macros**: Use appropriate feature test macros 
+    (_GNU_SOURCE, _POSIX_C_SOURCE, etc.) to ensure cross-platform 
+    compatibility
+  - **Platform-Specific Code**: If platform-specific code is unavoidable, 
+    use conditional compilation with proper #ifdef guards
+  - **Build Scripts**: All build and test scripts MUST automatically detect 
+    platform and adapt accordingly (e.g., timeout vs gtimeout commands)
+  - **Documentation Updates**: Any OS-specific requirements or known issues 
+    MUST be documented in both CLAUDE.md and README.md
+  - **ZERO TOLERANCE**: Breaking compatibility with either OS is considered 
+    a critical failure that MUST be fixed immediately
 - **Documentation Requirement**: All new code must include comprehensive 
   comments
 - **Function Documentation**: Parameter descriptions, return values, and 
