@@ -346,6 +346,25 @@ make clean             # Clean build artifacts for all executables and debug
   - ✅ **Complex FEN String Bug**: **FULLY RESOLVED** - Infinite recursion 
     fixed with proper king move handling
   - **Next**: En passant capture implementation
+    - **Implementation Complexity Analysis**: MODERATE (6/10 difficulty)
+      - **State Tracking Required**: Must track last move to detect valid 
+        en passant opportunities (enemy pawn moved two squares)
+      - **FEN Integration**: Current FEN system needs enhancement for 
+        en passant target square (4th field in FEN notation)
+      - **Multiple Function Updates Needed**:
+        - `get_pawn_moves()` in chess.c for en passant detection
+        - `make_move()` for en passant state updates and special capture
+        - `is_square_attacked()` for proper check detection
+        - `board_to_fen()` and `setup_board_from_fen()` for FEN handling
+      - **Special Move Logic**: Unlike normal captures, removes piece from 
+        different square than destination
+      - **Manageable Aspects**: Existing architecture (move validation, 
+        check detection, FEN counters) provides solid foundation
+      - **Implementation Strategy**: Add en passant tracking to ChessGame 
+        struct → enhance FEN handling → update pawn moves → modify 
+        make_move() → comprehensive micro-testing
+      - **Estimated Development Time**: Single focused session required due 
+        to cross-system coordination requirements
   - **Next**: Pawn promotion implementation
 
 ### Future Enhancement Opportunities
@@ -356,7 +375,13 @@ make clean             # Clean build artifacts for all executables and debug
 - ✅ **Resign command** - **COMPLETE AND VERIFIED**
 - ✅ **50-move rule implementation** - **COMPLETE AND VERIFIED** 
   (automatic draw detection)
-- **En passant capture support** - HIGH PRIORITY  
+- **En passant capture support** - HIGH PRIORITY
+  - **Complexity Assessment**: MODERATE implementation difficulty (6/10)
+  - **Key Challenge**: Requires state tracking for last move and FEN 
+    integration
+  - **Architecture Impact**: Multiple coordinated function updates needed
+  - **Development Approach**: Single focused session recommended for 
+    completion  
 - **Pawn promotion handling** - HIGH PRIORITY
 
 #### Major Features (After Core Rules)
