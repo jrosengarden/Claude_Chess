@@ -174,4 +174,7 @@ PieceType char_to_piece_type(char c);  // Convert character to piece type (helpe
 // Draw conditions
 bool is_fifty_move_rule_draw(ChessGame *game);  // Check if 50-move rule draw condition is met
 
+// PGN conversion
+char* convert_fen_to_pgn_string(const char* fen_filename);  // Convert FEN log file to PGN string
+
 #endif

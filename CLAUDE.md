@@ -47,8 +47,27 @@ make clean             # Clean build artifacts for all executables and debug
 
 ## Current Development Status
 
-### Recently Completed  
-- ✅ **En Passant Capture Implementation**: Complete en passant rule 
+### Recently Completed
+- ✅ **Real-Time PGN Display Command**: Complete on-demand PGN notation
+  display during gameplay
+  - Added `pgn` command to display current game in standard PGN format
+    mid-game
+  - Created `convert_fen_to_pgn_string()` function in chess.c for real-time
+    FEN-to-PGN conversion
+  - Reuses core logic from fen_to_pgn.c utility but returns string instead
+    of writing file
+  - Handles all chess moves including castling, en passant, captures, and
+    promotions with correct algebraic notation
+  - Fixed piece symbol mapping bug (was showing Rc4 instead of Bc4 for
+    bishop moves)
+  - Integrates seamlessly with existing command structure and UI patterns
+  - Updates correctly after undo operations, maintaining accurate game state
+    synchronization
+  - Memory-safe implementation with proper malloc/free handling
+  - Enhanced help system and user documentation for new command
+  - Location: convert_fen_to_pgn_string() in chess.c (lines 926-1224),
+    command handler in main.c (lines 554-573), help text in main.c (line 400)
+- ✅ **En Passant Capture Implementation**: Complete en passant rule
   implementation with FEN integration
   - Added `en_passant_target` and `en_passant_available` fields to ChessGame 
     struct for state tracking
@@ -282,7 +301,8 @@ make clean             # Clean build artifacts for all executables and debug
   - `score` command displays real-time position evaluation with visual scale (NEW)
   - `scale` command shows centipawn conversion chart in two-page format (NEW)
   - `skill N` command sets AI difficulty level with game state protection (NEW)
-  - `fen` command displays FEN notation with pause  
+  - `fen` command displays FEN notation with pause
+  - `pgn` command displays current game in PGN format with pause (NEW)
   - `title` command added to re-display greeting screen (NEW)
   - `undo` command added to revert last move pair (NEW)
   - Piece position lookup (e.g., "e2") shows moves with pause (using * and 
@@ -559,16 +579,19 @@ make clean             # Clean build artifacts for all executables and debug
 ### Completed Feature: PGN Generation
 
 **PGN (Portable Game Notation) Implementation Status:**
-- ✅ **COMPLETE**: Basic automatic PGN generation is fully implemented and working
+- ✅ **COMPLETE**: Full PGN implementation with both automatic generation and
+  real-time display
 - ✅ **Automatic conversion**: FEN logs automatically convert to PGN on game exit
+- ✅ **Real-time display**: NEW - `pgn` command shows current game in PGN format
+  mid-game
 - ✅ **Silent operation**: No user intervention required - works in background
-- ✅ **File management**: Creates matching PGN files with same base names as FEN logs
-- ✅ **Integration**: Uses existing fen_to_pgn utility logic to avoid code duplication
-- **Future Enhancement Opportunities**: 
-  - Advanced algebraic notation with disambiguation
-  - Check/checkmate notation ("+", "#")  
-  - Enhanced special move notation (en passant, promotion)
-  - Live PGN command for viewing current game notation
+- ✅ **File management**: Creates matching PGN files with same base names as
+  FEN logs
+- ✅ **Integration**: Reuses core fen_to_pgn utility logic in both file and
+  string conversion modes
+- ✅ **Undo synchronization**: Real-time PGN display updates correctly after
+  undo operations
+- **Completed Enhancement**: Live PGN command implemented and fully functional
 
 ### Project Structure Details
 - `chess.h` - Chess game data structures and function declarations

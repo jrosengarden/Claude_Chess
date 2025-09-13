@@ -32,8 +32,9 @@ A complete chess implementation in C featuring:
   with adjustable difficulty levels (0-20)
 - **Game State Detection**: Detects checkmate, stalemate, and 50-move 
   rule draw conditions automatically
-- **Interactive Commands**: Help, hints, position analysis, undo, custom 
-  board setup, game information, and on-demand position evaluation
+- **Interactive Commands**: Help, hints, position analysis, undo, custom
+  board setup, game information, on-demand position evaluation, and real-time
+  PGN display
 - **Position Evaluation System**: Real-time Stockfish analysis with visual 
   scoring scale from -9 (Black winning) to +9 (White winning)
 - **Custom Board Setup**: Setup any chess position using FEN notation 
@@ -131,6 +132,7 @@ A complete chess implementation in C featuring:
 - `scale` - View the score conversion chart (centipawns to -9/+9 scale)
 - `skill N` - Set AI difficulty level (0-20, only before first move)
 - `fen` - Display current board position in FEN notation
+- `pgn` - Display current game in PGN (Portable Game Notation) format
 - `title` - Re-display the game title and startup information
 - `setup` - Setup custom board position from FEN string (creates new 
   FEN log file)
@@ -176,6 +178,42 @@ The evaluation system is designed to be non-intrusive:
 - **No automatic display**: Keeps the board clean during normal play
 - **Fast analysis**: Uses existing Stockfish communication for quick results
 - **User-controlled**: Only analyzes when you specifically request it
+
+## Real-Time PGN Display
+
+The game includes a real-time PGN (Portable Game Notation) display system
+that allows you to view your current game progress in standard chess notation
+at any time during play:
+
+### PGN Command
+- **Usage**: Type `pgn` during your turn to display the current game in
+  standard PGN format
+- **Real-time conversion**: Converts your active FEN log file to properly
+  formatted PGN notation instantly
+- **Complete game history**: Shows all moves from game start to current
+  position with proper algebraic notation
+- **Undo synchronization**: Updates correctly after undo operations, always
+  showing accurate game state
+- **Clean formatting**: Displays with proper PGN headers and move numbering
+  for easy reading
+
+### PGN Features
+- **Standard notation**: Uses proper algebraic notation (e.g., `1. e4 e5
+  2. Nf3 Nc6 3. Bc4`)
+- **Special moves**: Correctly displays castling (`O-O`, `O-O-O`), captures
+  (`Nxf7`), en passant, and promotions
+- **Game headers**: Includes standard PGN headers with event information and
+  current date
+- **Non-intrusive**: On-demand only - doesn't interrupt normal gameplay
+- **Memory efficient**: Generates display string dynamically, no permanent
+  storage overhead
+
+### Viewing Your Game Progress
+The PGN display complements the existing game analysis tools:
+- **`fen`** command: Shows current position in technical FEN notation
+- **`pgn`** command: Shows complete game in readable chess notation
+- **`score`** command: Shows current position evaluation
+- Both FEN and PGN update automatically with game state and undo operations
 
 ## AI Difficulty Control
 

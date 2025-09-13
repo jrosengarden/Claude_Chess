@@ -397,6 +397,7 @@ void print_help() {
     printf("Type 'scale' to view the score conversion chart (centipawns to -9/+9 scale)\n");
     printf("Type 'skill N' to set AI difficulty level (0=easiest, 20=strongest, only before first move)\n");
     printf("Type 'fen' to display current board position in FEN notation\n");
+    printf("Type 'pgn' to display current game in PGN (Portable Game Notation) format\n");
     printf("Type 'title' to re-display the game title and info screen\n");
     printf("Type 'setup' to setup a custom board position from FEN string\n");
     printf("Type 'undo' for unlimited undo (undo any number of move pairs)\n");
@@ -547,6 +548,27 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         char *fen = board_to_fen(game);
         printf("\nCurrent FEN: %s\n", fen);
         printf("Press Enter to continue...");
+        getchar();
+        return;
+    }
+
+    if (strcmp(input, "pgn") == 0 || strcmp(input, "PGN") == 0) {
+        printf("\nGenerating current game PGN notation...");
+        fflush(stdout);
+
+        char* pgn_content = convert_fen_to_pgn_string(fen_log_filename);
+        if (pgn_content) {
+            clear_screen();
+            printf("Current Game in PGN Format:\n");
+            printf("==================================================\n");
+            printf("%s\n", pgn_content);
+            printf("==================================================\n");
+            free(pgn_content);
+        } else {
+            printf("\nError: Could not generate PGN notation from current game.\n");
+        }
+
+        printf("\nPress Enter to continue...");
         getchar();
         return;
     }
