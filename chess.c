@@ -62,6 +62,11 @@ void init_board(ChessGame *game) {
     game->halfmove_clock = 0;    // No halfmoves since start
     game->fullmove_number = 1;   // First move pair  
     
+    // Initialize en passant state
+    game->en_passant_available = false;
+    game->en_passant_target.row = -1;
+    game->en_passant_target.col = -1;
+    
     // Define starting piece arrangements for back ranks
     // Standard chess setup: Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook
     Piece white_pieces[] = {
@@ -196,6 +201,22 @@ int get_pawn_moves(ChessGame *game, Position from, Position moves[]) {
             Piece target = get_piece_at(game, new_row, new_col);
             if (target.color != piece.color) {
                 moves[count++] = (Position){new_row, new_col};
+            }
+        }
+    }
+    
+    // Check for en passant capture
+    if (game->en_passant_available) {
+        // En passant is possible if:
+        // 1. Pawn is on the correct rank (5th rank for White, 4th rank for Black)
+        // 2. Pawn is adjacent to the en passant target square
+        int en_passant_rank = (piece.color == WHITE) ? 3 : 4;  // 5th rank for White (row 3), 4th rank for Black (row 4)
+        
+        if (from.row == en_passant_rank) {
+            // Check if pawn is adjacent to en passant target square
+            if (abs(from.col - game->en_passant_target.col) == 1 && 
+                game->en_passant_target.row == from.row + direction) {
+                moves[count++] = game->en_passant_target;
             }
         }
     }
@@ -496,6 +517,18 @@ bool make_move(ChessGame *game, Position from, Position to) {
     
     Piece moving_piece = get_piece_at(game, from.row, from.col);
     Piece captured_piece = get_piece_at(game, to.row, to.col);
+    bool is_en_passant_capture = false;
+    
+    // Check if this is an en passant capture
+    if (moving_piece.type == PAWN && game->en_passant_available &&
+        to.row == game->en_passant_target.row && to.col == game->en_passant_target.col &&
+        captured_piece.type == EMPTY) {
+        // This is an en passant capture - remove the captured pawn
+        int captured_pawn_row = (moving_piece.color == WHITE) ? to.row + 1 : to.row - 1;
+        captured_piece = get_piece_at(game, captured_pawn_row, to.col);
+        clear_position(game, captured_pawn_row, to.col);
+        is_en_passant_capture = true;
+    }
     
     if (captured_piece.type != EMPTY) {
         if (captured_piece.color == WHITE) {
@@ -563,7 +596,7 @@ bool make_move(ChessGame *game, Position from, Position to) {
     }
     
     // Update FEN move counters according to chess rules
-    bool was_capture = (captured_piece.type != EMPTY);
+    bool was_capture = (captured_piece.type != EMPTY || is_en_passant_capture);
     bool was_pawn_move = (moving_piece.type == PAWN);
     
     if (was_pawn_move || was_capture) {
@@ -577,6 +610,19 @@ bool make_move(ChessGame *game, Position from, Position to) {
     // Fullmove number increments after Black's move (when switching from BLACK to WHITE)
     if (game->current_player == BLACK) {
         game->fullmove_number++;
+    }
+    
+    // Update en passant state
+    game->en_passant_available = false;
+    game->en_passant_target.row = -1;
+    game->en_passant_target.col = -1;
+    
+    // Check if this pawn move creates an en passant opportunity
+    if (moving_piece.type == PAWN && abs(to.row - from.row) == 2) {
+        // Pawn moved two squares, set en passant target square
+        game->en_passant_available = true;
+        game->en_passant_target.row = (from.row + to.row) / 2;  // Square between from and to
+        game->en_passant_target.col = to.col;
     }
     
     game->current_player = (game->current_player == WHITE) ? BLACK : WHITE;
@@ -796,9 +842,28 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
         ptr++;
     }
     
-    // Skip en passant field (not implemented yet)
+    // Parse en passant target square
     while (*ptr && *ptr == ' ') ptr++;  // Skip spaces
-    while (*ptr && *ptr != ' ') ptr++;  // Skip en passant field
+    game->en_passant_available = false;
+    game->en_passant_target.row = -1;
+    game->en_passant_target.col = -1;
+    
+    if (*ptr && *ptr != '-' && *ptr != ' ') {
+        // Parse en passant square (e.g., "e3" or "d6")
+        if (*ptr >= 'a' && *ptr <= 'h') {
+            char file = *ptr;
+            ptr++;
+            if (*ptr >= '1' && *ptr <= '8') {
+                char rank = *ptr;
+                game->en_passant_target.col = file - 'a';
+                game->en_passant_target.row = '8' - rank;
+                game->en_passant_available = true;
+                ptr++;
+            }
+        }
+    }
+    // Skip any remaining characters in the en passant field
+    while (*ptr && *ptr != ' ') ptr++;
     
     // Parse halfmove clock
     while (*ptr && *ptr == ' ') ptr++;  // Skip spaces

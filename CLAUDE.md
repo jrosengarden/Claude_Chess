@@ -48,6 +48,30 @@ make clean             # Clean build artifacts for all executables and debug
 ## Current Development Status
 
 ### Recently Completed  
+- ✅ **En Passant Capture Implementation**: Complete en passant rule 
+  implementation with FEN integration
+  - Added `en_passant_target` and `en_passant_available` fields to ChessGame 
+    struct for state tracking
+  - Updated `board_to_fen()` function to include en passant target square 
+    in FEN notation (4th field)
+  - Enhanced `setup_board_from_fen()` function to parse en passant field 
+    from input FEN strings
+  - Modified `get_pawn_moves()` function to detect en passant capture 
+    opportunities for adjacent enemy pawns
+  - Updated `make_move()` function for en passant special capture logic 
+    (removes captured pawn from different square than destination)
+  - Implemented en passant state management: resets after each move, sets 
+    target square for two-square pawn moves
+  - Added comprehensive micro-tests for FEN parsing, move generation, and 
+    capture execution
+  - Integrated with existing capture tracking and FEN counter systems
+  - Full compliance with chess en passant rules: only available immediately 
+    after enemy pawn moves two squares
+  - Location: ChessGame struct fields in chess.h (lines 125-126), 
+    board_to_fen() in stockfish.c (lines 201-209), setup_board_from_fen() 
+    in chess.c (lines 799-820), get_pawn_moves() in chess.c (lines 208-222), 
+    make_move() en passant logic in chess.c (lines 522-531, 615-626), 
+    micro-tests in micro_test.c (lines 297-402)
 - ✅ **Linux Compatibility Fixes**: Complete cross-platform compatibility 
   for Ubuntu Linux
   - Fixed compilation warnings by adding `_GNU_SOURCE` feature test macro 
@@ -275,7 +299,7 @@ make clean             # Clean build artifacts for all executables and debug
   - ✅ Priority 1b: FEN to PGN conversion utility - COMPLETED
   - ✅ Priority 2: Resign command - COMPLETED
   - ✅ Priority 3: 50-move rule implementation for automatic draw detection - COMPLETED
-  - Priority 4: En passant capture
+  - ✅ Priority 4: En passant capture - COMPLETED
   - Priority 5: Pawn promotion
 - Testing against Stockfish v17 engine
 - Using FEN command for position debugging
@@ -345,26 +369,19 @@ make clean             # Clean build artifacts for all executables and debug
     working with game loop integration and complex FEN support
   - ✅ **Complex FEN String Bug**: **FULLY RESOLVED** - Infinite recursion 
     fixed with proper king move handling
-  - **Next**: En passant capture implementation
-    - **Implementation Complexity Analysis**: MODERATE (6/10 difficulty)
-      - **State Tracking Required**: Must track last move to detect valid 
-        en passant opportunities (enemy pawn moved two squares)
-      - **FEN Integration**: Current FEN system needs enhancement for 
-        en passant target square (4th field in FEN notation)
-      - **Multiple Function Updates Needed**:
-        - `get_pawn_moves()` in chess.c for en passant detection
-        - `make_move()` for en passant state updates and special capture
-        - `is_square_attacked()` for proper check detection
-        - `board_to_fen()` and `setup_board_from_fen()` for FEN handling
-      - **Special Move Logic**: Unlike normal captures, removes piece from 
-        different square than destination
-      - **Manageable Aspects**: Existing architecture (move validation, 
-        check detection, FEN counters) provides solid foundation
-      - **Implementation Strategy**: Add en passant tracking to ChessGame 
-        struct → enhance FEN handling → update pawn moves → modify 
-        make_move() → comprehensive micro-testing
-      - **Estimated Development Time**: Single focused session required due 
-        to cross-system coordination requirements
+  - ✅ **En Passant Capture**: **FULLY COMPLETE** - Complete implementation 
+    with FEN integration and comprehensive testing
+    - **Implementation Completed**: All core en passant functionality working
+      - State tracking for en passant opportunities after two-square pawn moves
+      - FEN notation integration for reading/writing en passant target squares
+      - Move generation includes en passant captures when available
+      - Special capture logic removes captured pawn from different square
+      - Proper integration with capture tracking and move validation systems
+      - Comprehensive micro-testing framework validates all functionality
+    - **Status**: FULLY VERIFIED - All micro-tests pass, cross-platform 
+      compilation successful
+    - **Location**: Complete implementation across chess.h, chess.c, 
+      stockfish.c, and micro_test.c
   - **Next**: Pawn promotion implementation
 
 ### Future Enhancement Opportunities
@@ -375,14 +392,14 @@ make clean             # Clean build artifacts for all executables and debug
 - ✅ **Resign command** - **COMPLETE AND VERIFIED**
 - ✅ **50-move rule implementation** - **COMPLETE AND VERIFIED** 
   (automatic draw detection)
-- **En passant capture support** - HIGH PRIORITY
-  - **Complexity Assessment**: MODERATE implementation difficulty (6/10)
-  - **Key Challenge**: Requires state tracking for last move and FEN 
-    integration
-  - **Architecture Impact**: Multiple coordinated function updates needed
-  - **Development Approach**: Single focused session recommended for 
-    completion  
-- **Pawn promotion handling** - HIGH PRIORITY
+- ✅ **En passant capture support** - **COMPLETE AND VERIFIED**
+  - **Implementation Status**: Fully functional with comprehensive testing
+  - **Features Implemented**: Complete FEN integration, move generation, 
+    special capture logic, state tracking
+  - **Testing Coverage**: Three micro-tests covering FEN parsing, move 
+    generation, and capture execution
+  - **Compatibility**: Clean compilation on both macOS and Linux platforms
+- **Pawn promotion handling** - HIGH PRIORITY (NEXT IMPLEMENTATION TARGET)
 
 #### Major Features (After Core Rules)
 - ✅ **PGN File Generation** - **COMPLETE AND VERIFIED**
@@ -797,7 +814,9 @@ The game communicates with Stockfish using the Universal Chess Interface
 
 ### All Completed Features
 - Full chess piece movement rules including castling (kingside and 
-  queenside)
+  queenside) and en passant capture
+- **En passant capture support with complete FEN integration and state 
+  tracking**
 - **Game ending board display with final position visibility for checkmate, 
   stalemate, and 50-move rule draws**
 - **50-move rule automatic draw detection after 50 moves without pawn 

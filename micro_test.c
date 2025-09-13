@@ -295,6 +295,113 @@ void test_fifty_move_rule() {
 }
 
 /**
+ * Test en passant FEN parsing
+ * Tests: setup_board_from_fen() and board_to_fen() with en passant target squares
+ */
+void test_en_passant_fen_parsing() {
+    printf("Testing en passant FEN parsing... ");
+    
+    ChessGame game;
+    
+    // Test FEN with en passant target square
+    const char* fen_with_en_passant = "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3";
+    assert(setup_board_from_fen(&game, fen_with_en_passant) == true);
+    
+    // Check en passant state was parsed correctly
+    assert(game.en_passant_available == true);
+    assert(game.en_passant_target.row == 2);  // f6 is row 2 (6th rank)
+    assert(game.en_passant_target.col == 5);  // f file is col 5
+    
+    // Test FEN without en passant target square  
+    const char* fen_no_en_passant = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    assert(setup_board_from_fen(&game, fen_no_en_passant) == true);
+    
+    // Check en passant state is disabled
+    assert(game.en_passant_available == false);
+    assert(game.en_passant_target.row == -1);
+    assert(game.en_passant_target.col == -1);
+    
+    printf("PASSED\n");
+}
+
+/**
+ * Test en passant move generation
+ * Tests: get_pawn_moves() includes en passant captures when available
+ */
+void test_en_passant_move_generation() {
+    printf("Testing en passant move generation... ");
+    
+    ChessGame game;
+    
+    // Set up position where en passant is available
+    // White pawn on e5, black just moved pawn from f7 to f5 (en passant target f6)
+    const char* test_fen = "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3";
+    assert(setup_board_from_fen(&game, test_fen) == true);
+    
+    // Get moves for white pawn on e5
+    Position white_pawn = {3, 4};  // e5 (row 3, col 4)
+    Position moves[10];
+    int move_count = get_pawn_moves(&game, white_pawn, moves);
+    
+    // Should have at least 2 moves: e6 (forward) and f6 (en passant capture)
+    assert(move_count >= 2);
+    
+    // Check that f6 en passant target is included in possible moves
+    bool found_en_passant = false;
+    for (int i = 0; i < move_count; i++) {
+        if (moves[i].row == 2 && moves[i].col == 5) {  // f6
+            found_en_passant = true;
+            break;
+        }
+    }
+    assert(found_en_passant == true);
+    
+    printf("PASSED\n");
+}
+
+/**
+ * Test en passant capture execution
+ * Tests: make_move() properly executes en passant captures
+ */
+void test_en_passant_capture() {
+    printf("Testing en passant capture execution... ");
+    
+    ChessGame game;
+    
+    // Set up position for en passant capture
+    const char* test_fen = "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3";
+    assert(setup_board_from_fen(&game, test_fen) == true);
+    
+    // White pawn on e5 captures en passant on f6
+    Position from = {3, 4};  // e5
+    Position to = {2, 5};    // f6 (en passant target)
+    
+    // Verify black pawn is on f5 before capture
+    assert(get_piece_at(&game, 3, 5).type == PAWN);
+    assert(get_piece_at(&game, 3, 5).color == BLACK);
+    
+    // Execute en passant capture
+    assert(make_move(&game, from, to) == true);
+    
+    // Verify white pawn is now on f6
+    assert(get_piece_at(&game, 2, 5).type == PAWN);
+    assert(get_piece_at(&game, 2, 5).color == WHITE);
+    
+    // Verify black pawn was removed from f5
+    assert(get_piece_at(&game, 3, 5).type == EMPTY);
+    
+    // Verify en passant state is reset after the move
+    assert(game.en_passant_available == false);
+    
+    // Verify capture was recorded
+    assert(game.white_captured.count == 1);
+    assert(game.white_captured.captured_pieces[0].type == PAWN);
+    assert(game.white_captured.captured_pieces[0].color == BLACK);
+    
+    printf("PASSED\n");
+}
+
+/**
  * Run all micro-tests
  * Executes all test functions with minimal output
  */
@@ -312,6 +419,9 @@ int main() {
     test_fen_setup();
     test_complex_fen_and_check_detection();
     test_fifty_move_rule();
+    test_en_passant_fen_parsing();
+    test_en_passant_move_generation();
+    test_en_passant_capture();
     
     printf("\n✅ ALL MICRO-TESTS PASSED\n");
     printf("=== TESTING COMPLETE ===\n");

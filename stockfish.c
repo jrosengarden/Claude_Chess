@@ -198,7 +198,17 @@ char* board_to_fen(ChessGame *game) {
     }
     if (strlen(castling) == 0) strcpy(castling, "-");
     
-    sprintf(fen, "%s %c %s - %d %d", board_str, active_color, castling, 
+    // En passant target square
+    char en_passant[4] = "-";
+    if (game->en_passant_available && 
+        game->en_passant_target.row >= 0 && game->en_passant_target.row < 8 &&
+        game->en_passant_target.col >= 0 && game->en_passant_target.col < 8) {
+        char file = 'a' + game->en_passant_target.col;
+        char rank = '8' - game->en_passant_target.row;
+        sprintf(en_passant, "%c%c", file, rank);
+    }
+    
+    sprintf(fen, "%s %c %s %s %d %d", board_str, active_color, castling, en_passant,
             game->halfmove_clock, game->fullmove_number);
     return fen;
 }

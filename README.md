@@ -11,8 +11,8 @@ A complete chess implementation in C featuring:
 ## Features
 
 - **Complete Chess Rules**: All standard chess piece movements, 
-  capturing, check detection, castling (kingside and queenside), and 
-  50-move rule automatic draw detection
+  capturing, check detection, castling (kingside and queenside), 
+  en passant capture, and 50-move rule automatic draw detection
 - **Clean Single-Board UI**: Screen clears after each move showing only 
   current game state
 - **Unlimited Undo Functionality**: Unlimited undo to revert any number of 
@@ -26,6 +26,8 @@ A complete chess implementation in C featuring:
   resolve the check
 - **Castling Support**: Full kingside (O-O) and queenside (O-O-O) 
   castling with proper rule validation
+- **En Passant Capture**: Complete en passant capture implementation 
+  following standard chess rules
 - **AI Integration**: Uses Stockfish engine for intelligent computer moves 
   with adjustable difficulty levels (0-20)
 - **Game State Detection**: Detects checkmate, stalemate, and 50-move 
@@ -100,7 +102,9 @@ A complete chess implementation in C featuring:
    with a single chess board at any time.
 3. **Making Moves**: Enter moves in algebraic notation format: `e2 e4`. 
    For castling, move the king two squares: `e1 g1` (kingside) or 
-   `e1 c1` (queenside). After each move, press Enter to continue.
+   `e1 c1` (queenside). For en passant, move your pawn to the target 
+   square behind the enemy pawn (e.g., `e5 f6` to capture en passant). 
+   After each move, press Enter to continue.
 4. **Custom Board Setup**: Type `setup` to enter a FEN string and 
    configure any chess position. The game will continue from your custom 
    position with a new FEN log file.
@@ -211,6 +215,31 @@ Skill level cannot be changed after the game has started!
 Use this command only before making your first move.
 ```
 
+## En Passant Capture
+
+The game includes full support for the en passant capture rule:
+
+### How En Passant Works
+- **Trigger**: When an enemy pawn moves two squares from its starting 
+  position and lands next to your pawn
+- **Opportunity**: You can immediately capture "en passant" by moving 
+  your pawn diagonally to the square the enemy pawn passed over
+- **Result**: The enemy pawn is removed from the board even though you 
+  didn't move to its square
+- **Timing**: En passant must be used immediately - the opportunity 
+  disappears after any other move
+
+### Example En Passant Scenario
+1. White pawn on e5, Black plays f7-f5 (two-square pawn move)
+2. Black pawn now on f5 is adjacent to White pawn on e5  
+3. White can immediately capture en passant with `e5 f6`
+4. Result: White pawn moves to f6, Black pawn on f5 is captured
+
+### FEN Integration
+- En passant opportunities are properly tracked in FEN notation
+- SETUP command supports FEN strings with en passant target squares
+- Game state accurately maintains en passant availability
+
 ## Custom Board Setup (SETUP Command)
 
 The SETUP command allows you to configure any chess position using FEN 
@@ -230,6 +259,8 @@ The SETUP command allows you to configure any chess position using FEN
   `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1`
 - Italian Game: 
   `r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 4 4`
+- En passant available: 
+  `rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3`
 - 50-move rule draw (immediate): `8/8/8/8/4K3/8/8/4k3 w - - 100 50`
 - Empty board: `8/8/8/8/8/8/8/8 w - - 0 1`
 

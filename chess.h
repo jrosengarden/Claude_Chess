@@ -121,6 +121,10 @@ typedef struct {
     int halfmove_clock;       // Number of halfmoves since last pawn move or capture
     int fullmove_number;      // Number of completed move pairs (increments after Black's move)
     
+    // En passant state tracking
+    Position en_passant_target; // Target square for en passant capture (-1,-1 if none available)
+    bool en_passant_available;  // True if en passant capture is currently available
+    
 } ChessGame;
 
 /* ========================================================================
@@ -142,6 +146,7 @@ void clear_position(ChessGame *game, int row, int col);  // Remove piece from po
 
 // Move generation and validation
 int get_possible_moves(ChessGame *game, Position from, Position moves[]);  // Get all possible moves for piece at position
+int get_pawn_moves(ChessGame *game, Position from, Position moves[]);  // Get all possible pawn moves including en passant
 bool is_valid_move(ChessGame *game, Position from, Position to);  // Check if move is legal
 bool make_move(ChessGame *game, Position from, Position to);  // Execute move and update game state
 
