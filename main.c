@@ -25,6 +25,8 @@
 #include "chess.h"
 #include "stockfish.h"
 #include <time.h>
+#include <unistd.h>  // For getpid() and unlink()
+#include <sys/types.h>  // For process ID types
 
 // Global debug flag for diagnostic output
 bool debug_mode = false;
@@ -230,6 +232,117 @@ void show_game_files() {
     printf("\nGame files created:\n");
     printf("  FEN log: %s\n", fen_log_filename);
     printf("  PGN file: %s\n", pgn_filename);
+}
+
+/**
+ * Detect available terminal application for opening new windows
+ * Returns command string for opening a new terminal window, or NULL if none available
+ * Supports cross-platform detection for macOS and Linux environments
+ *
+ * @return Command string for terminal application, or NULL if unavailable
+ */
+char* detect_terminal_command() {
+    // Check for macOS Terminal (always available on macOS)
+    if (system("which osascript > /dev/null 2>&1") == 0) {
+        return "osascript";  // macOS AppleScript for Terminal control
+    }
+
+    // Check for common Linux terminal applications
+    if (system("which gnome-terminal > /dev/null 2>&1") == 0) {
+        return "gnome-terminal";
+    }
+    if (system("which konsole > /dev/null 2>&1") == 0) {
+        return "konsole";  // KDE terminal
+    }
+    if (system("which xterm > /dev/null 2>&1") == 0) {
+        return "xterm";  // Basic X11 terminal
+    }
+    if (system("which mate-terminal > /dev/null 2>&1") == 0) {
+        return "mate-terminal";  // MATE desktop
+    }
+    if (system("which xfce4-terminal > /dev/null 2>&1") == 0) {
+        return "xfce4-terminal";  // Xfce desktop
+    }
+
+    return NULL;  // No suitable terminal found
+}
+
+/**
+ * Display PGN content in a new terminal window
+ * Creates a separate terminal window showing the PGN notation while keeping
+ * the chess board visible in the original window. Falls back to full-screen
+ * display if new window creation fails.
+ *
+ * @param pgn_content The PGN string to display
+ * @return true if new window was created successfully, false if fallback used
+ */
+bool display_pgn_in_new_window(const char* pgn_content) {
+    char* terminal_cmd = detect_terminal_command();
+
+    if (!terminal_cmd) {
+        return false;  // No suitable terminal found, use fallback
+    }
+
+    // Create temporary file with PGN content
+    char temp_filename[256];
+    snprintf(temp_filename, sizeof(temp_filename), "/tmp/chess_pgn_%d.txt", getpid());
+
+    FILE* temp_file = fopen(temp_filename, "w");
+    if (!temp_file) {
+        return false;  // Could not create temp file, use fallback
+    }
+
+    fprintf(temp_file, "%s", pgn_content);
+    fprintf(temp_file, "\n\nPress Enter or close this window to continue playing...\n");
+    fclose(temp_file);
+
+    // Build command based on detected terminal
+    char command[1024];
+
+    if (strcmp(terminal_cmd, "osascript") == 0) {
+        // macOS Terminal using AppleScript
+        snprintf(command, sizeof(command),
+            "osascript -e 'tell application \"Terminal\" to do script \"clear; cat %s; echo \\\"\\nPress Enter to close...\\\"; read; rm %s; exit\"' > /dev/null 2>&1 &",
+            temp_filename, temp_filename);
+    } else if (strcmp(terminal_cmd, "gnome-terminal") == 0) {
+        // GNOME Terminal
+        snprintf(command, sizeof(command),
+            "gnome-terminal --title=\"Chess Game - PGN Notation\" -- bash -c 'clear; cat %s; echo; echo \"Press Enter to close...\"; read; rm %s' > /dev/null 2>&1 &",
+            temp_filename, temp_filename);
+    } else if (strcmp(terminal_cmd, "konsole") == 0) {
+        // KDE Konsole
+        snprintf(command, sizeof(command),
+            "konsole --title \"Chess Game - PGN Notation\" -e bash -c 'clear; cat %s; echo; echo \"Press Enter to close...\"; read; rm %s' > /dev/null 2>&1 &",
+            temp_filename, temp_filename);
+    } else if (strcmp(terminal_cmd, "mate-terminal") == 0) {
+        // MATE Terminal
+        snprintf(command, sizeof(command),
+            "mate-terminal --title=\"Chess Game - PGN Notation\" -e 'bash -c \"clear; cat %s; echo; echo \\\"Press Enter to close...\\\"; read; rm %s\"' > /dev/null 2>&1 &",
+            temp_filename, temp_filename);
+    } else if (strcmp(terminal_cmd, "xfce4-terminal") == 0) {
+        // Xfce Terminal
+        snprintf(command, sizeof(command),
+            "xfce4-terminal --title=\"Chess Game - PGN Notation\" -e 'bash -c \"clear; cat %s; echo; echo \\\"Press Enter to close...\\\"; read; rm %s\"' > /dev/null 2>&1 &",
+            temp_filename, temp_filename);
+    } else {
+        // Basic xterm fallback
+        snprintf(command, sizeof(command),
+            "xterm -title \"Chess Game - PGN Notation\" -e bash -c 'clear; cat %s; echo; echo \"Press Enter to close...\"; read; rm %s' > /dev/null 2>&1 &",
+            temp_filename, temp_filename);
+    }
+
+    // Execute the command
+    int result = system(command);
+
+    if (result == 0) {
+        printf("\nPGN notation opened in new terminal window.\n");
+        printf("You can view both the chess board and PGN notation simultaneously.\n");
+        return true;
+    } else {
+        // Clean up temp file if command failed
+        unlink(temp_filename);
+        return false;
+    }
 }
 
 /**
@@ -558,18 +671,28 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
 
         char* pgn_content = convert_fen_to_pgn_string(fen_log_filename);
         if (pgn_content) {
-            clear_screen();
-            printf("Current Game in PGN Format:\n");
-            printf("==================================================\n");
-            printf("%s\n", pgn_content);
-            printf("==================================================\n");
+            // Try to display in new terminal window first
+            if (display_pgn_in_new_window(pgn_content)) {
+                // Success - new window opened
+                // Chess board remains visible, automatically return when PGN window closes
+                printf("Close the PGN window when you're done viewing.\n");
+            } else {
+                // Fallback to full-screen display (original method)
+                printf("\nCould not open new window, displaying full-screen instead.\n");
+                clear_screen();
+                printf("Current Game in PGN Format:\n");
+                printf("==================================================\n");
+                printf("%s\n", pgn_content);
+                printf("==================================================\n");
+                printf("\nPress Enter to continue...");
+                getchar();
+            }
             free(pgn_content);
         } else {
             printf("\nError: Could not generate PGN notation from current game.\n");
+            printf("Press Enter to continue...");
+            getchar();
         }
-
-        printf("\nPress Enter to continue...");
-        getchar();
         return;
     }
     

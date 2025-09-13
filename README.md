@@ -188,6 +188,14 @@ at any time during play:
 ### PGN Command
 - **Usage**: Type `pgn` during your turn to display the current game in
   standard PGN format
+- **Side-by-side viewing**: Opens PGN notation in a separate terminal window
+  while keeping the chess board visible for reference (NEW)
+- **Cross-platform support**: Works on both macOS and Linux with automatic
+  terminal detection (Terminal.app, gnome-terminal, konsole, etc.)
+- **Seamless workflow**: Simply close the PGN window when done - no additional
+  keystrokes needed to return to gameplay
+- **Automatic fallback**: If new window cannot be opened, displays full-screen
+  PGN with traditional interface
 - **Real-time conversion**: Converts your active FEN log file to properly
   formatted PGN notation instantly
 - **Complete game history**: Shows all moves from game start to current
@@ -198,22 +206,35 @@ at any time during play:
   for easy reading
 
 ### PGN Features
+- **Dual display modes**:
+  - **Side-by-side**: Separate terminal window (preferred method)
+  - **Full-screen**: Traditional display (fallback method)
+- **Enhanced user experience**: View chess board and PGN notation
+  simultaneously for better game analysis
+- **Smart terminal detection**: Automatically finds and uses the best
+  available terminal application on your system
 - **Standard notation**: Uses proper algebraic notation (e.g., `1. e4 e5
   2. Nf3 Nc6 3. Bc4`)
 - **Special moves**: Correctly displays castling (`O-O`, `O-O-O`), captures
   (`Nxf7`), en passant, and promotions
 - **Game headers**: Includes standard PGN headers with event information and
   current date
+- **Clean presentation**: New terminal windows open with cleared screen
+  showing only PGN content
 - **Non-intrusive**: On-demand only - doesn't interrupt normal gameplay
 - **Memory efficient**: Generates display string dynamically, no permanent
   storage overhead
 
 ### Viewing Your Game Progress
-The PGN display complements the existing game analysis tools:
+The enhanced PGN display system provides comprehensive game analysis:
 - **`fen`** command: Shows current position in technical FEN notation
-- **`pgn`** command: Shows complete game in readable chess notation
+- **`pgn`** command: Opens side-by-side view with complete game in readable
+  chess notation (or full-screen if new window unavailable)
 - **`score`** command: Shows current position evaluation
-- Both FEN and PGN update automatically with game state and undo operations
+- **Simultaneous viewing**: Chess board and PGN notation can be viewed
+  together for enhanced game analysis and learning
+- **Real-time updates**: All commands update automatically with game state
+  and undo operations
 
 ## AI Difficulty Control
 

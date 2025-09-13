@@ -48,25 +48,34 @@ make clean             # Clean build artifacts for all executables and debug
 ## Current Development Status
 
 ### Recently Completed
-- ✅ **Real-Time PGN Display Command**: Complete on-demand PGN notation
-  display during gameplay
-  - Added `pgn` command to display current game in standard PGN format
-    mid-game
+- ✅ **Enhanced Side-by-Side PGN Display**: Complete dual-window PGN viewing
+  system with cross-platform support
+  - **NEW**: Side-by-side viewing - opens PGN in separate terminal window
+    while keeping chess board visible for simultaneous reference
+  - **Cross-platform terminal detection**: Supports macOS (Terminal.app via
+    osascript) and major Linux terminals (gnome-terminal, konsole, xterm,
+    mate-terminal, xfce4-terminal)
+  - **Smart fallback system**: Automatically uses full-screen display if new
+    window cannot be opened (SSH sessions, unsupported environments)
+  - **Enhanced user experience**: Clean terminal presentation with screen
+    clearing, seamless workflow (close window to return), no redundant keystrokes
+  - **Robust implementation**: Process ID-based temp files, automatic cleanup,
+    cross-platform command formatting, memory-safe handling
+  - Added `detect_terminal_command()` and `display_pgn_in_new_window()`
+    functions for terminal detection and window management
   - Created `convert_fen_to_pgn_string()` function in chess.c for real-time
     FEN-to-PGN conversion
-  - Reuses core logic from fen_to_pgn.c utility but returns string instead
-    of writing file
   - Handles all chess moves including castling, en passant, captures, and
     promotions with correct algebraic notation
   - Fixed piece symbol mapping bug (was showing Rc4 instead of Bc4 for
     bishop moves)
-  - Integrates seamlessly with existing command structure and UI patterns
   - Updates correctly after undo operations, maintaining accurate game state
     synchronization
-  - Memory-safe implementation with proper malloc/free handling
-  - Enhanced help system and user documentation for new command
-  - Location: convert_fen_to_pgn_string() in chess.c (lines 926-1224),
-    command handler in main.c (lines 554-573), help text in main.c (line 400)
+  - Enhanced help system and comprehensive user documentation
+  - **Tested and verified working on both macOS and Ubuntu Linux**
+  - Location: Terminal functions in main.c (lines 235-344), PGN command
+    handler in main.c (lines 668-697), convert_fen_to_pgn_string() in chess.c
+    (lines 926-1224), help text in main.c (line 400)
 - ✅ **En Passant Capture Implementation**: Complete en passant rule
   implementation with FEN integration
   - Added `en_passant_target` and `en_passant_available` fields to ChessGame 
@@ -302,7 +311,7 @@ make clean             # Clean build artifacts for all executables and debug
   - `scale` command shows centipawn conversion chart in two-page format (NEW)
   - `skill N` command sets AI difficulty level with game state protection (NEW)
   - `fen` command displays FEN notation with pause
-  - `pgn` command displays current game in PGN format with pause (NEW)
+  - `pgn` command displays current game in PGN format with side-by-side viewing (NEW)
   - `title` command added to re-display greeting screen (NEW)
   - `undo` command added to revert last move pair (NEW)
   - Piece position lookup (e.g., "e2") shows moves with pause (using * and 
@@ -579,11 +588,13 @@ make clean             # Clean build artifacts for all executables and debug
 ### Completed Feature: PGN Generation
 
 **PGN (Portable Game Notation) Implementation Status:**
-- ✅ **COMPLETE**: Full PGN implementation with both automatic generation and
-  real-time display
+- ✅ **COMPLETE**: Full PGN implementation with automatic generation, real-time
+  display, and side-by-side viewing
 - ✅ **Automatic conversion**: FEN logs automatically convert to PGN on game exit
-- ✅ **Real-time display**: NEW - `pgn` command shows current game in PGN format
-  mid-game
+- ✅ **Enhanced real-time display**: `pgn` command opens separate terminal window
+  showing PGN notation while keeping chess board visible for reference
+- ✅ **Cross-platform support**: Works on macOS and Linux with automatic terminal
+  detection and smart fallback system
 - ✅ **Silent operation**: No user intervention required - works in background
 - ✅ **File management**: Creates matching PGN files with same base names as
   FEN logs
@@ -591,7 +602,10 @@ make clean             # Clean build artifacts for all executables and debug
   string conversion modes
 - ✅ **Undo synchronization**: Real-time PGN display updates correctly after
   undo operations
-- **Completed Enhancement**: Live PGN command implemented and fully functional
+- ✅ **Enhanced user experience**: Seamless workflow with automatic cleanup
+  and intuitive window management
+- **Completed Enhancement**: Side-by-side PGN viewing system fully implemented
+  and tested on both target platforms
 
 ### Project Structure Details
 - `chess.h` - Chess game data structures and function declarations
