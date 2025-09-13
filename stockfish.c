@@ -8,14 +8,18 @@
  * - FEN notation conversion for position analysis
  * - Move string parsing and validation
  * - Engine setup and configuration
+ * - AI difficulty control via skill level settings
+ * - Real-time position evaluation with centipawn scoring
  * 
  * The UCI protocol allows communication with any UCI-compatible chess engine,
  * with Stockfish being one of the strongest open-source engines available.
  * 
  * Key functions:
  * - Engine initialization and process management
- * - Position setup via FEN notation
+ * - Position setup via FEN notation with accurate move counters
  * - Move request and response handling
+ * - Skill level adjustment for difficulty control
+ * - Position evaluation for scoring and analysis
  * - Engine cleanup and termination
  */
 

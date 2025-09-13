@@ -5,12 +5,14 @@
  * implementation with Stockfish AI integration and full game state management.
  * 
  * Features:
- * - Complete chess piece movement and validation
- * - Check/checkmate detection
- * - Single-level undo functionality
+ * - Complete chess piece movement and validation including castling and en passant
+ * - Check/checkmate/stalemate detection with 50-move rule draws
+ * - Unlimited undo functionality using FEN log-based restoration
  * - Move highlighting and possible move display
- * - Capture tracking
- * - Game state persistence for undo operations
+ * - Capture tracking with visual display
+ * - AI difficulty control and position evaluation system
+ * - Automatic FEN logging and PGN generation
+ * - Custom board setup via FEN notation
  */
 
 #ifndef CHESS_H
@@ -103,7 +105,7 @@ typedef struct {
     CapturedPieces white_captured;        // Pieces captured by White player
     CapturedPieces black_captured;        // Pieces captured by Black player
     
-    // Castling eligibility (prepared for future castling implementation)
+    // Castling eligibility tracking (fully implemented)
     bool white_king_moved;     // Has White king moved (disables castling)
     bool black_king_moved;     // Has Black king moved (disables castling)  
     bool white_rook_a_moved;   // Has White queenside rook moved

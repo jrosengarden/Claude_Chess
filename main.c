@@ -6,14 +6,18 @@
  * - User input handling and command processing
  * - Screen management and display formatting
  * - Integration between chess engine and Stockfish AI
- * - Interactive commands (help, hint, undo, fen, etc.)
+ * - Interactive commands (help, hint, undo, fen, setup, score, skill, etc.)
  * 
  * Features:
  * - Clean single-board UI with screen clearing
  * - Interactive command system with pause/continue prompts
  * - Human vs AI gameplay (White vs Stockfish)
  * - Move validation and possible move display
- * - Single-level undo functionality
+ * - Unlimited undo functionality using FEN log restoration
+ * - AI difficulty control with skill level adjustment (0-20)
+ * - Real-time position evaluation and visual scoring
+ * - Custom board setup via FEN notation
+ * - Automatic FEN logging and PGN generation
  * - Debug mode for development
  */
 

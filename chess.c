@@ -3,22 +3,23 @@
  * 
  * This file implements all the core chess game logic including:
  * - Board initialization and management
- * - Piece movement rules and validation
- * - Check/checkmate detection
+ * - Complete piece movement rules and validation
+ * - Check/checkmate/stalemate detection
  * - Move generation for all piece types
- * - Game state management and undo system
- * - Utility functions for position handling
+ * - Game state management with unlimited undo system
+ * - Utility functions for position handling and FEN notation
  * 
  * The chess engine supports:
- * - Standard piece movements (pawn, rook, knight, bishop, queen, king)
+ * - All standard piece movements (pawn, rook, knight, bishop, queen, king)
+ * - Castling (kingside and queenside) with full rule validation
+ * - En passant captures with proper state tracking
  * - Check detection and prevention of illegal moves
- * - Capture tracking
- * - Single-level undo functionality
- * - Game state persistence
+ * - Capture tracking with visual display
+ * - 50-move rule automatic draw detection
+ * - Unlimited undo functionality using FEN log restoration
+ * - Custom board setup via FEN notation parsing
  * 
- * Future enhancements will add:
- * - Castling (kingside and queenside)
- * - En passant captures
+ * Remaining enhancements to implement:
  * - Pawn promotion
  */
 
@@ -42,7 +43,7 @@ void init_board(ChessGame *game) {
     game->white_captured.count = 0;
     game->black_captured.count = 0;
     
-    // Initialize castling eligibility flags (for future castling implementation)
+    // Initialize castling eligibility flags (castling fully implemented)
     game->white_king_moved = false;
     game->black_king_moved = false;
     game->white_rook_a_moved = false;  // Queenside rook
