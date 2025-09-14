@@ -9,3 +9,5 @@ micro_test
 fen_to_pgn.dSYM/
 micro_test.dSYM/
 debug_*
+pgn_to_fen
+pgn_to_fen.dSYM/
