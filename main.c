@@ -43,6 +43,19 @@ bool game_started = false;
 // Global skill level tracking (default 20 = full strength)
 int current_skill_level = 20;
 
+// Configuration structure for chess game settings
+typedef struct {
+    char fen_directory[512];    // Path to directory containing FEN files
+    int default_skill_level;    // Default AI skill level (0-20)
+} ChessConfig;
+
+// Global configuration instance
+ChessConfig config = {0};
+
+// Configuration override tracking for debug messages
+bool fen_directory_overridden = false;
+bool skill_level_overridden = false;
+
 /**
  * Generate timestamp-based FEN filename for current game session
  * Creates filename in format: CHESS_mmddyy_HHMMSS.fen
@@ -77,6 +90,182 @@ void save_fen_log(ChessGame *game) {
         fclose(fen_file);
     }
     // Note: FEN logging is always enabled - no debug messages needed
+}
+
+// Forward declarations
+void create_default_config();
+void expand_path(const char* input_path, char* expanded_path, size_t max_len);
+bool is_valid_directory(const char* path);
+
+/**
+ * Check if a directory path exists and is accessible
+ * @param path The directory path to validate
+ * @return true if directory exists and is accessible, false otherwise
+ */
+bool is_valid_directory(const char* path) {
+    struct stat statbuf;
+
+    // Check if path exists and is a directory
+    if (stat(path, &statbuf) == 0) {
+        if (S_ISDIR(statbuf.st_mode)) {
+            // Try to open the directory to check access permissions
+            DIR *dir = opendir(path);
+            if (dir) {
+                closedir(dir);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Load configuration from CHESS.ini file
+ * Parses the configuration file and sets up global config structure.
+ * Creates default configuration file if it doesn't exist.
+ */
+void load_config() {
+    FILE *config_file = fopen("CHESS.ini", "r");
+
+    // Initialize default values
+    strcpy(config.fen_directory, ".");  // Default to current directory
+    config.default_skill_level = 5;     // Default skill level
+
+    if (!config_file) {
+        // Create default config file if it doesn't exist
+        create_default_config();
+        return;
+    }
+
+    char line[512];
+    char section[64] = "";
+
+    while (fgets(line, sizeof(line), config_file)) {
+        // Remove trailing newline
+        line[strcspn(line, "\n")] = '\0';
+
+        // Skip empty lines and comments
+        if (line[0] == '\0' || line[0] == '#' || line[0] == ';') {
+            continue;
+        }
+
+        // Check for section header
+        if (line[0] == '[') {
+            char *end = strchr(line, ']');
+            if (end) {
+                *end = '\0';
+                strcpy(section, line + 1);
+            }
+            continue;
+        }
+
+        // Parse key=value pairs
+        char *equals = strchr(line, '=');
+        if (equals) {
+            *equals = '\0';
+            char *key = line;
+            char *value = equals + 1;
+
+            // Trim whitespace from key and value
+            while (*key == ' ' || *key == '\t') key++;
+            while (*value == ' ' || *value == '\t') value++;
+
+            // Process configuration values
+            if (strcmp(section, "Paths") == 0) {
+                if (strcmp(key, "FENDirectory") == 0) {
+                    // Expand path (handle tilde, etc.)
+                    char temp_path[512];
+                    expand_path(value, temp_path, sizeof(temp_path));
+
+                    // Validate that the directory exists and is accessible
+                    if (is_valid_directory(temp_path)) {
+                        strcpy(config.fen_directory, temp_path);
+                    } else {
+                        // Invalid directory - fallback to default and mark for debug message
+                        strcpy(config.fen_directory, ".");
+                        fen_directory_overridden = true;
+                    }
+                }
+            } else if (strcmp(section, "Settings") == 0) {
+                if (strcmp(key, "DefaultSkillLevel") == 0) {
+                    int skill = atoi(value);
+                    // Validate skill level range (0-20)
+                    if (skill >= 0 && skill <= 20) {
+                        config.default_skill_level = skill;
+                    } else {
+                        // Invalid skill level - use default and mark for debug message
+                        config.default_skill_level = 5;
+                        skill_level_overridden = true;
+                    }
+                }
+            }
+        }
+    }
+
+    fclose(config_file);
+
+}
+
+/**
+ * Create default CHESS.ini configuration file
+ * Called when no configuration file exists.
+ */
+void create_default_config() {
+    FILE *config_file = fopen("CHESS.ini", "w");
+    if (!config_file) {
+        return;  // Silently fail and use defaults
+    }
+
+    fprintf(config_file, "# Chess Game Configuration File\n");
+    fprintf(config_file, "# Modify these settings to customize your chess experience\n");
+    fprintf(config_file, "\n");
+    fprintf(config_file, "[Paths]\n");
+    fprintf(config_file, "# Directory containing FEN files for the LOAD command\n");
+    fprintf(config_file, "# Use . for current directory, or specify full path\n");
+    fprintf(config_file, "# Examples: \n");
+    fprintf(config_file, "#   FENDirectory=.\n");
+    fprintf(config_file, "#   FENDirectory=/home/user/chess/games\n");
+    fprintf(config_file, "#   FENDirectory=C:\\Users\\User\\Chess\\Games\n");
+    fprintf(config_file, "FENDirectory=.\n");
+    fprintf(config_file, "\n");
+    fprintf(config_file, "[Settings]\n");
+    fprintf(config_file, "# Default AI skill level (0=easiest, 20=strongest)\n");
+    fprintf(config_file, "# Can be overridden with 'skill N' command before first move\n");
+    fprintf(config_file, "DefaultSkillLevel=5\n");
+    fprintf(config_file, "\n");
+    fprintf(config_file, "# Future settings can be added here\n");
+    fprintf(config_file, "# AutoSavePGN=true\n");
+
+    fclose(config_file);
+}
+
+/**
+ * Expand path with tilde (~) and environment variables
+ * Handles tilde expansion to home directory and provides better error reporting
+ */
+void expand_path(const char* input_path, char* expanded_path, size_t max_len) {
+    if (input_path[0] == '~') {
+        // Expand tilde to home directory
+        const char* home = getenv("HOME");
+        if (home) {
+            if (input_path[1] == '/' || input_path[1] == '\0') {
+                // ~/path or just ~
+                snprintf(expanded_path, max_len, "%s%s", home, input_path + 1);
+            } else {
+                // ~username/path (not supported, use as-is)
+                strncpy(expanded_path, input_path, max_len - 1);
+                expanded_path[max_len - 1] = '\0';
+            }
+        } else {
+            // No HOME environment variable, use as-is
+            strncpy(expanded_path, input_path, max_len - 1);
+            expanded_path[max_len - 1] = '\0';
+        }
+    } else {
+        // No tilde, use path as-is
+        strncpy(expanded_path, input_path, max_len - 1);
+        expanded_path[max_len - 1] = '\0';
+    }
 }
 
 /**
@@ -420,6 +609,7 @@ typedef struct {
     char display_name[100];
     int move_count;
     time_t timestamp;
+    bool from_current_dir;  // true if from current directory, false if from FENDirectory
 } FENGameInfo;
 
 /**
@@ -484,22 +674,22 @@ int get_key() {
 }
 
 /**
- * Scan directory for all .fen files and return sorted list
+ * Helper function to scan a single directory for .fen files
+ * @param directory_path Path to the directory to scan
+ * @param games Pointer to array of FENGameInfo structures
+ * @param count Current count of games in the array
+ * @param capacity Current capacity of the games array
+ * @param is_current_dir true if scanning current directory, false for FENDirectory
+ * @return new count of games, or -1 on error
  */
-int scan_fen_files(FENGameInfo **games) {
+int scan_single_directory(const char* directory_path, FENGameInfo **games, int count, int *capacity, bool is_current_dir) {
     DIR *dir;
     struct dirent *entry;
     struct stat file_stat;
-    int count = 0;
-    int capacity = 10;
 
-    *games = malloc(capacity * sizeof(FENGameInfo));
-    if (!*games) return 0;
-
-    dir = opendir(".");
+    dir = opendir(directory_path);
     if (!dir) {
-        free(*games);
-        return 0;
+        return count;  // Silently skip inaccessible directories
     }
 
     while ((entry = readdir(dir)) != NULL) {
@@ -507,30 +697,57 @@ int scan_fen_files(FENGameInfo **games) {
         char *fen_ext = strstr(entry->d_name, ".fen");
         if (fen_ext != NULL && strcmp(fen_ext, ".fen") == 0) {
 
-            if (count >= capacity) {
-                capacity *= 2;
-                *games = realloc(*games, capacity * sizeof(FENGameInfo));
+            if (count >= *capacity) {
+                *capacity *= 2;
+                *games = realloc(*games, (*capacity) * sizeof(FENGameInfo));
                 if (!*games) {
                     closedir(dir);
-                    return 0;
+                    return -1;
                 }
             }
 
-            // Store filename
-            strcpy((*games)[count].filename, entry->d_name);
+            // Build full path for file operations
+            char full_path[768];
+            if (strcmp(directory_path, ".") == 0) {
+                strcpy(full_path, entry->d_name);
+            } else {
+                snprintf(full_path, sizeof(full_path), "%s/%s", directory_path, entry->d_name);
+            }
+
+            // Check for duplicate filenames (same basename from different directories)
+            bool is_duplicate = false;
+            for (int i = 0; i < count; i++) {
+                // Extract basename from existing filename
+                char *existing_basename = strrchr((*games)[i].filename, '/');
+                existing_basename = existing_basename ? existing_basename + 1 : (*games)[i].filename;
+
+                if (strcmp(existing_basename, entry->d_name) == 0) {
+                    is_duplicate = true;
+                    break;
+                }
+            }
+
+            // Skip duplicates (current directory takes precedence)
+            if (is_duplicate && !is_current_dir) {
+                continue;
+            }
+
+            // Store full path in filename field
+            strcpy((*games)[count].filename, full_path);
+            (*games)[count].from_current_dir = is_current_dir;
 
             // Get file timestamp
-            if (stat(entry->d_name, &file_stat) == 0) {
+            if (stat(full_path, &file_stat) == 0) {
                 (*games)[count].timestamp = file_stat.st_mtime;
             } else {
                 (*games)[count].timestamp = 0;
             }
 
             // Count moves in file
-            FILE *file = fopen(entry->d_name, "r");
+            FILE *file = fopen(full_path, "r");
             if (file) {
                 int moves = 0;
-                char line[1000];
+                char line[512];
                 while (fgets(line, sizeof(line), file)) {
                     moves++;
                 }
@@ -540,30 +757,26 @@ int scan_fen_files(FENGameInfo **games) {
                 (*games)[count].move_count = 0;
             }
 
-            // Create display name from filename
-            char *underscore1 = strchr(entry->d_name, '_');
-            char *underscore2 = underscore1 ? strchr(underscore1 + 1, '_') : NULL;
-            char *dot = strchr(entry->d_name, '.');
+            // Create display name
+            if (strncmp(entry->d_name, "CHESS_", 6) == 0) {
+                // Format CHESS_mmddyy_HHMMSS.fen as readable date/time
+                char date_str[20];
+                char time_str[20];
 
-            if (underscore1 && underscore2 && dot && strncmp(entry->d_name, "CHESS_", 6) == 0) {
-                // Extract date and time parts
-                char date_part[10], time_part[10];
-                strncpy(date_part, underscore1 + 1, underscore2 - underscore1 - 1);
-                date_part[underscore2 - underscore1 - 1] = '\0';
-                strncpy(time_part, underscore2 + 1, dot - underscore2 - 1);
-                time_part[dot - underscore2 - 1] = '\0';
-
-                // Format as readable date/time
-                snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
-                         "%c%c/%c%c/%c%c %c%c:%c%c:%c%c - %d moves",
-                         date_part[0], date_part[1], date_part[2], date_part[3],
-                         date_part[4], date_part[5],
-                         time_part[0], time_part[1], time_part[2], time_part[3],
-                         time_part[4], time_part[5],
-                         (*games)[count].move_count);
+                if (sscanf(entry->d_name, "CHESS_%6s_%6s.fen", date_str, time_str) == 2) {
+                    snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
+                             "%.2s/%.2s/%.2s %.2s:%.2s:%.2s - %d moves",
+                             date_str, date_str + 2, date_str + 4,
+                             time_str, time_str + 2, time_str + 4,
+                             (*games)[count].move_count);
+                } else {
+                    snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
+                             "%s - %d moves", entry->d_name, (*games)[count].move_count);
+                }
             } else {
+                // Use filename as-is
                 snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
-                         "%.50s - %d moves", entry->d_name, (*games)[count].move_count);
+                         "%s - %d moves", entry->d_name, (*games)[count].move_count);
             }
 
             count++;
@@ -571,6 +784,44 @@ int scan_fen_files(FENGameInfo **games) {
     }
 
     closedir(dir);
+    return count;
+}
+
+/**
+ * Scan both current directory and FENDirectory for all .fen files and return sorted list
+ */
+int scan_fen_files(FENGameInfo **games) {
+    int count = 0;
+    int capacity = 10;
+
+    *games = malloc(capacity * sizeof(FENGameInfo));
+    if (!*games) return 0;
+
+    // First, scan current directory (takes precedence for duplicates)
+    count = scan_single_directory(".", games, count, &capacity, true);
+    if (count == -1) {
+        free(*games);
+        return -1;
+    }
+
+    // Then, scan FENDirectory if it's different from current directory
+    if (strcmp(config.fen_directory, ".") != 0) {
+        count = scan_single_directory(config.fen_directory, games, count, &capacity, false);
+        if (count == -1) {
+            free(*games);
+            return -1;
+        }
+    }
+
+    // Return error if no directories could be accessed
+    if (count == 0) {
+        // Check if we can access current directory
+        if (!is_valid_directory(".")) {
+            free(*games);
+            return -1;
+        }
+        // Current directory accessible but no files found - this is ok
+    }
 
     // Sort by timestamp (newest first)
     for (int i = 0; i < count - 1; i++) {
@@ -764,18 +1015,100 @@ void handle_load_command(ChessGame *game) {
     FENGameInfo *games = NULL;
     int game_count = scan_fen_files(&games);
 
-    if (game_count == 0) {
-        printf("\nNo saved games found. Play some games first to create FEN logs!\n");
+    if (game_count == -1) {
+        printf("\nError: Cannot access FEN directory '%s'\n", config.fen_directory);
+        printf("Please check:\n");
+        printf("1. The directory exists\n");
+        printf("2. You have read permissions\n");
+        printf("3. The path is correct in CHESS.ini\n");
+        printf("\nCurrent configured path: %s\n", config.fen_directory);
         return;
     }
 
-    // Display available games
+    if (game_count == 0) {
+        printf("\nNo .fen files found in directory '%s'\n", config.fen_directory);
+        printf("Play some games first to create FEN logs, or move your FEN files to this directory!\n");
+        return;
+    }
+
+    // Display available games with pagination
     clear_screen();
     printf("=== LOAD SAVED GAME ===\n\n");
-    printf("Available saved games:\n");
 
+    int item_number = 1;
+    int line_count = 3;  // Starting with title and blank lines
+    bool has_current_dir_files = false;
+    bool has_fen_dir_files = false;
+
+    // Check what types of files we have
     for (int i = 0; i < game_count; i++) {
-        printf("%d. %s\n", i + 1, games[i].display_name);
+        if (games[i].from_current_dir) {
+            has_current_dir_files = true;
+        } else {
+            has_fen_dir_files = true;
+        }
+    }
+
+    // Display current directory files first
+    if (has_current_dir_files) {
+        printf("Chess Program Directory:\n");
+        line_count++;
+
+        for (int i = 0; i < game_count; i++) {
+            if (games[i].from_current_dir) {
+                // Check if we need to paginate
+                if (line_count >= 20) {
+                    printf("\nPress Enter to continue...");
+                    getchar();
+                    clear_screen();
+                    printf("=== LOAD SAVED GAME ===\n\n");
+                    printf("Chess Program Directory (continued):\n");
+                    line_count = 4;  // Reset line count
+                }
+
+                printf("%d. %s\n", item_number++, games[i].display_name);
+                line_count++;
+            }
+        }
+    }
+
+    // Add blank line and display FEN directory files
+    if (has_fen_dir_files) {
+        // Check if we need to paginate before the section header
+        if (has_current_dir_files) {
+            if (line_count >= 19) {  // Reserve space for blank line and header
+                printf("\nPress Enter to continue...");
+                getchar();
+                clear_screen();
+                printf("=== LOAD SAVED GAME ===\n\n");
+                printf("FEN Files Directory:\n");
+                line_count = 4;
+            } else {
+                printf("\n");  // Blank line between sections
+                printf("FEN Files Directory:\n");
+                line_count += 2;
+            }
+        } else {
+            printf("FEN Files Directory:\n");
+            line_count++;
+        }
+
+        for (int i = 0; i < game_count; i++) {
+            if (!games[i].from_current_dir) {
+                // Check if we need to paginate
+                if (line_count >= 20) {
+                    printf("\nPress Enter to continue...");
+                    getchar();
+                    clear_screen();
+                    printf("=== LOAD SAVED GAME ===\n\n");
+                    printf("FEN Files Directory (continued):\n");
+                    line_count = 4;  // Reset line count
+                }
+
+                printf("%d. %s\n", item_number++, games[i].display_name);
+                line_count++;
+            }
+        }
     }
 
     printf("\nSelect game to load (1-%d) or 0 to cancel: ", game_count);
@@ -1500,7 +1833,10 @@ int main(int argc, char *argv[]) {
     
     // Generate FEN log filename for this game session
     generate_fen_filename();
-    
+
+    // Load configuration settings from CHESS.ini
+    load_config();
+
     // Clear screen at startup
     clear_screen();
     
@@ -1517,6 +1853,11 @@ int main(int argc, char *argv[]) {
         printf("You can install it with: brew install stockfish (macOS) or apt install stockfish (Ubuntu)\n");
         return 1;
     }
+
+    // Apply default skill level from configuration
+    if (set_skill_level(&engine, config.default_skill_level)) {
+        current_skill_level = config.default_skill_level;
+    }
     
     // Get and display Stockfish version
     char version_str[256];
@@ -1524,8 +1865,34 @@ int main(int argc, char *argv[]) {
         clear_screen();
         printf("=== Chess Game with %s AI ===\n", version_str);
         printf("You play as White, AI plays as Black\n");
+        if (debug_mode) {
+            printf("*** DEBUG MODE ENABLED ***\n");
+            printf("Configuration loaded: FENDirectory='%s'\n", config.fen_directory);
+            printf("Configuration loaded: DefaultSkillLevel=%d\n", config.default_skill_level);
+
+            // Show any configuration overrides
+            if (fen_directory_overridden) {
+                printf("WARNING: Invalid FENDirectory in CHESS.ini - using default '.'\n");
+            }
+            if (skill_level_overridden) {
+                printf("WARNING: Invalid DefaultSkillLevel in CHESS.ini - using default 5\n");
+            }
+        }
         printf("Stockfish initialized successfully!\n");
     } else {
+        if (debug_mode) {
+            printf("*** DEBUG MODE ENABLED ***\n");
+            printf("Configuration loaded: FENDirectory='%s'\n", config.fen_directory);
+            printf("Configuration loaded: DefaultSkillLevel=%d\n", config.default_skill_level);
+
+            // Show any configuration overrides
+            if (fen_directory_overridden) {
+                printf("WARNING: Invalid FENDirectory in CHESS.ini - using default '.'\n");
+            }
+            if (skill_level_overridden) {
+                printf("WARNING: Invalid DefaultSkillLevel in CHESS.ini - using default 5\n");
+            }
+        }
         printf("Stockfish initialized successfully!\n");
     }
     

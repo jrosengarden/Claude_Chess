@@ -154,8 +154,59 @@ A complete chess implementation in C featuring:
 - `e2 e4` - Move from e2 to e4
 - `e2` - Show possible moves from e2
 
-**Note**: All commands pause after displaying information, allowing you to 
+**Note**: All commands pause after displaying information, allowing you to
 read the output before returning to the game board.
+
+## Configuration File (CHESS.ini)
+
+The chess game automatically creates and uses a `CHESS.ini` configuration file
+to customize your experience. The file is created automatically on first run
+with default settings.
+
+### Configuration Options
+
+**[Paths] Section:**
+- **FENDirectory** - Directory containing FEN files for the LOAD command
+  - Default: `.` (current directory)
+  - Example: `FENDirectory=/home/user/chess/games`
+  - Example: `FENDirectory=C:\Users\User\Chess\Games`
+
+**[Settings] Section:**
+- **DefaultSkillLevel** - Default AI difficulty level (0-20)
+  - Default: `5` (beginner-friendly)
+  - Range: `0` (easiest) to `20` (strongest)
+  - Applied automatically at game startup
+  - Can be overridden with `skill N` command before first move
+  - Invalid values automatically corrected with debug warnings
+
+### Example CHESS.ini File:
+```ini
+[Paths]
+# Directory containing FEN files for the LOAD command
+FENDirectory=.
+
+[Settings]
+# Default AI skill level (0=easiest, 20=strongest)
+# Can be overridden with 'skill N' command before first move
+DefaultSkillLevel=5
+
+# Future settings can be added here
+# AutoSavePGN=true
+```
+
+### Customizing FEN File Location
+
+To move your FEN files to a different directory:
+
+1. Create your desired directory: `mkdir ~/chess_games`
+2. Move your FEN files: `mv *.fen ~/chess_games/`
+3. Edit CHESS.ini: `FENDirectory=~/chess_games`
+4. The LOAD command will now browse files in your custom directory
+
+**Cross-Platform Paths:**
+- Linux/macOS: `FENDirectory=/home/user/chess/games`
+- Windows: `FENDirectory=C:\Users\User\Chess\Games`
+- Relative paths: `FENDirectory=games` (subdirectory of current location)
 
 ## Position Evaluation System
 
@@ -249,17 +300,24 @@ The enhanced PGN display system provides comprehensive game analysis:
 
 ## Interactive Game Loading
 
-The game includes a sophisticated interactive game loading system that allows you
-to browse, navigate, and resume from any saved chess game:
+The game includes a sophisticated interactive game loading system with dual directory
+scanning, organized display, and pagination that allows you to browse, navigate,
+and resume from any saved chess game:
 
-### LOAD Command
+### Enhanced LOAD Command
 - **Usage**: Type `load` during your turn to open the game browser
-- **Universal file support**: Loads any .fen file in the directory, not just
-  files created by this program
-- **Smart display**: Shows CHESS_* files with formatted dates/times, other files
-  with their full filename and move count
-- **File compatibility**: Works with FEN exports from other chess software,
-  manual files, and shared games
+- **Dual directory scanning**: Automatically scans BOTH current directory (where
+  your games are saved) AND your configured FENDirectory (for study files)
+- **Organized section display**: Files shown in clean sections with headers:
+  - **"Chess Program Directory"**: Your saved games from current sessions
+  - **"FEN Files Directory"**: Study files, classical openings, imported games
+- **Smart duplicate handling**: Files with same names shown only once (current
+  directory takes precedence)
+- **20-line pagination**: Large file lists automatically paginated with "Press Enter
+  to continue" prompts and proper section continuation headers
+- **Universal file support**: Loads any .fen file, not just files created by this program
+- **File compatibility**: Works with FEN exports from other chess software, manual
+  files, and shared games
 
 ### Interactive Navigation
 Once you select a game to load, you enter the interactive browser:
@@ -285,14 +343,45 @@ White's turn. Enter move (e.g., 'e2 e4') or 'help': load
 
 === LOAD SAVED GAME ===
 
-Available saved games:
-1. 09/13/25 12:00:00 - 18 moves
-2. italian_opening.fen - 12 moves
-3. endgame_study.fen - 25 moves
+Chess Program Directory:
+1. 09/14/25 11:05:50 - 1 moves
+2. 09/13/25 12:00:00 - 18 moves
 
-Select game to load (1-3) or 0 to cancel: 2
+FEN Files Directory:
+3. ITALIAN.fen - 34 moves
+4. RUY_LOPEZ.fen - 23 moves
+5. endgame_study.fen - 25 moves
+
+Select game to load (1-5) or 0 to cancel: 3
 
 [Interactive browser opens - navigate with ← → arrows]
+```
+
+**Pagination Example** (with 25+ files):
+```
+=== LOAD SAVED GAME ===
+
+Chess Program Directory:
+1. 09/14/25 11:05:50 - 1 moves
+...
+18. 09/01/25 14:22:15 - 45 moves
+
+FEN Files Directory:
+19. ITALIAN.fen - 34 moves
+20. RUY_LOPEZ.fen - 23 moves
+
+Press Enter to continue...
+
+[Screen clears]
+
+=== LOAD SAVED GAME ===
+
+FEN Files Directory (continued):
+21. QUEENS_GAMBIT.fen - 22 moves
+...
+25. KINGS_GAMBIT.fen - 21 moves
+
+Select game to load (1-25) or 0 to cancel:
 ```
 
 ## Classical Opening Library
@@ -530,11 +619,16 @@ The game now implements complete FEN notation standards:
 ## Debug Mode
 
 Run the game with `./chess DEBUG` to enable debug output that shows:
-- Raw Stockfish move strings (e.g., "e7e5")
-- Parsed move coordinates for AI moves and hints
-- Additional diagnostic information during gameplay
+- **Configuration loading**: Shows loaded FEN directory and default skill level
+- **Configuration validation**: Warns about invalid settings being corrected:
+  - `WARNING: Invalid FENDirectory in CHESS.ini - using default '.'`
+  - `WARNING: Invalid DefaultSkillLevel in CHESS.ini - using default 5`
+- **Raw Stockfish move strings** (e.g., "e7e5")
+- **Parsed move coordinates** for AI moves and hints
+- **Additional diagnostic information** during gameplay
 
-This is useful for development and troubleshooting engine communication.
+This is useful for development, troubleshooting engine communication, and verifying
+your configuration settings are loading correctly.
 
 ## Building and Testing
 
