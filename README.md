@@ -33,8 +33,8 @@ A complete chess implementation in C featuring:
 - **Game State Detection**: Detects checkmate, stalemate, and 50-move 
   rule draw conditions automatically
 - **Interactive Commands**: Help, hints, position analysis, undo, custom
-  board setup, game information, on-demand position evaluation, and real-time
-  PGN display
+  board setup, interactive game loading, game information, on-demand position
+  evaluation, and real-time PGN display
 - **Position Evaluation System**: Real-time Stockfish analysis with visual 
   scoring scale from -9 (Black winning) to +9 (White winning)
 - **Custom Board Setup**: Setup any chess position using FEN notation 
@@ -45,7 +45,15 @@ A complete chess implementation in C featuring:
   format on game exit (quit, checkmate, stalemate)
 - **File Notification**: Shows generated FEN and PGN filenames when games 
   end so users know where their game records are saved
-- **FEN to PGN Utility**: Standalone tool to convert FEN position files 
+- **Interactive Game Loading**: Browse and load any .fen file with arrow key
+  navigation through positions, resume from any point with complete history preservation
+- **Classical Opening Library**: Comprehensive collection of 12 classic chess
+  openings for study and learning (Italian Game, Ruy López, Queen's Gambit,
+  Sicilian Najdorf, French Defense, King's Indian, English Opening, Caro-Kann,
+  Alekhine's Defense, Scandinavian, Nimzo-Indian, King's Gambit)
+- **Automatic File Cleanup**: Removes meaningless starting-position-only files
+  automatically, keeps only games that actually progressed
+- **FEN to PGN Utility**: Standalone tool to convert FEN position files
   to PGN format (compatible with new FEN logging)
 
 ## Requirements
@@ -134,9 +142,12 @@ A complete chess implementation in C featuring:
 - `fen` - Display current board position in FEN notation
 - `pgn` - Display current game in PGN (Portable Game Notation) format
 - `title` - Re-display the game title and startup information
-- `setup` - Setup custom board position from FEN string (creates new 
+- `setup` - Setup custom board position from FEN string (creates new
   FEN log file)
-- `undo` - Unlimited undo of move pairs using FEN log restoration 
+- `load` - Interactive browser for all .fen files with arrow key navigation
+  (← → navigate positions, ENTER to resume, ESC ESC to cancel)
+  **Includes 12 classic opening libraries for study and learning!**
+- `undo` - Unlimited undo of move pairs using FEN log restoration
   (can undo back to game start)
 - `resign` - Resign the game (with YES/NO confirmation)
 - `quit` - Exit the game
@@ -235,6 +246,113 @@ The enhanced PGN display system provides comprehensive game analysis:
   together for enhanced game analysis and learning
 - **Real-time updates**: All commands update automatically with game state
   and undo operations
+
+## Interactive Game Loading
+
+The game includes a sophisticated interactive game loading system that allows you
+to browse, navigate, and resume from any saved chess game:
+
+### LOAD Command
+- **Usage**: Type `load` during your turn to open the game browser
+- **Universal file support**: Loads any .fen file in the directory, not just
+  files created by this program
+- **Smart display**: Shows CHESS_* files with formatted dates/times, other files
+  with their full filename and move count
+- **File compatibility**: Works with FEN exports from other chess software,
+  manual files, and shared games
+
+### Interactive Navigation
+Once you select a game to load, you enter the interactive browser:
+- **← → Arrow keys**: Navigate through positions in the loaded game
+- **Real-time board display**: See the exact position for each move
+- **Position indicator**: Shows current position (e.g., "Position 8/15 - Move 4")
+- **Move information**: Displays move numbers extracted from FEN notation
+- **ENTER key**: Resume game from currently displayed position
+- **ESC ESC (twice)**: Cancel and return to current game
+
+### Complete Game History Preservation
+When you resume from a loaded game:
+- **Full history copying**: All positions from game start up to selected point
+  are copied to your new game log
+- **Perfect continuity**: No lost moves or missing history
+- **New timestamped log**: Creates a fresh FEN log file for continued play
+- **UNDO compatibility**: Can undo through the complete loaded history
+- **PGN generation**: Includes the full game progression when creating PGN files
+
+### Example Usage
+```
+White's turn. Enter move (e.g., 'e2 e4') or 'help': load
+
+=== LOAD SAVED GAME ===
+
+Available saved games:
+1. 09/13/25 12:00:00 - 18 moves
+2. italian_opening.fen - 12 moves
+3. endgame_study.fen - 25 moves
+
+Select game to load (1-3) or 0 to cancel: 2
+
+[Interactive browser opens - navigate with ← → arrows]
+```
+
+## Classical Opening Library
+
+The game includes a comprehensive library of 12 classic chess openings
+specifically designed for study and learning. These opening files work
+seamlessly with the LOAD feature to provide an excellent educational experience.
+
+### Available Openings
+- **ITALIAN.fen** - Italian Game (34 positions)
+- **RUY_LOPEZ.fen** - Ruy López/Spanish Opening (23 positions)
+- **QUEENS_GAMBIT.fen** - Queen's Gambit (22 positions)
+- **SICILIAN_NAJDORF.fen** - Sicilian Defense, Najdorf Variation (23 positions)
+- **FRENCH_DEFENSE.fen** - French Defense (22 positions)
+- **KINGS_INDIAN.fen** - King's Indian Defense (23 positions)
+- **ENGLISH.fen** - English Opening (22 positions)
+- **CARO_KANN.fen** - Caro-Kann Defense (21 positions)
+- **ALEKHINES_DEFENSE.fen** - Alekhine's Defense (21 positions)
+- **SCANDINAVIAN.fen** - Scandinavian Defense (21 positions)
+- **NIMZO_INDIAN.fen** - Nimzo-Indian Defense (21 positions)
+- **KINGS_GAMBIT.fen** - King's Gambit (21 positions)
+
+### Study Features
+**Perfect for Learning Chess Openings:**
+1. **Move-by-Move Analysis**: Use the LOAD command and arrow keys to step
+   through each opening move by move
+2. **Resume and Explore**: Press ENTER at any position to resume the game
+   from that point and explore your own variations
+3. **Complete History**: When you resume from a position, the game preserves
+   the entire opening sequence in your new game log
+4. **AI Practice**: Continue playing against Stockfish from any opening
+   position to practice your middle-game skills
+
+### How to Use for Study
+```
+White's turn. Enter move (e.g., 'e2 e4') or 'help': load
+
+=== LOAD SAVED GAME ===
+
+Available saved games:
+1. ITALIAN.fen - 34 moves
+2. RUY_LOPEZ.fen - 23 moves
+3. QUEENS_GAMBIT.fen - 22 moves
+[... and more classical openings]
+
+Select game to load: 1
+
+[Navigate through Italian Game positions with ← → arrows]
+[Press ENTER at move 15 to start playing from that position]
+```
+
+**Study Workflow:**
+1. **Choose Opening**: Select any classical opening from the LOAD menu
+2. **Study Theory**: Navigate through the theoretical moves with arrow keys
+3. **Pick Your Spot**: Press ENTER at any interesting position
+4. **Practice**: Continue the game against AI to improve your play
+5. **Repeat**: Try different openings or different starting positions
+
+This makes the LOAD feature a phenomenal study and learning tool for
+chess openings!
 
 ## AI Difficulty Control
 
@@ -364,8 +482,10 @@ Every game automatically creates a timestamped FEN log file:
   new timestamped files
 - **Undo synchronization**: When undo command is used, the FEN file is 
   automatically truncated to match the reverted game state
-- **SETUP preservation**: Custom board positions via SETUP command 
+- **SETUP preservation**: Custom board positions via SETUP command
   correctly preserve original halfmove clock and fullmove numbers
+- **Automatic cleanup**: Files containing only the starting position are
+  automatically removed - no clutter from games that never progressed
 
 ### Automatic PGN Generation
 When any game ends (quit, checkmate, or stalemate), the system 
@@ -380,8 +500,10 @@ automatically:
   utility
 - **Both formats preserved**: You get both FEN log for position analysis 
   and PGN for sharing/importing
-- **File notification**: Shows both generated filenames so you know exactly 
+- **File notification**: Shows both generated filenames so you know exactly
   where your game records are saved
+- **Smart cleanup**: If a game never progressed beyond the starting position,
+  no files are created and user is notified with "No game files created"
 
 ### Manual FEN to PGN Conversion
 For older FEN files or manual conversion, use the standalone utility:

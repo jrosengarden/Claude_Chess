@@ -24,6 +24,8 @@ make clean             # Clean build artifacts for all executables and debug
 - `micro_test.c` - Safe micro-testing framework for development
 - `test_compile_only.sh` - Safe compilation and basic functionality tests
 - `Makefile` - Build configuration (builds chess, fen_to_pgn, and micro_test)
+- **Classical Opening Library**: Collection of 12 classic chess opening FEN files
+  for study and analysis with the LOAD feature
 
 ## Key Function Entry Points
 - `get_possible_moves()` - Main move generation (chess.c)
@@ -48,6 +50,31 @@ make clean             # Clean build artifacts for all executables and debug
 ## Current Development Status
 
 ### Recently Completed
+- ✅ **Interactive LOAD Game Browser**: Complete interactive game loading system
+  with arrow key navigation and universal FEN file support
+  - **NEW**: Interactive game browser with arrow key navigation through saved games
+  - **Universal FEN support**: Loads any .fen file, not just CHESS_* format
+  - **Arrow key controls**: ← → navigate positions, ENTER to resume, ESC ESC to cancel
+  - **Complete game history preservation**: When resuming from middle of game,
+    copies all positions up to selected point into new FEN log
+  - **Smart file detection**: Formats CHESS_* files with readable dates/times,
+    shows other FEN files with full filename
+  - **Position-by-position browsing**: View exact board state for each move
+  - **Resume from anywhere**: Can resume gameplay from any position in any saved game
+  - **Cross-platform compatible**: Works on both macOS and Linux systems
+  - **Memory-safe implementation**: Proper cleanup and error handling
+  - **Seamless integration**: Creates new timestamped FEN log for continued play
+  - Location: Interactive browser functions in main.c (lines 617-693), file
+    scanning in main.c (lines 486-583), LOAD command handler in main.c (lines
+    695-803)
+- ✅ **Starting Position File Cleanup**: Automatic cleanup of meaningless game files
+  - **Smart detection**: Identifies FEN files containing only standard starting position
+  - **Automatic removal**: Deletes starting-position-only FEN files on game exit
+  - **No PGN generation**: Skips PGN creation for games that never progressed
+  - **User feedback**: Clear messages when files are removed or when no files created
+  - **Safe validation**: Only removes files with exact starting position match
+  - Location: Detection function in main.c (lines 186-220), cleanup logic in
+    convert_fen_to_pgn() (lines 229-265), file notification updates (lines 267-293)
 - ✅ **Enhanced Side-by-Side PGN Display**: Complete dual-window PGN viewing
   system with cross-platform support
   - **NEW**: Side-by-side viewing - opens PGN in separate terminal window
@@ -312,6 +339,7 @@ make clean             # Clean build artifacts for all executables and debug
   - `skill N` command sets AI difficulty level with game state protection (NEW)
   - `fen` command displays FEN notation with pause
   - `pgn` command displays current game in PGN format with side-by-side viewing (NEW)
+  - `load` command for interactive game browser with arrow key navigation (NEW)
   - `title` command added to re-display greeting screen (NEW)
   - `undo` command added to revert last move pair (NEW)
   - Piece position lookup (e.g., "e2") shows moves with pause (using * and 
@@ -347,12 +375,35 @@ make clean             # Clean build artifacts for all executables and debug
 - **Code Documentation**: Comprehensive comments throughout all source files 
   for maintainability
 
+### Classical Opening Library
+The game includes a comprehensive library of 12 classic chess openings in FEN
+format, accessible via the LOAD feature for study and analysis:
+
+- **ITALIAN.fen** - Italian Game (34 positions)
+- **RUY_LOPEZ.fen** - Ruy López/Spanish Opening (23 positions)
+- **QUEENS_GAMBIT.fen** - Queen's Gambit (22 positions)
+- **SICILIAN_NAJDORF.fen** - Sicilian Defense, Najdorf Variation (23 positions)
+- **FRENCH_DEFENSE.fen** - French Defense (22 positions)
+- **KINGS_INDIAN.fen** - King's Indian Defense (23 positions)
+- **ENGLISH.fen** - English Opening (22 positions)
+- **CARO_KANN.fen** - Caro-Kann Defense (21 positions)
+- **ALEKHINES_DEFENSE.fen** - Alekhine's Defense (21 positions)
+- **SCANDINAVIAN.fen** - Scandinavian Defense (21 positions)
+- **NIMZO_INDIAN.fen** - Nimzo-Indian Defense (21 positions)
+- **KINGS_GAMBIT.fen** - King's Gambit (21 positions)
+
+**Study Features:**
+- Use `load` command to browse openings move-by-move with arrow keys
+- Resume play from any position to explore variations
+- Complete game history preserved when starting from loaded positions
+- Perfect for learning classical opening theory and principles
+
 ### Game Rules (Automatic Detection)
-- **50-Move Rule**: Automatically draws game after 50 moves without pawn 
+- **50-Move Rule**: Automatically draws game after 50 moves without pawn
   moves or captures
-- **Checkmate Detection**: Automatically ends game when player has no legal 
+- **Checkmate Detection**: Automatically ends game when player has no legal
   moves and king is in check
-- **Stalemate Detection**: Automatically draws game when player has no legal 
+- **Stalemate Detection**: Automatically draws game when player has no legal
   moves but king is not in check
 
 ### Known Issues
@@ -441,9 +492,10 @@ make clean             # Clean build artifacts for all executables and debug
 #### Additional Enhancements
 - ✅ **Multi-level undo functionality** - **COMPLETE AND VERIFIED** (unlimited undo of move pairs using FEN log-based restoration)
 - ✅ **Difficulty level adjustment for AI** - **COMPLETE AND VERIFIED** (UCI skill level system with game state protection)
+- ✅ **Interactive game loading system** - **COMPLETE AND VERIFIED** (universal FEN file browser with arrow key navigation and history preservation)
+- ✅ **Automatic file cleanup** - **COMPLETE AND VERIFIED** (removes meaningless starting-position-only files)
 - Configurable analysis depth settings for score evaluation and AI moves
 - Move history display/navigation
-- Save/load game ability
 - Time controls implementation
 - Multi-game tournament mode
 - Time-based AI search (e.g., `go movetime 5000` for 5-second searches)
@@ -606,6 +658,33 @@ make clean             # Clean build artifacts for all executables and debug
   and intuitive window management
 - **Completed Enhancement**: Side-by-side PGN viewing system fully implemented
   and tested on both target platforms
+
+### Completed Feature: Interactive LOAD Game Browser
+
+**Interactive LOAD Implementation Status:**
+- ✅ **COMPLETE**: Universal FEN file browser with arrow key navigation
+- ✅ **Universal File Support**: Loads any .fen file regardless of naming convention
+- ✅ **Arrow Key Navigation**: Intuitive ← → navigation through game positions
+- ✅ **Complete History Preservation**: Copies full game history when resuming
+- ✅ **Smart Display**: Formats CHESS_* files with dates, others with filenames
+- ✅ **Cross-Platform Terminal Control**: Raw mode input handling on macOS/Linux
+
+**Technical Implementation Details:**
+- **File Discovery**: Scans directory for all .fen files using `readdir()`
+- **Arrow Key Detection**: Raw terminal mode with ANSI escape sequence handling
+- **Memory Management**: Dynamic allocation for FEN positions with proper cleanup
+- **Game State Reconstruction**: Uses existing `setup_board_from_fen()` for each position
+- **History Copying**: `copy_game_history_to_new_log()` preserves complete game progression
+- **Display Logic**: Dual-path formatting for CHESS_* vs. generic FEN files
+- **Error Handling**: Graceful fallback for file access, memory allocation failures
+
+**User Experience Features:**
+- **Interactive Navigation**: Real-time board updates as user navigates positions
+- **Resume Flexibility**: Can resume from any position in any saved game
+- **Clear Instructions**: Multi-line help text with explicit ESC ESC behavior
+- **Progress Indicators**: Shows current position (e.g., "Position 8/15 - Move 4")
+- **File Compatibility**: Works with files from other chess software, manual exports
+- **Seamless Integration**: Creates new timestamped FEN log for continued play
 
 ### Project Structure Details
 - `chess.h` - Chess game data structures and function declarations
@@ -885,6 +964,7 @@ The game communicates with Stockfish using the Universal Chess Interface
   proper display)
 - TITLE command for re-displaying game information
 - SETUP command for custom board positions using FEN notation
+- LOAD command for interactive game browser with arrow key navigation
 - UNDO command for reverting last move pair
 - DEBUG mode with diagnostic output
 - Command line argument parsing
@@ -930,4 +1010,4 @@ The game communicates with Stockfish using the Universal Chess Interface
   and remote repository management personally.
 
 ---
-*Last updated: After implementing Linux compatibility fixes for cross-platform support*
+*Last updated: After implementing interactive LOAD game browser with universal FEN file support and automatic file cleanup*

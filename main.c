@@ -27,6 +27,9 @@
 #include <time.h>
 #include <unistd.h>  // For getpid() and unlink()
 #include <sys/types.h>  // For process ID types
+#include <dirent.h>  // For directory scanning
+#include <termios.h>  // For terminal control (arrow keys)
+#include <sys/stat.h>  // For file statistics
 
 // Global debug flag for diagnostic output
 bool debug_mode = false;
@@ -181,54 +184,109 @@ bool restore_from_fen_log(ChessGame *game) {
 }
 
 /**
+ * Check if FEN file contains only the standard chess starting position
+ * Returns true if file has only 1 line with the starting position
+ */
+bool is_starting_position_only_fen_file(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) return false;
+
+    char line[1000];
+    int line_count = 0;
+    bool is_starting_position = false;
+
+    // Standard chess starting position FEN
+    const char* starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+    while (fgets(line, sizeof(line), file)) {
+        line_count++;
+        line[strcspn(line, "\n")] = '\0';  // Remove newline
+
+        if (line_count == 1) {
+            // Check if first line is starting position
+            is_starting_position = (strcmp(line, starting_fen) == 0);
+        }
+
+        // If more than 1 line, it's not starting-position-only
+        if (line_count > 1) {
+            fclose(file);
+            return false;
+        }
+    }
+
+    fclose(file);
+
+    // Return true only if exactly 1 line and it's the starting position
+    return (line_count == 1 && is_starting_position);
+}
+
+/**
  * Convert current session's FEN file to PGN format automatically
  * Creates a PGN file with the same base name as the FEN file.
  * This function performs the conversion silently without user prompts.
+ * Skips conversion and removes files if only starting position exists.
  */
 void convert_fen_to_pgn() {
+    // Check if FEN file contains only the starting position
+    if (is_starting_position_only_fen_file(fen_log_filename)) {
+        // Remove the FEN file - no point keeping starting position only
+        if (unlink(fen_log_filename) == 0) {
+            printf("Removed empty game file (starting position only): %s\n", fen_log_filename);
+        }
+        // Don't create PGN file - no meaningful game to record
+        return;
+    }
+
     // Create PGN filename from FEN filename
     char pgn_filename[256];
     char* base_name = strdup(fen_log_filename);
-    
+
     // Remove .fen extension if present
     char* dot = strrchr(base_name, '.');
     if (dot) *dot = '\0';
-    
+
     snprintf(pgn_filename, sizeof(pgn_filename), "%s.pgn", base_name);
     free(base_name);
-    
+
     // Open FEN file for reading
     FILE* fen_file = fopen(fen_log_filename, "r");
     if (!fen_file) {
         // FEN file doesn't exist or can't be opened, exit silently
         return;
     }
-    
+
     // Use system call to run fen_to_pgn utility with input redirection
     // This avoids duplicating the complex conversion logic
     char command[512];
     snprintf(command, sizeof(command), "echo '%s' | ./fen_to_pgn > /dev/null 2>&1", fen_log_filename);
     system(command);
-    
+
     fclose(fen_file);
 }
 
 /**
  * Display the generated game files to inform the user
  * Shows both the FEN log file and the converted PGN file names
+ * Handles case where files may have been removed due to starting position only
  */
 void show_game_files() {
+    // Check if files were removed due to starting position only
+    if (access(fen_log_filename, F_OK) != 0) {
+        printf("\nNo game files created (game never progressed beyond starting position).\n");
+        return;
+    }
+
     // Create PGN filename from FEN filename
     char pgn_filename[256];
     char* base_name = strdup(fen_log_filename);
-    
+
     // Remove .fen extension if present
     char* dot = strrchr(base_name, '.');
     if (dot) *dot = '\0';
-    
+
     snprintf(pgn_filename, sizeof(pgn_filename), "%s.pgn", base_name);
     free(base_name);
-    
+
     printf("\nGame files created:\n");
     printf("  FEN log: %s\n", fen_log_filename);
     printf("  PGN file: %s\n", pgn_filename);
@@ -352,6 +410,447 @@ bool display_pgn_in_new_window(const char* pgn_content) {
 void clear_screen() {
     printf("\033[2J\033[H");  // Clear screen and move cursor to top-left
     fflush(stdout);           // Ensure immediate display
+}
+
+/**
+ * Structure to hold FEN log game information for selection
+ */
+typedef struct {
+    char filename[256];
+    char display_name[100];
+    int move_count;
+    time_t timestamp;
+} FENGameInfo;
+
+/**
+ * Structure to hold loaded FEN positions for navigation
+ */
+typedef struct {
+    char **positions;     // Array of FEN strings
+    int count;           // Number of positions
+    int current;         // Current position index
+} FENNavigator;
+
+/**
+ * Enable raw terminal mode for arrow key detection
+ * Returns old terminal settings for restoration
+ */
+struct termios enable_raw_mode() {
+    struct termios old_termios, new_termios;
+
+    // Get current terminal settings
+    tcgetattr(STDIN_FILENO, &old_termios);
+    new_termios = old_termios;
+
+    // Disable canonical mode and echo
+    new_termios.c_lflag &= ~(ICANON | ECHO);
+
+    // Set new terminal settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_termios);
+
+    return old_termios;
+}
+
+/**
+ * Restore original terminal mode
+ */
+void restore_terminal_mode(struct termios old_termios) {
+    tcsetattr(STDIN_FILENO, TCSANOW, &old_termios);
+}
+
+/**
+ * Get single key input including arrow keys
+ * Returns special codes for arrow keys:
+ * 1000 = Up, 1001 = Down, 1002 = Right, 1003 = Left
+ * 27 = ESC, 10 = Enter, other = regular character
+ */
+int get_key() {
+    int ch = getchar();
+
+    if (ch == 27) {  // ESC sequence
+        ch = getchar();
+        if (ch == '[') {
+            ch = getchar();
+            switch (ch) {
+                case 'A': return 1000;  // Up arrow
+                case 'B': return 1001;  // Down arrow
+                case 'C': return 1002;  // Right arrow
+                case 'D': return 1003;  // Left arrow
+            }
+        }
+        return 27;  // ESC key
+    }
+    return ch;
+}
+
+/**
+ * Scan directory for all .fen files and return sorted list
+ */
+int scan_fen_files(FENGameInfo **games) {
+    DIR *dir;
+    struct dirent *entry;
+    struct stat file_stat;
+    int count = 0;
+    int capacity = 10;
+
+    *games = malloc(capacity * sizeof(FENGameInfo));
+    if (!*games) return 0;
+
+    dir = opendir(".");
+    if (!dir) {
+        free(*games);
+        return 0;
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        // Check if file has .fen extension
+        char *fen_ext = strstr(entry->d_name, ".fen");
+        if (fen_ext != NULL && strcmp(fen_ext, ".fen") == 0) {
+
+            if (count >= capacity) {
+                capacity *= 2;
+                *games = realloc(*games, capacity * sizeof(FENGameInfo));
+                if (!*games) {
+                    closedir(dir);
+                    return 0;
+                }
+            }
+
+            // Store filename
+            strcpy((*games)[count].filename, entry->d_name);
+
+            // Get file timestamp
+            if (stat(entry->d_name, &file_stat) == 0) {
+                (*games)[count].timestamp = file_stat.st_mtime;
+            } else {
+                (*games)[count].timestamp = 0;
+            }
+
+            // Count moves in file
+            FILE *file = fopen(entry->d_name, "r");
+            if (file) {
+                int moves = 0;
+                char line[1000];
+                while (fgets(line, sizeof(line), file)) {
+                    moves++;
+                }
+                fclose(file);
+                (*games)[count].move_count = moves;
+            } else {
+                (*games)[count].move_count = 0;
+            }
+
+            // Create display name from filename
+            char *underscore1 = strchr(entry->d_name, '_');
+            char *underscore2 = underscore1 ? strchr(underscore1 + 1, '_') : NULL;
+            char *dot = strchr(entry->d_name, '.');
+
+            if (underscore1 && underscore2 && dot && strncmp(entry->d_name, "CHESS_", 6) == 0) {
+                // Extract date and time parts
+                char date_part[10], time_part[10];
+                strncpy(date_part, underscore1 + 1, underscore2 - underscore1 - 1);
+                date_part[underscore2 - underscore1 - 1] = '\0';
+                strncpy(time_part, underscore2 + 1, dot - underscore2 - 1);
+                time_part[dot - underscore2 - 1] = '\0';
+
+                // Format as readable date/time
+                snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
+                         "%c%c/%c%c/%c%c %c%c:%c%c:%c%c - %d moves",
+                         date_part[0], date_part[1], date_part[2], date_part[3],
+                         date_part[4], date_part[5],
+                         time_part[0], time_part[1], time_part[2], time_part[3],
+                         time_part[4], time_part[5],
+                         (*games)[count].move_count);
+            } else {
+                snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
+                         "%.50s - %d moves", entry->d_name, (*games)[count].move_count);
+            }
+
+            count++;
+        }
+    }
+
+    closedir(dir);
+
+    // Sort by timestamp (newest first)
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = i + 1; j < count; j++) {
+            if ((*games)[i].timestamp < (*games)[j].timestamp) {
+                FENGameInfo temp = (*games)[i];
+                (*games)[i] = (*games)[j];
+                (*games)[j] = temp;
+            }
+        }
+    }
+
+    return count;
+}
+
+/**
+ * Load all FEN positions from a file into navigator
+ */
+int load_fen_positions(const char *filename, FENNavigator *nav) {
+    FILE *file = fopen(filename, "r");
+    if (!file) return 0;
+
+    // Count lines first
+    int count = 0;
+    char line[1000];
+    while (fgets(line, sizeof(line), file)) {
+        if (strlen(line) > 10) count++;  // Skip empty lines
+    }
+
+    if (count == 0) {
+        fclose(file);
+        return 0;
+    }
+
+    // Allocate memory
+    nav->positions = malloc(count * sizeof(char*));
+    if (!nav->positions) {
+        fclose(file);
+        return 0;
+    }
+
+    // Read positions
+    rewind(file);
+    nav->count = 0;
+    nav->current = 0;
+
+    while (fgets(line, sizeof(line), file) && nav->count < count) {
+        line[strcspn(line, "\n")] = '\0';  // Remove newline
+        if (strlen(line) > 10) {  // Valid FEN line
+            nav->positions[nav->count] = malloc(strlen(line) + 1);
+            if (nav->positions[nav->count]) {
+                strcpy(nav->positions[nav->count], line);
+                nav->count++;
+            }
+        }
+    }
+
+    fclose(file);
+    return nav->count;
+}
+
+/**
+ * Free FEN navigator memory
+ */
+void free_fen_navigator(FENNavigator *nav) {
+    if (nav->positions) {
+        for (int i = 0; i < nav->count; i++) {
+            free(nav->positions[i]);
+        }
+        free(nav->positions);
+    }
+    nav->positions = NULL;
+    nav->count = 0;
+    nav->current = 0;
+}
+
+/**
+ * Copy game history from loaded FEN positions up to selected position
+ * This preserves the complete game history when resuming from a LOAD
+ */
+void copy_game_history_to_new_log(FENNavigator *nav, int up_to_position) {
+    FILE *file = fopen(fen_log_filename, "w");
+    if (!file) {
+        printf("Warning: Could not create new FEN log file for game history.\n");
+        return;
+    }
+
+    // Copy all positions from start up to and including the selected position
+    for (int i = 0; i <= up_to_position; i++) {
+        fprintf(file, "%s\n", nav->positions[i]);
+    }
+
+    fclose(file);
+
+    printf("Copied %d position%s to new game log.\n",
+           up_to_position + 1,
+           up_to_position == 0 ? "" : "s");
+}
+
+/**
+ * Interactive FEN navigation browser
+ * Returns the index of selected position, or -1 if cancelled
+ */
+int interactive_fen_browser(ChessGame *game, FENNavigator *nav) {
+    struct termios old_termios = enable_raw_mode();
+    ChessGame temp_game = *game;  // Work with copy to preserve original
+
+    while (1) {
+        // Load current position
+        if (!setup_board_from_fen(&temp_game, nav->positions[nav->current])) {
+            printf("Error loading position %d\n", nav->current + 1);
+            break;
+        }
+
+        clear_screen();
+
+        // Display current board
+        Position empty_moves[1];  // No highlighting
+        print_board(&temp_game, empty_moves, 0);
+
+        // Display navigation info
+        printf("\n=== GAME BROWSER ===\n");
+        printf("Position %d/%d", nav->current + 1, nav->count);
+
+        // Show move number based on FEN fullmove counter
+        if (nav->current < nav->count) {
+            // Try to extract move number from FEN string
+            char fen_copy[1000];
+            strcpy(fen_copy, nav->positions[nav->current]);
+
+            // FEN format: board active castling enpassant halfmove fullmove
+            char *token = strtok(fen_copy, " ");
+            for (int i = 0; i < 5 && token; i++) {
+                token = strtok(NULL, " ");
+            }
+            if (token) {
+                int move_num = atoi(token);
+                if (move_num > 0) {
+                    printf(" - Move %d", move_num);
+                }
+            }
+        }
+
+        printf("\n\n");
+        printf("← → Navigate positions\n");
+        printf("ENTER to resume game from the currently loaded position\n");
+        printf("ESC ESC (twice) to cancel loading\n");
+        printf("Current FEN: %.60s...\n", nav->positions[nav->current]);
+
+        fflush(stdout);
+
+        int key = get_key();
+
+        switch (key) {
+            case 1002:  // Right arrow - next position
+                if (nav->current < nav->count - 1) {
+                    nav->current++;
+                }
+                break;
+
+            case 1003:  // Left arrow - previous position
+                if (nav->current > 0) {
+                    nav->current--;
+                }
+                break;
+
+            case 10:    // Enter - select this position
+            case 13:    // Carriage return
+                restore_terminal_mode(old_termios);
+                return nav->current;
+
+            case 27:    // ESC - cancel
+                restore_terminal_mode(old_termios);
+                return -1;
+
+            default:
+                // Ignore other keys
+                break;
+        }
+    }
+
+    restore_terminal_mode(old_termios);
+    return -1;
+}
+
+/**
+ * Main LOAD command implementation
+ * Allows user to select and interactively browse saved games
+ */
+void handle_load_command(ChessGame *game) {
+    FENGameInfo *games = NULL;
+    int game_count = scan_fen_files(&games);
+
+    if (game_count == 0) {
+        printf("\nNo saved games found. Play some games first to create FEN logs!\n");
+        return;
+    }
+
+    // Display available games
+    clear_screen();
+    printf("=== LOAD SAVED GAME ===\n\n");
+    printf("Available saved games:\n");
+
+    for (int i = 0; i < game_count; i++) {
+        printf("%d. %s\n", i + 1, games[i].display_name);
+    }
+
+    printf("\nSelect game to load (1-%d) or 0 to cancel: ", game_count);
+    fflush(stdout);
+
+    // Get user selection
+    char input[10];
+    if (!fgets(input, sizeof(input), stdin)) {
+        free(games);
+        return;
+    }
+
+    int selection = atoi(input);
+    if (selection == 0) {
+        printf("Load cancelled.\n");
+        free(games);
+        return;
+    }
+
+    if (selection < 1 || selection > game_count) {
+        printf("Invalid selection. Load cancelled.\n");
+        free(games);
+        return;
+    }
+
+    // Load selected game
+    selection--;  // Convert to 0-based index
+    FENNavigator nav;
+
+    printf("\nLoading game: %s\n", games[selection].display_name);
+
+    if (!load_fen_positions(games[selection].filename, &nav)) {
+        printf("Error loading game file. Load cancelled.\n");
+        free(games);
+        return;
+    }
+
+    printf("Game loaded successfully! Starting interactive browser...\n");
+    printf("Use arrow keys to navigate positions.\n");
+    printf("ENTER to resume game from selected position.\n");
+    printf("ESC ESC (twice) to cancel loading.\n");
+    printf("Press any key to continue...");
+    getchar();
+
+    // Start interactive browser
+    int selected_position = interactive_fen_browser(game, &nav);
+
+    if (selected_position >= 0) {
+        // Load selected position into game
+        if (setup_board_from_fen(game, nav.positions[selected_position])) {
+            printf("\nPosition loaded successfully!\n");
+            printf("Resuming game from position %d/%d\n", selected_position + 1, nav.count);
+
+            // Create new FEN log for continued gameplay
+            generate_fen_filename();
+            printf("New game log: %s\n", fen_log_filename);
+
+            // Copy complete game history up to selected position
+            copy_game_history_to_new_log(&nav, selected_position);
+
+            // Reset game started flag to allow new skill settings
+            game_started = false;
+        } else {
+            printf("\nError loading selected position!\n");
+        }
+    } else {
+        printf("\nLoad cancelled. Returning to current game.\n");
+    }
+
+    // Cleanup
+    free_fen_navigator(&nav);
+    free(games);
+
+    printf("Press Enter to continue...");
+    getchar();
 }
 
 /**
@@ -513,6 +1012,7 @@ void print_help() {
     printf("Type 'pgn' to display current game in PGN (Portable Game Notation) format\n");
     printf("Type 'title' to re-display the game title and info screen\n");
     printf("Type 'setup' to setup a custom board position from FEN string\n");
+    printf("Type 'load' to interactively browse and load saved games (with arrow key navigation)\n");
     printf("Type 'undo' for unlimited undo (undo any number of move pairs)\n");
     printf("Type 'resign' to resign the game (with confirmation)\n");
     printf("Type 'quit' to exit the game\n");
@@ -733,7 +1233,12 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         getchar();
         return;
     }
-    
+
+    if (strcmp(input, "load") == 0 || strcmp(input, "LOAD") == 0) {
+        handle_load_command(game);
+        return;
+    }
+
     if (strcmp(input, "undo") == 0 || strcmp(input, "UNDO") == 0) {
         int available_undos = count_available_undos();
         

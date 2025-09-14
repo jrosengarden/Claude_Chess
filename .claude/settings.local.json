@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for:*)",
+      "Bash(do echo -n \"$file: \")",
+      "Bash(./validate_openings \"$file\")",
+      "Bash(done)",
+      "Bash(./validate_openings ITALIAN.fen)",
+      "Bash(./validate_openings RUY_LOPEZ.fen)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
