@@ -199,6 +199,7 @@ All core chess rules implemented except pawn promotion:
 - **Side-by-Side PGN Display** - Cross-platform terminal detection
 - **Starting Position File Cleanup** - Auto-removal of meaningless games
 - **Complete FEN Counter System** - Standards-compliant tracking
+- **Captured Pieces Calculation** - FEN/LOAD positions show previously captured pieces
 
 ---
 *Developer reference for Claude Chess - Focused technical documentation*

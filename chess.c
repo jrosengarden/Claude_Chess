@@ -111,7 +111,8 @@ void print_board(ChessGame *game, Position possible_moves[], int move_count) {
         
         for (int col = 0; col < BOARD_SIZE; col++) {
             bool is_possible_move = false;
-            
+            bool is_en_passant_capture = false;
+
             if (possible_moves != NULL) {
                 for (int i = 0; i < move_count; i++) {
                     if (possible_moves[i].row == row && possible_moves[i].col == col) {
@@ -119,12 +120,30 @@ void print_board(ChessGame *game, Position possible_moves[], int move_count) {
                         break;
                     }
                 }
+
+                // Check for en passant captured pawn highlighting
+                if (game->en_passant_available && !is_possible_move) {
+                    // Check if this position contains the pawn that would be captured by en passant
+                    Position en_passant_target = game->en_passant_target;
+                    int captured_pawn_row = (game->current_player == WHITE) ? en_passant_target.row + 1 : en_passant_target.row - 1;
+
+                    if (row == captured_pawn_row && col == en_passant_target.col) {
+                        // Check if any of the possible moves is the en passant target square
+                        for (int j = 0; j < move_count; j++) {
+                            if (possible_moves[j].row == en_passant_target.row &&
+                                possible_moves[j].col == en_passant_target.col) {
+                                is_en_passant_capture = true;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
-            
+
             char piece_char = piece_to_char(game->board[row][col]);
             if (is_possible_move && piece_char == '.') {
                 printf("* ");
-            } else if (is_possible_move) {
+            } else if (is_possible_move || is_en_passant_capture) {
                 // Capturable piece - use reverse/inverted colors for highlighting
                 if (piece_char >= 'A' && piece_char <= 'Z') {
                     printf("\033[7;1;95m%c\033[0m ", piece_char); // Inverted bold magenta for white pieces
@@ -739,10 +758,63 @@ bool validate_fen_string(const char* fen) {
 }
 
 /**
+ * Calculate captured pieces by comparing current board to starting position
+ * Determines which pieces are missing from their starting positions
+ * and populates the captured pieces arrays accordingly
+ *
+ * @param game Game state with current board position
+ */
+void calculate_captured_pieces(ChessGame *game) {
+    // Standard starting pieces count for each type and color
+    int starting_counts[2][7] = {
+        // WHITE: EMPTY, PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING
+        {0, 8, 2, 2, 2, 1, 1},
+        // BLACK: EMPTY, PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING
+        {0, 8, 2, 2, 2, 1, 1}
+    };
+
+    // Count current pieces on board
+    int current_counts[2][7] = {{0}};
+
+    for (int row = 0; row < BOARD_SIZE; row++) {
+        for (int col = 0; col < BOARD_SIZE; col++) {
+            Piece piece = game->board[row][col];
+            if (piece.type != EMPTY) {
+                current_counts[piece.color][piece.type]++;
+            }
+        }
+    }
+
+    // Clear captured pieces arrays
+    game->white_captured.count = 0;
+    game->black_captured.count = 0;
+
+    // Calculate captured pieces for each color
+    for (int color = 0; color < 2; color++) {
+        for (int piece_type = PAWN; piece_type <= KING; piece_type++) {
+            int captured = starting_counts[color][piece_type] - current_counts[color][piece_type];
+
+            // Add captured pieces to the appropriate array
+            for (int i = 0; i < captured; i++) {
+                Piece captured_piece = {piece_type, color};
+
+                if (color == WHITE) {
+                    // White piece was captured by Black
+                    game->black_captured.captured_pieces[game->black_captured.count++] = captured_piece;
+                } else {
+                    // Black piece was captured by White
+                    game->white_captured.captured_pieces[game->white_captured.count++] = captured_piece;
+                }
+            }
+        }
+    }
+}
+
+/**
  * Setup board from FEN string
  * Parses FEN string and configures game state accordingly
  * Updates board position, current player, king positions, and castling rights
- * 
+ *
  * @param game Game state to modify
  * @param fen Valid FEN string
  * @return true if successful, false if parsing failed
@@ -885,9 +957,8 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
         game->fullmove_number = 1;  // Default value
     }
     
-    // Clear captured pieces (starting fresh)
-    game->white_captured.count = 0;
-    game->black_captured.count = 0;
+    // Calculate captured pieces based on current board position
+    calculate_captured_pieces(game);
     
     // Verify both kings were found during parsing
     if (game->white_king_pos.row == -1 || game->black_king_pos.row == -1) {

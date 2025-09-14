@@ -166,6 +166,9 @@ Position char_to_position(char *input);  // Convert algebraic notation (e.g. "e4
 char *position_to_string(Position pos);  // Convert Position to algebraic notation string
 
 
+// Captured pieces calculation
+void calculate_captured_pieces(ChessGame *game);  // Calculate captured pieces from current board position
+
 // FEN parsing and board setup functions
 bool validate_fen_string(const char* fen);  // Validate FEN string format
 bool setup_board_from_fen(ChessGame *game, const char* fen);  // Parse FEN and set board position
