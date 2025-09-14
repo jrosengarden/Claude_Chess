@@ -233,15 +233,16 @@ All core chess rules implemented except pawn promotion:
 
 ### Opening Sequence Generation
 **PGN-to-FEN Converter:**
-- Converts algebraic notation moves to accurate FEN positions
+- Converts standard PGN files (with headers) to clean FEN position files
 - Validates each move using chess engine during conversion
 - Supports castling, en passant, move disambiguation
-- Output: verified FEN position sequence
+- Output: clean FEN strings compatible with LOAD function
+- Full compatibility with fen_to_pgn utility (round-trip conversion)
 
 **Usage:**
 ```bash
-./pgn_to_fen "1.e4 e5 2.Nf3 Nc6 3.Bb5"  # Command line
-echo "d4 Nf6 c4 g6" | ./pgn_to_fen        # Stdin input
+./pgn_to_fen game.pgn > output.fen        # Standard PGN file input
+./pgn_to_fen < game.pgn > output.fen      # Stdin input
 ```
 
 ### Authentic Opening Library

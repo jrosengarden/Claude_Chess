@@ -1,24 +1,25 @@
 /**
  * PGN_TO_FEN.C - PGN to FEN Conversion Utility
  *
- * Converts PGN (Portable Game Notation) moves to FEN (Forsyth-Edwards Notation)
- * positions for validation and verification of chess opening sequences.
+ * Converts standard PGN files (with headers) to clean FEN position files
+ * compatible with the chess game's LOAD function and fen_to_pgn utility.
  *
- * Usage: ./pgn_to_fen "1.d4 Nf6 2.c4 g6 3.Nc3 Bg7"
- *        ./pgn_to_fen < moves.txt
- *        echo "1.e4 e5 2.Nf3 Nc6" | ./pgn_to_fen
+ * Usage: ./pgn_to_fen < game.pgn > output.fen
+ *        ./pgn_to_fen game.pgn > output.fen
  *
  * Features:
- * - Accepts PGN move sequences as command line argument or stdin
- * - Outputs FEN position after each move
+ * - Accepts standard PGN files with headers (compatible with fen_to_pgn output)
+ * - Skips PGN headers automatically ([Event "..."], [Site "..."], etc.)
+ * - Outputs clean FEN strings only (one per line)
  * - Validates all moves using chess engine
- * - Reports invalid moves with position context
+ * - Compatible with chess game LOAD function
  * - Handles standard algebraic notation (SAN)
  */
 
 #include "chess.h"
 #include "stockfish.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -164,34 +165,88 @@ void clean_move_string(char* move) {
     move[write_pos] = '\0';
 }
 
+/**
+ * Extract move sequence from PGN content, skipping headers
+ * Returns allocated string with moves, or NULL on error
+ */
+char* extract_moves_from_pgn(FILE* input) {
+    char line[1024];
+    char* moves = malloc(4096);
+    if (!moves) return NULL;
+
+    moves[0] = '\0';
+    int moves_len = 0;
+    bool in_headers = true;
+
+    while (fgets(line, sizeof(line), input)) {
+        // Skip empty lines
+        if (line[0] == '\n' || line[0] == '\r') {
+            if (in_headers) {
+                in_headers = false; // End of headers section
+            }
+            continue;
+        }
+
+        // Skip PGN header lines (start with '[')
+        if (line[0] == '[') {
+            continue;
+        }
+
+        // We've reached the moves section
+        in_headers = false;
+
+        // Append this line to moves string
+        int line_len = strlen(line);
+        if (moves_len + line_len + 1 < 4096) {
+            strcat(moves, line);
+            moves_len += line_len;
+        }
+    }
+
+    return moves;
+}
+
 int main(int argc, char* argv[]) {
     ChessGame game;
     init_board(&game);
+    FILE* input = stdin;
 
-    char input[4096] = {0};
-
-    // Get input from command line argument or stdin
+    // Handle file input if provided
     if (argc > 1) {
-        strncpy(input, argv[1], sizeof(input) - 1);
-    } else {
-        if (!fgets(input, sizeof(input), stdin)) {
-            fprintf(stderr, "Error reading input\n");
+        input = fopen(argv[1], "r");
+        if (!input) {
+            fprintf(stderr, "Error: Cannot open file %s\n", argv[1]);
             return 1;
         }
     }
 
-    printf("Starting position:\n");
+    // Extract moves from PGN, skipping headers
+    char* moves_string = extract_moves_from_pgn(input);
+    if (!moves_string) {
+        fprintf(stderr, "Error: Failed to extract moves from PGN\n");
+        if (input != stdin) fclose(input);
+        return 1;
+    }
+
+    if (input != stdin) fclose(input);
+
+    // Output starting position (clean FEN only)
     printf("%s\n", board_to_fen(&game));
 
     // Parse and process moves
-    char* token = strtok(input, " \t\n");
-    int move_count = 0;
+    char* token = strtok(moves_string, " \t\n");
 
     while (token != NULL) {
         // Skip move numbers (e.g., "1.", "2.", etc.)
         if (strchr(token, '.') != NULL) {
             token = strtok(NULL, " \t\n");
             continue;
+        }
+
+        // Skip result markers
+        if (strcmp(token, "*") == 0 || strcmp(token, "1-0") == 0 ||
+            strcmp(token, "0-1") == 0 || strcmp(token, "1/2-1/2") == 0) {
+            break;
         }
 
         // Clean the move string
@@ -207,22 +262,23 @@ int main(int argc, char* argv[]) {
         if (parse_algebraic_move(token, &from, &to, &game)) {
             if (is_valid_move(&game, from, to)) {
                 make_move(&game, from, to);
-                move_count++;
-                printf("After %d. %s:\n", (move_count + 1) / 2, token);
+                // Output clean FEN only (no descriptions)
                 printf("%s\n", board_to_fen(&game));
             } else {
-                fprintf(stderr, "Invalid move: %s (from %c%d to %c%d)\n",
+                fprintf(stderr, "Error: Invalid move %s (from %c%d to %c%d)\n",
                         token, 'a' + from.col, 8 - from.row, 'a' + to.col, 8 - to.row);
+                free(moves_string);
                 return 1;
             }
         } else {
-            fprintf(stderr, "Could not parse move: %s\n", token);
+            fprintf(stderr, "Error: Could not parse move %s\n", token);
+            free(moves_string);
             return 1;
         }
 
         token = strtok(NULL, " \t\n");
     }
 
-    printf("\nConversion complete! Processed %d moves.\n", move_count);
+    free(moves_string);
     return 0;
 }
