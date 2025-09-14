@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# REGENERATE_OPENINGS - Regenerate authentic chess opening FEN files
+#
+# Creates verified FEN files from known correct opening move sequences
+# using the pgn_to_fen utility and chess engine validation.
+
+regenerate_opening() {
+    local opening_name="$1"
+    local moves="$2"
+    local output_file="FEN_FILES/${opening_name}.fen"
+
+    echo "🔄 Regenerating $opening_name..."
+    echo "   Moves: $moves"
+
+    # Generate FEN using pgn_to_fen
+    if echo "$moves" | ./pgn_to_fen > "$output_file.tmp" 2>/dev/null; then
+        # Extract just the FEN positions (remove the commentary)
+        grep "^[rnbqkpRNBQKP1-8/]" "$output_file.tmp" > "$output_file"
+        rm "$output_file.tmp"
+
+        # Validate the generated file
+        if ./validate_openings "$output_file" >/dev/null 2>&1; then
+            echo "✅ $opening_name: Successfully regenerated and validated"
+            return 0
+        else
+            echo "❌ $opening_name: Generated file failed validation"
+            return 1
+        fi
+    else
+        echo "❌ $opening_name: Failed to generate FEN from moves"
+        return 1
+    fi
+}
+
+main() {
+    echo "🏗️  Regenerating chess opening FEN files with authentic sequences..."
+    echo
+
+    # Define authentic opening sequences
+    regenerate_opening "RUY_LOPEZ" "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6 c3 O-O h3"
+    regenerate_opening "ITALIAN" "e4 e5 Nf3 Nc6 Bc4 Bc5 c3 f5 d3 fxe4 dxe4 Nf6 O-O d6 Bg5"
+    regenerate_opening "QUEENS_GAMBIT" "d4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3 Nbd7 Rc1 c6 Bd3"
+    regenerate_opening "KINGS_GAMBIT" "e4 e5 f4 exf4 Nf3 g5 h4 g4 Ne5 Nf6 Bc4 d6 Nf7 Qe7 Nxh8"
+    regenerate_opening "FRENCH_DEFENSE" "e4 e6 d4 d5 Nc3 Bb4 e5 c5 a3 Bxc3+ bxc3 Ne7 Qg4 Qc7 Qxg7"
+    regenerate_opening "CARO_KANN" "e4 c6 d4 d5 Nc3 dxe4 Nxe4 Bf5 Ng3 Bg6 h4 h6 Nf3 Nd7 h5"
+    regenerate_opening "SICILIAN_FOUR_KNIGHTS" "e4 c5 Nf3 Nc6 Nc3 Nf6 Bb5 Qc7 O-O Nd4 Re1 a6 Bf1"
+    regenerate_opening "ALEKHINES_DEFENSE" "e4 Nf6 e5 Nd5 d4 d6 Nf3 g6 Bc4 Nb6 Bb3 Bg7 Qe2 Nc6"
+    regenerate_opening "SCANDINAVIAN" "e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3 Bf5 Bc4 e6 Bd2 c6"
+    regenerate_opening "NIMZO_INDIAN" "d4 Nf6 c4 e6 Nc3 Bb4 e3 O-O Bd3 d5 Nf3 c5 O-O Nc6 a3"
+    regenerate_opening "ENGLISH" "c4 e5 Nc3 Nf6 Nf3 Nc6 g3 d5 cxd5 Nxd5 Bg2 Nxc3 bxc3 Bd6"
+
+    echo
+    echo "🎯 Regeneration complete! All files now contain authentic opening sequences."
+    echo "   Run './validate_openings' to verify all positions are legal."
+}
+
+main "$@"

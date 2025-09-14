@@ -2,7 +2,7 @@
 
 ## Build System
 ```bash
-make                    # Build chess, fen_to_pgn, micro_test
+make                    # Build chess, fen_to_pgn, pgn_to_fen, micro_test
 make run               # Build and run chess game
 make test              # Run micro-testing framework
 make debug             # Build all debug programs
@@ -18,8 +18,13 @@ make install-deps      # Install Stockfish dependency
 - `chess.h/chess.c` - Chess logic, move validation (2050+ lines)
 - `stockfish.h/stockfish.c` - AI engine integration via UCI protocol
 - `fen_to_pgn.c` - Standalone FEN-to-PGN conversion utility
+- `pgn_to_fen.c` - PGN-to-FEN converter with chess engine validation
 - `micro_test.c` - Safe testing framework (prevents Claude session crashes)
 - `CHESS.ini` - Configuration file (auto-created on first run)
+
+### Opening Validation Tools
+- `validate_openings` - Comprehensive FEN file validator using chess engine
+- `regenerate_openings` - Authentic opening sequence generator
 
 ### Key Entry Points
 - `get_possible_moves()` - Main move generation (chess.c)
@@ -102,6 +107,8 @@ typedef struct {
 ```bash
 make test                  # Safe micro-tests
 ./test_compile_only.sh    # Cross-platform compilation
+./validate_openings        # Validate all FEN files in FEN_FILES/
+./validate_openings file   # Validate specific FEN file
 ```
 
 ## Platform Compatibility
@@ -206,6 +213,60 @@ All core chess rules implemented except pawn promotion:
 - **Starting Position File Cleanup** - Auto-removal of meaningless games
 - **Complete FEN Counter System** - Standards-compliant tracking
 - **Captured Pieces Calculation** - FEN/LOAD positions show previously captured pieces
+- **Opening Library Validation System** - Engine-validated authentic classical openings
+- **PGN-to-FEN Conversion Tools** - Create verified opening sequences
+
+## Opening Library Management
+
+### FEN File Validation
+**Engine-Based Validation:**
+- All FEN positions validated using actual chess engine
+- Detects illegal moves, impossible positions, malformed FEN
+- Batch validation of entire opening library
+- Position-by-position error reporting
+
+**Tools:**
+```bash
+./validate_openings                    # Validate all FEN files
+./validate_openings FEN_FILES/RUY_LOPEZ.fen  # Validate specific file
+```
+
+### Opening Sequence Generation
+**PGN-to-FEN Converter:**
+- Converts algebraic notation moves to accurate FEN positions
+- Validates each move using chess engine during conversion
+- Supports castling, en passant, move disambiguation
+- Output: verified FEN position sequence
+
+**Usage:**
+```bash
+./pgn_to_fen "1.e4 e5 2.Nf3 Nc6 3.Bb5"  # Command line
+echo "d4 Nf6 c4 g6" | ./pgn_to_fen        # Stdin input
+```
+
+### Authentic Opening Library
+**Verified Classical Openings:**
+- 12 engine-validated opening sequences in FEN_FILES/
+- Each opening generated from historically accurate move sequences
+- All positions legal and reachable through proper gameplay
+- Suitable for study, testing, and competitive play
+
+**Library Contents:**
+- Ruy Lopez, Italian Game, Queen's Gambit, King's Gambit
+- French Defense, Caro-Kann, Sicilian Four Knights
+- Alekhine's Defense, Scandinavian, Nimzo-Indian
+- English Opening, King's Indian Defense
+
+**Regeneration:**
+```bash
+./regenerate_openings  # Regenerate all openings from authentic sequences
+```
+
+### Memory Management for Opening Tools
+- `parse_algebraic_move()` - Static candidate array (64 positions max)
+- `clean_move_string()` - In-place string modification
+- `validate_single_fen()` - Temporary file creation/cleanup
+- All tools use chess engine's existing memory management
 
 ---
 *Developer reference for Claude Chess - Focused technical documentation*

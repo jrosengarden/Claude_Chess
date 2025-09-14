@@ -2,18 +2,22 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=c99 -g
 TARGET = chess
 FEN_TARGET = fen_to_pgn
+PGN_FEN_TARGET = pgn_to_fen
 MICROTEST_TARGET = micro_test
 DEBUG_TARGETS = debug_position debug_castling debug_input debug_move debug_castle_input debug_queenside
 SOURCES = main.c chess.c stockfish.c
 OBJECTS = $(SOURCES:.c=.o)
 
-all: $(TARGET) $(FEN_TARGET) $(MICROTEST_TARGET) $(DEBUG_TARGETS)
+all: $(TARGET) $(FEN_TARGET) $(PGN_FEN_TARGET) $(MICROTEST_TARGET) $(DEBUG_TARGETS)
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(TARGET)
 
 $(FEN_TARGET): fen_to_pgn.c
 	$(CC) $(CFLAGS) fen_to_pgn.c -o $(FEN_TARGET)
+
+$(PGN_FEN_TARGET): pgn_to_fen.c chess.o stockfish.o
+	$(CC) $(CFLAGS) pgn_to_fen.c chess.o stockfish.o -o $(PGN_FEN_TARGET)
 
 $(MICROTEST_TARGET): micro_test.c chess.o
 	$(CC) $(CFLAGS) micro_test.c chess.o -o $(MICROTEST_TARGET)
@@ -22,7 +26,7 @@ $(MICROTEST_TARGET): micro_test.c chess.o
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJECTS) $(TARGET) $(FEN_TARGET) $(MICROTEST_TARGET) $(DEBUG_TARGETS)
+	rm -f $(OBJECTS) $(TARGET) $(FEN_TARGET) $(PGN_FEN_TARGET) $(MICROTEST_TARGET) $(DEBUG_TARGETS)
 	rm -rf *.dSYM
 
 install-deps:

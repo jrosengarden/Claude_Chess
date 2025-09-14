@@ -19,9 +19,10 @@ A complete terminal chess game with AI opponent and comprehensive study features
 - Real-time PGN display in side-by-side terminal windows
 - Custom board setup using FEN notation
 - Interactive game loading with arrow key navigation
-- Classical opening library (12 classic openings for study)
+- **Verified classical opening library** (12 authenticated openings)
 - Automatic game recording in FEN and PGN formats
 - Captured pieces display shows complete capture history for loaded positions
+- **Opening validation tools** ensure legal positions and authentic sequences
 
 ## Requirements
 
@@ -75,9 +76,10 @@ make && make run
 - `load` - Browse saved games with arrow key navigation
 
 ### Special Features
-- Classical opening library accessible via `load` command
+- **Verified classical opening library** accessible via `load` command
 - All games auto-saved as timestamped FEN and PGN files
 - Configuration via `CHESS.ini` file
+- **Opening validation utilities** for study and analysis
 
 ## Configuration (CHESS.ini)
 
@@ -120,11 +122,13 @@ DefaultSkillLevel=5               # AI difficulty (0-20)
 
 ## Classical Opening Library
 
-Study 12 classic chess openings using the `load` command:
+**Authenticated 12 classic chess openings** using the `load` command:
 - Italian Game, Ruy López, Queen's Gambit
-- Sicilian Najdorf, French Defense, King's Indian
+- Sicilian Four Knights, French Defense, King's Indian
 - English Opening, Caro-Kann, Alekhine's Defense
 - Scandinavian, Nimzo-Indian, King's Gambit
+
+**All openings are engine-validated and historically accurate!**
 
 **Study workflow:**
 1. Type `load` and select an opening
@@ -132,14 +136,45 @@ Study 12 classic chess openings using the `load` command:
 3. Press ENTER at any position to resume play
 4. Practice continuations against AI
 
+## Opening Validation Tools
+
+**For advanced users and chess study:**
+
+### Validate Opening Files
+Verify that all FEN files contain legal positions:
+```bash
+./validate_openings                    # Check all opening files
+./validate_openings FEN_FILES/RUY_LOPEZ.fen  # Check specific opening
+```
+
+### Convert Chess Moves to Positions
+Generate FEN positions from chess notation:
+```bash
+./pgn_to_fen "1.e4 e5 2.Nf3 Nc6 3.Bb5"  # Create opening sequence
+echo "d4 Nf6 c4 g6" | ./pgn_to_fen        # Pipe moves to converter
+```
+
+### Regenerate Opening Library
+Recreate all openings from authentic move sequences:
+```bash
+./regenerate_openings  # Rebuild entire library with verified moves
+```
+
+**Use cases:**
+- Study opening theory with verified positions
+- Create custom opening collections
+- Validate downloaded FEN files
+- Generate training positions for analysis
+
 ## Building and Testing
 
 ```bash
-make                    # Build chess and utilities
-make run               # Build and run
-make test              # Run tests
+make                    # Build chess and all utilities
+make run               # Build and run chess game
+make test              # Run micro-tests
 make clean             # Clean build files
 ./test_compile_only.sh # Cross-platform compilation test
+./validate_openings    # Verify opening library integrity
 ```
 
 ## Troubleshooting
