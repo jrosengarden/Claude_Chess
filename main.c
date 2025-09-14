@@ -606,7 +606,7 @@ void clear_screen() {
  */
 typedef struct {
     char filename[256];
-    char display_name[100];
+    char display_name[300];  // Larger buffer to accommodate filename + formatting
     int move_count;
     time_t timestamp;
     bool from_current_dir;  // true if from current directory, false if from FENDirectory
@@ -769,15 +769,14 @@ int scan_single_directory(const char* directory_path, FENGameInfo **games, int c
                              date_str, date_str + 2, date_str + 4,
                              time_str, time_str + 2, time_str + 4,
                              (*games)[count].move_count);
-                } else {
-                    snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
-                             "%s - %d moves", entry->d_name, (*games)[count].move_count);
+                    count++;
+                    continue;
                 }
-            } else {
-                // Use filename as-is
-                snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
-                         "%s - %d moves", entry->d_name, (*games)[count].move_count);
             }
+            
+            // Use filename as-is (for non-CHESS files or malformed CHESS_ files)
+            snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
+                     "%s - %d moves", entry->d_name, (*games)[count].move_count);
 
             count++;
         }

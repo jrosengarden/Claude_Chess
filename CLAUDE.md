@@ -176,6 +176,12 @@ is_fifty_move_rule_draw()  // Automatic draw detection
 3. **Testing Verification** - All changes tested on both OS
 4. **Comprehensive Comments** - All new code fully documented
 
+### Development Workflow (CRITICAL)
+**After ANY code changes, ALWAYS:**
+1. **Test Clean Compilation** - `make clean && make` (zero warnings required)
+2. **Run Micro Tests** - `make test` (all tests must pass)
+3. **Verify Functionality** - Ensure no regressions introduced
+
 ### Code Documentation Standards
 - File headers with purpose, features, architecture
 - Function-level docs with parameters/return values
