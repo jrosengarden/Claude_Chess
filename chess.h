@@ -79,6 +79,8 @@ typedef struct {
     bool is_capture;    // True if this move captures an opponent piece
     bool is_check;      // True if this move puts opponent in check
     bool is_checkmate;  // True if this move results in checkmate
+    bool is_promotion;  // True if this move involves pawn promotion
+    PieceType promotion_piece; // Type of piece to promote to (QUEEN, ROOK, BISHOP, KNIGHT)
 } Move;
 
 /**
@@ -151,6 +153,13 @@ int get_possible_moves(ChessGame *game, Position from, Position moves[]);  // Ge
 int get_pawn_moves(ChessGame *game, Position from, Position moves[]);  // Get all possible pawn moves including en passant
 bool is_valid_move(ChessGame *game, Position from, Position to);  // Check if move is legal
 bool make_move(ChessGame *game, Position from, Position to);  // Execute move and update game state
+bool make_promotion_move(ChessGame *game, Position from, Position to, PieceType promotion_type);  // Execute pawn promotion move
+bool execute_move(ChessGame *game, Move move);  // Execute move from Move structure (handles AI promotion)
+
+// Pawn promotion functions
+bool is_promotion_move(ChessGame *game, Position from, Position to);  // Check if move requires pawn promotion
+PieceType get_promotion_choice();  // Interactive UI for promotion piece selection
+bool is_valid_promotion_piece(PieceType piece_type);  // Validate promotion piece type
 
 // Check and game state analysis  
 bool is_in_check(ChessGame *game, Color color);  // Determine if player is in check

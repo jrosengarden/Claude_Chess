@@ -22,8 +22,8 @@ $(FEN_TARGET): fen_to_pgn.c
 $(PGN_FEN_TARGET): pgn_to_fen.c chess.o stockfish.o
 	$(CC) $(CFLAGS) pgn_to_fen.c chess.o stockfish.o -o $(PGN_FEN_TARGET)
 
-$(MICROTEST_TARGET): micro_test.c chess.o
-	$(CC) $(CFLAGS) micro_test.c chess.o -o $(MICROTEST_TARGET)
+$(MICROTEST_TARGET): micro_test.c chess.o stockfish.o
+	$(CC) $(CFLAGS) micro_test.c chess.o stockfish.o -o $(MICROTEST_TARGET)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

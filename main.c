@@ -1844,11 +1844,17 @@ void handle_black_turn(ChessGame *game, StockfishEngine *engine) {
             Position from_pos = ai_move.from;
             Position to_pos = ai_move.to;
             
-            if (make_move(game, ai_move.from, ai_move.to)) {
+            if (execute_move(game, ai_move)) {
                 char from_str[4], to_str[4];
                 strcpy(from_str, position_to_string(from_pos));
                 strcpy(to_str, position_to_string(to_pos));
-                printf("\nAI played: %s to %s\n", from_str, to_str);
+
+                if (ai_move.is_promotion && ai_move.promotion_piece != EMPTY) {
+                    char piece_names[][10] = {"", "Pawn", "Rook", "Knight", "Bishop", "Queen", "King"};
+                    printf("\nAI played: %s to %s (promoted to %s)\n", from_str, to_str, piece_names[ai_move.promotion_piece]);
+                } else {
+                    printf("\nAI played: %s to %s\n", from_str, to_str);
+                }
                 save_fen_log(game);  // Save FEN after AI's move
                 printf("Press Enter to continue...");
                 getchar();

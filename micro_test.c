@@ -12,6 +12,7 @@
  */
 
 #include "chess.h"
+#include "stockfish.h"
 #include <stdio.h>
 #include <assert.h>
 
@@ -402,6 +403,194 @@ void test_en_passant_capture() {
 }
 
 /**
+ * Test pawn promotion detection
+ * Tests: is_promotion_move() function
+ */
+void test_promotion_detection() {
+    printf("Testing pawn promotion detection... ");
+
+    ChessGame game;
+    init_board(&game);
+
+    // Place white pawn on 7th rank (row 1)
+    set_piece_at(&game, 1, 4, (Piece){PAWN, WHITE});
+
+    // Test that moving to 8th rank (row 0) is detected as promotion
+    Position from = {1, 4};  // e7
+    Position to = {0, 4};    // e8
+    assert(is_promotion_move(&game, from, to) == true);
+
+    // Test that moving to non-promotion square is not promotion
+    Position not_promotion = {2, 4};  // e6
+    assert(is_promotion_move(&game, from, not_promotion) == false);
+
+    // Place black pawn on 2nd rank (row 6)
+    set_piece_at(&game, 6, 3, (Piece){PAWN, BLACK});
+
+    // Test that black pawn moving to 1st rank (row 7) is detected as promotion
+    Position black_from = {6, 3};  // d2
+    Position black_to = {7, 3};    // d1
+    assert(is_promotion_move(&game, black_from, black_to) == true);
+
+    // Test non-pawn pieces don't trigger promotion
+    set_piece_at(&game, 1, 5, (Piece){QUEEN, WHITE});
+    Position queen_from = {1, 5};
+    Position queen_to = {0, 5};
+    assert(is_promotion_move(&game, queen_from, queen_to) == false);
+
+    printf("PASSED\n");
+}
+
+/**
+ * Test promotion piece validation
+ * Tests: is_valid_promotion_piece() function
+ */
+void test_promotion_piece_validation() {
+    printf("Testing promotion piece validation... ");
+
+    // Valid promotion pieces
+    assert(is_valid_promotion_piece(QUEEN) == true);
+    assert(is_valid_promotion_piece(ROOK) == true);
+    assert(is_valid_promotion_piece(BISHOP) == true);
+    assert(is_valid_promotion_piece(KNIGHT) == true);
+
+    // Invalid promotion pieces
+    assert(is_valid_promotion_piece(PAWN) == false);
+    assert(is_valid_promotion_piece(KING) == false);
+    assert(is_valid_promotion_piece(EMPTY) == false);
+
+    printf("PASSED\n");
+}
+
+/**
+ * Test pawn promotion move execution
+ * Tests: make_promotion_move() function with different piece types
+ */
+void test_promotion_move_execution() {
+    printf("Testing pawn promotion move execution... ");
+
+    ChessGame game;
+    init_board(&game);
+
+    // Clear board and place white pawn ready for promotion
+    memset(game.board, 0, sizeof(game.board));
+    set_piece_at(&game, 1, 4, (Piece){PAWN, WHITE});  // e7
+    game.current_player = WHITE;
+
+    // Test promotion to queen
+    Position from = {1, 4};  // e7
+    Position to = {0, 4};    // e8
+    assert(make_promotion_move(&game, from, to, QUEEN) == true);
+
+    // Verify queen was placed on destination square
+    Piece promoted = get_piece_at(&game, 0, 4);
+    assert(promoted.type == QUEEN);
+    assert(promoted.color == WHITE);
+
+    // Verify original square is empty
+    assert(get_piece_at(&game, 1, 4).type == EMPTY);
+
+    // Verify game state was updated
+    assert(game.current_player == BLACK);  // Should switch players
+    assert(game.halfmove_clock == 0);      // Should reset for pawn move
+
+    // Test promotion with capture
+    memset(game.board, 0, sizeof(game.board));
+    set_piece_at(&game, 6, 3, (Piece){PAWN, BLACK});   // d2
+    set_piece_at(&game, 7, 4, (Piece){ROOK, WHITE});   // e1 (target for capture)
+    game.current_player = BLACK;
+    game.white_captured.count = 0;
+
+    // Black pawn captures rook and promotes to knight
+    Position black_from = {6, 3};  // d2
+    Position black_to = {7, 4};    // e1
+    assert(make_promotion_move(&game, black_from, black_to, KNIGHT) == true);
+
+    // Verify knight was placed and rook was captured
+    Piece promoted_knight = get_piece_at(&game, 7, 4);
+    assert(promoted_knight.type == KNIGHT);
+    assert(promoted_knight.color == BLACK);
+    assert(game.black_captured.count == 1);
+    assert(game.black_captured.captured_pieces[0].type == ROOK);
+
+    printf("PASSED\n");
+}
+
+/**
+ * Test promotion with FEN integration
+ * Tests: Promotion moves work correctly with FEN board setup
+ */
+void test_promotion_fen_integration() {
+    printf("Testing promotion FEN integration... ");
+
+    ChessGame game;
+
+    // Set up position with white pawn ready to promote and kings safely positioned
+    const char* test_fen = "8/4P3/8/8/8/8/8/K6k w - - 0 1";
+
+    assert(setup_board_from_fen(&game, test_fen) == true);
+
+    // Verify pawn is in position
+    assert(get_piece_at(&game, 1, 4).type == PAWN);
+    assert(get_piece_at(&game, 1, 4).color == WHITE);
+
+    // Test promotion detection works with FEN setup
+    Position from = {1, 4};  // e7
+    Position to = {0, 4};    // e8
+    assert(is_promotion_move(&game, from, to) == true);
+
+    // Execute promotion
+    assert(make_promotion_move(&game, from, to, ROOK) == true);
+
+    // Verify promotion was successful
+    assert(get_piece_at(&game, 0, 4).type == ROOK);
+    assert(get_piece_at(&game, 0, 4).color == WHITE);
+
+    printf("PASSED\n");
+}
+
+/**
+ * Test UCI move string parsing for promotion moves
+ * Tests: parse_move_string() function handles promotion notation
+ */
+void test_uci_promotion_parsing() {
+    printf("Testing UCI promotion move parsing... ");
+
+    // Test normal move parsing (should still work)
+    Move normal_move = parse_move_string("e2e4");
+    assert(normal_move.from.row == 6 && normal_move.from.col == 4);  // e2
+    assert(normal_move.to.row == 4 && normal_move.to.col == 4);      // e4
+    assert(normal_move.is_promotion == false);
+    assert(normal_move.promotion_piece == EMPTY);
+
+    // Test promotion move parsing
+    Move promo_queen = parse_move_string("e7e8q");
+    assert(promo_queen.from.row == 1 && promo_queen.from.col == 4);  // e7
+    assert(promo_queen.to.row == 0 && promo_queen.to.col == 4);      // e8
+    assert(promo_queen.is_promotion == true);
+    assert(promo_queen.promotion_piece == QUEEN);
+
+    Move promo_rook = parse_move_string("a2a1r");
+    assert(promo_rook.is_promotion == true);
+    assert(promo_rook.promotion_piece == ROOK);
+
+    Move promo_bishop = parse_move_string("h7h8b");
+    assert(promo_bishop.is_promotion == true);
+    assert(promo_bishop.promotion_piece == BISHOP);
+
+    Move promo_knight = parse_move_string("c2c1n");
+    assert(promo_knight.is_promotion == true);
+    assert(promo_knight.promotion_piece == KNIGHT);
+
+    // Test invalid promotion character
+    Move invalid_promo = parse_move_string("e7e8x");
+    assert(invalid_promo.is_promotion == false);
+    assert(invalid_promo.promotion_piece == EMPTY);
+
+    printf("PASSED\n");
+}
+
+/**
  * Run all micro-tests
  * Executes all test functions with minimal output
  */
@@ -422,7 +611,12 @@ int main() {
     test_en_passant_fen_parsing();
     test_en_passant_move_generation();
     test_en_passant_capture();
-    
+    test_promotion_detection();
+    test_promotion_piece_validation();
+    test_promotion_move_execution();
+    test_promotion_fen_integration();
+    test_uci_promotion_parsing();
+
     printf("\n✅ ALL MICRO-TESTS PASSED\n");
     printf("=== TESTING COMPLETE ===\n");
     

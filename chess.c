@@ -535,7 +535,13 @@ bool make_move(ChessGame *game, Position from, Position to) {
     if (!is_valid_move(game, from, to)) {
         return false;
     }
-    
+
+    // Check if this is a pawn promotion move
+    if (is_promotion_move(game, from, to)) {
+        PieceType promotion_choice = get_promotion_choice();
+        return make_promotion_move(game, from, to, promotion_choice);
+    }
+
     Piece moving_piece = get_piece_at(game, from.row, from.col);
     Piece captured_piece = get_piece_at(game, to.row, to.col);
     bool is_en_passant_capture = false;
@@ -1293,4 +1299,167 @@ char* convert_fen_to_pgn_string(const char* fen_filename) {
     }
 
     return pgn_string;
+}
+
+/**
+ * Check if a pawn move requires promotion
+ * Promotion occurs when a pawn reaches the opposite end of the board
+ *
+ * @param game Current game state
+ * @param from Starting position of the move
+ * @param to Destination position of the move
+ * @return true if this move requires pawn promotion
+ */
+bool is_promotion_move(ChessGame *game, Position from, Position to) {
+    Piece moving_piece = get_piece_at(game, from.row, from.col);
+
+    if (moving_piece.type != PAWN) {
+        return false;
+    }
+
+    // White pawns promote on row 0 (8th rank), Black pawns promote on row 7 (1st rank)
+    int promotion_row = (moving_piece.color == WHITE) ? 0 : 7;
+
+    return (to.row == promotion_row);
+}
+
+/**
+ * Validate that a piece type is legal for promotion
+ * Pawns can only promote to QUEEN, ROOK, BISHOP, or KNIGHT
+ *
+ * @param piece_type The piece type to validate
+ * @return true if the piece type is valid for promotion
+ */
+bool is_valid_promotion_piece(PieceType piece_type) {
+    return (piece_type == QUEEN || piece_type == ROOK ||
+            piece_type == BISHOP || piece_type == KNIGHT);
+}
+
+/**
+ * Interactive UI for selecting promotion piece
+ * Prompts the user to choose which piece to promote the pawn to
+ *
+ * @return The selected piece type (QUEEN, ROOK, BISHOP, or KNIGHT)
+ */
+PieceType get_promotion_choice() {
+    char input[10];
+    PieceType choice;
+
+    printf("\nPawn promotion! Choose a piece to promote to:\n");
+    printf("Q - Queen (most powerful)\n");
+    printf("R - Rook\n");
+    printf("B - Bishop\n");
+    printf("N - Knight\n");
+    printf("Enter choice (Q/R/B/N): ");
+
+    while (true) {
+        if (fgets(input, sizeof(input), stdin) != NULL) {
+            char c = toupper(input[0]);
+
+            switch (c) {
+                case 'Q':
+                    choice = QUEEN;
+                    printf("Promoting to Queen!\n");
+                    return choice;
+                case 'R':
+                    choice = ROOK;
+                    printf("Promoting to Rook!\n");
+                    return choice;
+                case 'B':
+                    choice = BISHOP;
+                    printf("Promoting to Bishop!\n");
+                    return choice;
+                case 'N':
+                    choice = KNIGHT;
+                    printf("Promoting to Knight!\n");
+                    return choice;
+                default:
+                    printf("Invalid choice. Please enter Q, R, B, or N: ");
+                    break;
+            }
+        }
+    }
+}
+
+/**
+ * Execute a pawn promotion move
+ * Performs the move and promotes the pawn to the specified piece type
+ *
+ * @param game Current game state
+ * @param from Starting position of the move
+ * @param to Destination position of the move
+ * @param promotion_type Type of piece to promote to
+ * @return true if the move was successful
+ */
+bool make_promotion_move(ChessGame *game, Position from, Position to, PieceType promotion_type) {
+    if (!is_promotion_move(game, from, to)) {
+        return false;
+    }
+
+    if (!is_valid_promotion_piece(promotion_type)) {
+        return false;
+    }
+
+    if (!is_valid_move(game, from, to)) {
+        return false;
+    }
+
+    Piece moving_piece = get_piece_at(game, from.row, from.col);
+    Piece captured_piece = get_piece_at(game, to.row, to.col);
+
+    // Handle capture if there's a piece at destination
+    if (captured_piece.type != EMPTY) {
+        if (captured_piece.color == WHITE) {
+            game->black_captured.captured_pieces[game->black_captured.count++] = captured_piece;
+        } else {
+            game->white_captured.captured_pieces[game->white_captured.count++] = captured_piece;
+        }
+    }
+
+    // Create the promoted piece
+    Piece promoted_piece = {promotion_type, moving_piece.color};
+
+    // Place promoted piece at destination and clear original position
+    set_piece_at(game, to.row, to.col, promoted_piece);
+    clear_position(game, from.row, from.col);
+
+    // Update FEN move counters - pawn move resets halfmove clock
+    game->halfmove_clock = 0;
+
+    // Fullmove number increments after Black's move
+    if (game->current_player == BLACK) {
+        game->fullmove_number++;
+    }
+
+    // Clear en passant state (promotion can't create en passant)
+    game->en_passant_available = false;
+    game->en_passant_target.row = -1;
+    game->en_passant_target.col = -1;
+
+    // Switch players
+    game->current_player = (game->current_player == WHITE) ? BLACK : WHITE;
+
+    // Update check status
+    game->in_check[WHITE] = is_in_check(game, WHITE);
+    game->in_check[BLACK] = is_in_check(game, BLACK);
+
+    return true;
+}
+
+/**
+ * Execute a move from a Move structure
+ * Handles both regular moves and AI promotion moves without user prompts
+ *
+ * @param game Current game state
+ * @param move Move structure containing all move information
+ * @return true if the move was successful
+ */
+bool execute_move(ChessGame *game, Move move) {
+    // If this is a promotion move with a predetermined piece (from AI)
+    if (move.is_promotion && move.promotion_piece != EMPTY) {
+        return make_promotion_move(game, move.from, move.to, move.promotion_piece);
+    }
+
+    // For regular moves (including human promotions handled by make_move)
+    return make_move(game, move.from, move.to);
 }

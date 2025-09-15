@@ -8,7 +8,7 @@ A complete terminal chess game with AI opponent and comprehensive study features
 
 ### Core Gameplay
 - Complete chess rules with all standard piece movements
-- Castling (kingside/queenside), en passant, and 50-move rule
+- Castling (kingside/queenside), en passant, 50-move rule, and **pawn promotion**
 - Clean ASCII board display with coordinates
 - Move visualization with `*` and highlighted captures
 - Unlimited undo functionality
@@ -49,6 +49,7 @@ make && make run
 **Basic Controls:**
 - Move: `e2 e4` (algebraic notation)
 - Castling: `e1 g1` (move king two squares)
+- **Pawn promotion**: Automatic when pawn reaches end - choose Q/R/B/N
 - View moves: `e2` (show possible moves & captures from e2)
 	[Captures appear in reverse text block]
 - Undo: `undo` (unlimited)
@@ -57,6 +58,7 @@ make && make run
 - You play White, AI plays Black
 - Clean single-board interface
 - Automatic detection of checkmate, stalemate, draws
+- **Interactive pawn promotion** with piece selection menu
 - All games automatically saved as FEN and PGN files
 
 ## Commands
@@ -125,24 +127,59 @@ DefaultSkillLevel=5               # AI difficulty (0-20)
 - `*` = Available move
 - Highlighted piece = Capturable
 
+## Pawn Promotion
+
+When a pawn reaches the opposite end of the board (8th rank for White, 1st rank for Black), it **automatically promotes**.
+
+### Human Player (White)
+You'll see this interactive menu when your pawn promotes:
+
+```
+Pawn promotion! Choose a piece to promote to:
+Q - Queen (most powerful)
+R - Rook
+B - Bishop
+N - Knight
+Enter choice (Q/R/B/N):
+```
+
+Simply enter your choice (Q/R/B/N) and the pawn will transform into your selected piece.
+
+### AI Player (Black)
+The AI (Stockfish) **automatically selects** its preferred promotion piece without asking you. The game will display the AI's choice:
+
+```
+AI played: e7 to e8 (promoted to Queen)
+```
+
+This works for both regular promotion moves and promotion captures.
+
 ## Classical Opening Library
 
-**Authenticated 12 classic chess openings** using the `load` command:
+**Authenticated 12 classic chess openings** plus **feature demonstration files** using the `load` command:
+
+**Classical Openings:**
 - Italian Game, Ruy López, Queen's Gambit
 - Sicilian Four Knights, French Defense, King's Indian
 - English Opening, Caro-Kann, Alekhine's Defense
 - Scandinavian, Nimzo-Indian, King's Gambit
 
-**All openings are engine-validated and historically accurate!**
+**Feature Demonstrations:**
+- Castling, En Passant, Pawn Promotion, Check, Checkmate, Stalemate
+- Tactical concepts: Fork, Pin, Discovered Attack, Sacrifice, Back Rank
+
+**All files are engine-validated and historically accurate!**
 
 **Study workflow:**
-1. Type `load` and select an opening
-2. Navigate through moves with ← → arrow keys
+1. Type `load` and select an opening or demonstration
+2. Navigate through moves with ← → arrow keys (openings only)
 3. Press ENTER at any position to resume play
 	- New time stamped FEN file created containing all moves from
 	  the original game up to the point selected to continue play.
 	  At that point normal move/FEN loggin continues
 4. Practice continuations against AI
+
+**Feature Demonstrations:** Load any demo file to see chess rules and tactics in action. See `DEMONSTRATIONS.md` in the FEN_FILES directory for detailed explanations and suggested moves for each demonstration.
 
 ## Opening Validation Tools
 

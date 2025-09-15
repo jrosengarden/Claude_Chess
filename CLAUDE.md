@@ -29,7 +29,12 @@ make install-deps      # Install Stockfish dependency
 ### Key Entry Points
 - `get_possible_moves()` - Main move generation (chess.c)
 - `is_valid_move()` - Move validation with check prevention (chess.c)
-- `make_move()` - Execute move, update state, handle FEN counters (chess.c)
+- `make_move()` - Execute move, update state, handle FEN counters and human promotion (chess.c)
+- `execute_move()` - Execute move from Move structure, handles AI promotion (chess.c)
+- `make_promotion_move()` - Execute pawn promotion with piece selection (chess.c)
+- `is_promotion_move()` - Detect pawn promotion moves (chess.c)
+- `get_promotion_choice()` - Interactive UI for promotion piece selection (chess.c)
+- `parse_move_string()` - Parse UCI moves including promotion notation (stockfish.c)
 - `is_in_check()` - Check detection (chess.c)
 - `get_best_move()` - AI move request via Stockfish (stockfish.c)
 - `board_to_fen()` - Convert board to FEN with accurate counters (stockfish.c)
@@ -138,6 +143,22 @@ set_skill_level(int level)  // stockfish.c
 - Range validation (0-20)
 - UCI command: "setoption name Skill Level value N"
 
+### Enhanced UCI Move Parsing
+**Promotion Move Support:**
+- Standard 4-character moves: "e2e4", "a7a8"
+- 5-character promotion moves: "e7e8q", "a2a1r", "h7h8n", "b2b1b"
+- Automatic promotion piece extraction: q=QUEEN, r=ROOK, b=BISHOP, n=KNIGHT
+- Invalid promotion characters default to non-promotion move
+
+**Implementation:**
+```c
+Move parse_move_string(const char *move_str) {
+    // Handles both 4-char and 5-char UCI notation
+    // Populates is_promotion and promotion_piece fields
+    // Integrates seamlessly with existing move system
+}
+```
+
 ### Position Evaluation
 ```c
 get_position_evaluation()   // Real-time Stockfish analysis
@@ -164,6 +185,36 @@ if (game->current_player == BLACK) {
 is_fifty_move_rule_draw()  // Automatic draw detection
 // Triggers at halfmove_clock >= 100 (50 full moves)
 ```
+
+## Pawn Promotion Implementation
+
+### Complete Promotion System
+**Architecture:** Seamlessly integrated with existing move system
+- `is_promotion_move()` - Detects when pawn reaches opposite end (row 0 for WHITE, row 7 for BLACK)
+- `get_promotion_choice()` - Interactive UI prompting for Q/R/B/N selection with validation
+- `make_promotion_move()` - Executes promotion including captures and game state updates
+- `is_valid_promotion_piece()` - Validates piece selection (QUEEN, ROOK, BISHOP, KNIGHT only)
+
+**Integration Points:**
+- `make_move()` handles human promotion moves with interactive piece selection
+- `execute_move()` handles AI promotion moves without user prompts
+- Move structure extended with `is_promotion` flag and `promotion_piece` field
+- UCI protocol parsing enhanced to handle 5-character promotion moves (e.g., "e7e8q")
+- FEN notation system fully compatible (uses existing `set_piece_at()` mechanism)
+- Comprehensive micro-tests covering all promotion scenarios including UCI parsing
+
+**AI vs Human Promotion Logic:**
+- **Human moves**: Interactive menu prompts for piece selection (Q/R/B/N)
+- **AI moves**: Stockfish selects promotion piece via UCI notation, no user prompts
+- **UCI Enhancement**: `parse_move_string()` extracts promotion piece from 5-char moves
+- **Smart Routing**: `execute_move()` distinguishes between AI and human promotion contexts
+
+**Game State Management:**
+- Proper capture tracking when promotion involves capturing opponent piece
+- Halfmove clock reset (pawn moves always reset to 0)
+- Player switching and check status updates
+- En passant state clearing (promotion cannot create en passant opportunities)
+- Enhanced move display shows AI promotion choices (e.g., "promoted to Queen")
 
 ## Critical Bug Fixes Implemented
 
@@ -197,15 +248,18 @@ is_fifty_move_rule_draw()  // Automatic draw detection
 
 ## Active Development Status
 
-### Next Priority: Pawn Promotion
-All core chess rules implemented except pawn promotion:
+### Complete Chess Implementation
+All core chess rules now fully implemented:
 - ✅ Castling (kingside/queenside)
 - ✅ En passant capture with FEN integration
 - ✅ 50-move rule automatic draw detection
 - ✅ Check/checkmate/stalemate detection
-- 🔄 **Pawn promotion** - Next implementation target
+- ✅ **Pawn promotion** - Complete with interactive piece selection
 
 ### Recently Completed Major Features
+- **Pawn Promotion System** - Complete implementation with interactive UI and validation
+- **AI Promotion Bug Fix** - AI now selects promotion pieces automatically without user prompts
+- **Feature Demonstration Library** - Educational FEN files with comprehensive documentation
 - **Enhanced Configuration System** - DefaultSkillLevel + path validation
 - **Dual Directory LOAD System** - Pagination + section headers
 - **Interactive Game Browser** - Arrow key navigation

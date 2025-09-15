@@ -256,15 +256,31 @@ bool get_best_move(StockfishEngine *engine, ChessGame *game, char *move_str) {
 }
 
 Move parse_move_string(const char *move_str) {
-    Move move = {{-1, -1}, {-1, -1}, {EMPTY, WHITE}, false, false, false};
-    
+    Move move = {{-1, -1}, {-1, -1}, {EMPTY, WHITE}, false, false, false, false, EMPTY};
+
     if (strlen(move_str) < 4) return move;
-    
+
     move.from.col = move_str[0] - 'a';
     move.from.row = '8' - move_str[1];
     move.to.col = move_str[2] - 'a';
     move.to.row = '8' - move_str[3];
-    
+
+    // Check for promotion notation (5th character: q, r, b, n)
+    if (strlen(move_str) == 5) {
+        move.is_promotion = true;
+        char promo_char = tolower(move_str[4]);
+        switch (promo_char) {
+            case 'q': move.promotion_piece = QUEEN; break;
+            case 'r': move.promotion_piece = ROOK; break;
+            case 'b': move.promotion_piece = BISHOP; break;
+            case 'n': move.promotion_piece = KNIGHT; break;
+            default:
+                move.is_promotion = false;
+                move.promotion_piece = EMPTY;
+                break;
+        }
+    }
+
     return move;
 }
 
