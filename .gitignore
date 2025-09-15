@@ -1,7 +1,11 @@
 *.o
 .obsidian/
 Claude_Chess.code-workspace
+# Ignore all .fen files by default
 *.fen
+# But do not ignore the FEN_FILES directory or it's contents
+!FEN_FILES/
+!FEN_FILES/*
 *.pgn
 chess
 fen_to_pgn
