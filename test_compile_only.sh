@@ -24,10 +24,14 @@ echo ""
 
 # Test 2: Check executables exist
 echo "TEST 2: Executable creation"
-if [ -f "./chess" ] && [ -f "./fen_to_pgn" ]; then
-    echo "✅ EXECUTABLES CREATED - Both chess and fen_to_pgn exist"
+if [ -f "./chess" ] && [ -f "./fen_to_pgn" ] && [ -f "./micro_test" ] && [ -f "./pgn_to_fen" ]; then
+    echo "✅ EXECUTABLES CREATED - All core programs exist (chess, fen_to_pgn, micro_test, pgn_to_fen)"
 else
-    echo "❌ EXECUTABLES MISSING - Build may have failed"
+    echo "❌ EXECUTABLES MISSING - One or more programs failed to build:"
+    [ ! -f "./chess" ] && echo "   - chess executable missing"
+    [ ! -f "./fen_to_pgn" ] && echo "   - fen_to_pgn executable missing"
+    [ ! -f "./micro_test" ] && echo "   - micro_test executable missing"
+    [ ! -f "./pgn_to_fen" ] && echo "   - pgn_to_fen executable missing"
     exit 1
 fi
 

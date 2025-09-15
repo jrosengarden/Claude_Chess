@@ -4,11 +4,14 @@ TARGET = chess
 FEN_TARGET = fen_to_pgn
 PGN_FEN_TARGET = pgn_to_fen
 MICROTEST_TARGET = micro_test
+UTILITIES = $(FEN_TARGET) $(PGN_FEN_TARGET) $(MICROTEST_TARGET)
 DEBUG_TARGETS = debug_position debug_castling debug_input debug_move debug_castle_input debug_queenside
 SOURCES = main.c chess.c stockfish.c
 OBJECTS = $(SOURCES:.c=.o)
 
-all: $(TARGET) $(FEN_TARGET) $(PGN_FEN_TARGET) $(MICROTEST_TARGET) $(DEBUG_TARGETS)
+all: $(TARGET) utilities $(DEBUG_TARGETS)
+
+utilities: $(UTILITIES)
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(TARGET)
@@ -75,4 +78,4 @@ debug_queenside: debug_queenside.c chess.o
 clean-debug:
 	rm -f $(DEBUG_TARGETS)
 
-.PHONY: clean install-deps run all test debug clean-debug
+.PHONY: clean install-deps run all test debug clean-debug utilities
