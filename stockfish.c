@@ -167,7 +167,7 @@ char* board_to_fen(ChessGame *game) {
                 empty_count++;
             } else {
                 if (empty_count > 0) {
-                    char count_str[2];
+                    char count_str[3];
                     sprintf(count_str, "%d", empty_count);
                     strcat(board_str, count_str);
                     empty_count = 0;
@@ -179,7 +179,7 @@ char* board_to_fen(ChessGame *game) {
         }
         
         if (empty_count > 0) {
-            char count_str[2];
+            char count_str[3];
             sprintf(count_str, "%d", empty_count);
             strcat(board_str, count_str);
         }
