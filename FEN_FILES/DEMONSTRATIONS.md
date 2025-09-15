@@ -34,7 +34,7 @@ This directory contains FEN files that demonstrate various chess rules and tacti
 ### **Stalemate.fen**
 - **Feature**: Stalemate (draw)
 - **Setup**: Position where White can force stalemate
-- **Try**: `b3 b1` to force stalemate (Black king has no legal moves)
+ba- **Try**: `b3 b1` to force stalemate (Black king has no legal moves)
 
 ### **FiftyMoveRule.fen**
 - **Feature**: 50-move rule approach

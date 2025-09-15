@@ -16,7 +16,8 @@ A complete terminal chess game with AI opponent and comprehensive study features
 
 ### Game Analysis & Study
 - Position evaluation with visual scoring scale (-9 to +9)
-- **Live PGN display** in side-by-side terminal windows that updates automatically after each move
+- **Live PGN display** in side-by-side terminal windows that updates automatically after 
+   each move
 - Custom board setup using FEN notation
 - Interactive game loading with arrow key navigation
 - **Verified classical opening library** (12 authenticated openings)
@@ -129,7 +130,8 @@ DefaultSkillLevel=5               # AI difficulty (0-20)
 
 ## Pawn Promotion
 
-When a pawn reaches the opposite end of the board (8th rank for White, 1st rank for Black), it **automatically promotes**.
+When a pawn reaches the opposite end of the board (8th rank for White, 1st rank for 
+   Black), it **automatically promotes**.
 
 ### Human Player (White)
 You'll see this interactive menu when your pawn promotes:
@@ -146,7 +148,8 @@ Enter choice (Q/R/B/N):
 Simply enter your choice (Q/R/B/N) and the pawn will transform into your selected piece.
 
 ### AI Player (Black)
-The AI (Stockfish) **automatically selects** its preferred promotion piece without asking you. The game will display the AI's choice:
+The AI (Stockfish) **automatically selects** its preferred promotion piece without asking 
+   you. The game will display the AI's choice:
 
 ```
 AI played: e7 to e8 (promoted to Queen)
@@ -156,7 +159,8 @@ This works for both regular promotion moves and promotion captures.
 
 ## Classical Opening Library
 
-**Authenticated 12 classic chess openings** plus **feature demonstration files** using the `load` command:
+**Authenticated 12 classic chess openings** plus **feature demonstration files** using 
+  the `load` command:
 
 **Classical Openings:**
 - Italian Game, Ruy López, Queen's Gambit
@@ -179,7 +183,9 @@ This works for both regular promotion moves and promotion captures.
 	  At that point normal move/FEN loggin continues
 4. Practice continuations against AI
 
-**Feature Demonstrations:** Load any demo file to see chess rules and tactics in action. See `DEMONSTRATIONS.md` in the FEN_FILES directory for detailed explanations and suggested moves for each demonstration.
+**Feature Demonstrations:** Load any demo file to see chess rules and tactics in action. 
+   See `DEMONSTRATIONS.md` in the FEN_FILES directory for detailed explanations and 
+   suggested moves for each demonstration.
 
 ## Opening Validation Tools
 
@@ -222,7 +228,10 @@ Recreate all openings from authentic move sequences:
 ## Building and Testing
 
 ```bash
-make                    # Build chess and all utilities
+make                   # Build chess and all utilities
+make all			   # Build chess and all utilities
+make debug			   # Build debug programs only
+make utilities		   # Build utility programs only
 make run               # Build and run chess game
 make test              # Run micro-tests
 make clean             # Clean build files

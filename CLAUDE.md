@@ -190,10 +190,13 @@ is_fifty_move_rule_draw()  // Automatic draw detection
 
 ### Complete Promotion System
 **Architecture:** Seamlessly integrated with existing move system
-- `is_promotion_move()` - Detects when pawn reaches opposite end (row 0 for WHITE, row 7 for BLACK)
-- `get_promotion_choice()` - Interactive UI prompting for Q/R/B/N selection with validation
+- `is_promotion_move()` - Detects when pawn reaches opposite end (row 0 for WHITE, 
+      row 7 for BLACK)
+- `get_promotion_choice()` - Interactive UI prompting for Q/R/B/N selection with 
+      validation
 - `make_promotion_move()` - Executes promotion including captures and game state updates
-- `is_valid_promotion_piece()` - Validates piece selection (QUEEN, ROOK, BISHOP, KNIGHT only)
+- `is_valid_promotion_piece()` - Validates piece selection (QUEEN, ROOK, BISHOP, 
+      KNIGHT only)
 
 **Integration Points:**
 - `make_move()` handles human promotion moves with interactive piece selection
