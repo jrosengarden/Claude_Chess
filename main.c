@@ -1335,22 +1335,22 @@ void print_scale_chart() {
 void print_help() {
     printf("\n=== COMMANDS ===\n");
     printf("Enter moves in format: e2 e4 (from to)\n");
-    printf("Type 'help' for this help message\n");
-    printf("Type 'hint' to get Stockfish's best move suggestion for White\n");
-    printf("Type 'score' to display current game evaluation score\n");
-    printf("Type 'scale' to view the score conversion chart (centipawns to -9/+9 scale)\n");
+    printf("Type 'help'    for this help message\n");
+    printf("Type 'hint'    to get Stockfish's best move suggestion for White\n");
+    printf("Type 'score'   to display current game evaluation score\n");
+    printf("Type 'scale'   to view the score conversion chart (centipawns to -9/+9 scale)\n");
     printf("Type 'skill N' to set AI difficulty level (0=easiest, 20=strongest, only before first move)\n");
-    printf("Type 'fen' to display current board position in FEN notation\n");
-    printf("Type 'pgn' to display current game in PGN (Portable Game Notation) format\n");
-    printf("Type 'title' to re-display the game title and info screen\n");
-    printf("Type 'setup' to setup a custom board position from FEN string\n");
-    printf("Type 'load' to interactively browse and load saved games (with arrow key navigation)\n");
-    printf("Type 'undo' for unlimited undo (undo any number of move pairs)\n");
-    printf("Type 'resign' to resign the game (with confirmation)\n");
-    printf("Type 'quit' to exit the game\n");
-    printf("Type a piece position to see its possible moves (marked with * or highlighted)\n");
-    printf("* = empty square you can move to\n");
-    printf("highlighted piece = piece you can capture\n\n");
+    printf("Type 'fen'     to display current board position in FEN notation\n");
+    printf("Type 'pgn'     to display current game in PGN (Portable Game Notation) format\n");
+    printf("Type 'title'   to re-display the game title and info screen\n");
+    printf("Type 'setup'   to setup a custom board position from FEN string\n");
+    printf("Type 'load'    to interactively browse and load saved games (with arrow key navigation)\n");
+    printf("Type 'undo'    for unlimited undo (undo any number of move pairs)\n");
+    printf("Type 'resign'  to resign the game (with confirmation)\n");
+    printf("Type 'quit'    to exit the game\n");
+    printf("\nType a piece position to see its possible moves (marked with * or highlighted)\n");
+    printf("\t* = empty square you can move to\n");
+    printf("\thighlighted piece = piece you can capture\n\n");
 }
 
 bool has_legal_moves(ChessGame *game, Color color) {
@@ -1553,7 +1553,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     if (strcmp(input, "title") == 0 || strcmp(input, "TITLE") == 0) {
         clear_screen();
         
-        printf("=== Chess Game with Stockfish AI ===\n");
+        printf("=== Chess Game (v0.9) with Stockfish AI ===\n");
         printf("You play as White, AI plays as Black\n");
         printf("Stockfish engine is running successfully!\n");
         

@@ -49,7 +49,8 @@ make && make run
 **Basic Controls:**
 - Move: `e2 e4` (algebraic notation)
 - Castling: `e1 g1` (move king two squares)
-- View moves: `e2` (show possible moves from e2)
+- View moves: `e2` (show possible moves & captures from e2)
+	[Captures appear in reverse text block]
 - Undo: `undo` (unlimited)
 
 **Game Flow:**
@@ -67,11 +68,15 @@ make && make run
 - `undo` - Unlimited undo
 - `resign` - Resign with confirmation
 - `quit` - Exit game
+- `title`- Redisplay game startup title screen
 
 ### Analysis & Study
 - `score` - Position evaluation (-9 to +9 scale)
+- `scale` - Shows conversion scale between Stockfish & Game
+	-  Stockfish Centipawns score converted to Chess Game -9/+9 scale
 - `pgn` - View game in standard notation (side-by-side window)
-- `fen` - Current position in FEN format
+- `fen` - View Current position in FEN format
+	- Can use OS copy cmd to copy current board in FEN format
 - `setup` - Configure custom position from FEN
 - `load` - Browse saved games with arrow key navigation
 
@@ -134,6 +139,9 @@ DefaultSkillLevel=5               # AI difficulty (0-20)
 1. Type `load` and select an opening
 2. Navigate through moves with ← → arrow keys
 3. Press ENTER at any position to resume play
+	- New time stamped FEN file created containing all moves from
+	  the original game up to the point selected to continue play.
+	  At that point normal move/FEN loggin continues
 4. Practice continuations against AI
 
 ## Opening Validation Tools
@@ -147,11 +155,19 @@ Verify that all FEN files contain legal positions:
 ./validate_openings FEN_FILES/RUY_LOPEZ.fen  # Check specific opening
 ```
 
-### Convert Chess Moves to Positions
+### Convert Chess Moves to Positions (pgn_to_fen)
 Generate clean FEN positions from standard PGN files:
 ```bash
 ./pgn_to_fen game.pgn > output.fen        # Convert PGN file to FEN
 ./pgn_to_fen < game.pgn > output.fen      # Pipe PGN file to converter
+```
+
+### Convert Chess Moves to Positions (fen_to_pgn)
+Generate clean, standard,  PGN file from FEN files:
+```bash
+./fen_to_pgn 							  # Convert FEN to PGN
+	(will request .fen file to convert)      
+	(will output valid, standard, PGN file with same name as FEN file)
 ```
 
 ### Regenerate Opening Library
