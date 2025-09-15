@@ -326,5 +326,122 @@ All core chess rules now fully implemented:
 - `validate_single_fen()` - Temporary file creation/cleanup
 - All tools use chess engine's existing memory management
 
+## Planned Features
+
+### Time Controls System (Next Implementation)
+
+**Feature Specification:**
+- Command: `TIME xx/yy` (xx=minutes per side, yy=increment seconds)
+- Special case: `TIME 0/0` disables time controls entirely
+- Default: 30/10 (30 minutes + 10 second increment) in CHESS.ini
+- Display: Remaining time on captured pieces line (only when time controls active)
+- Format: `White: 29:45 | Captured: [pieces] | Black: 28:30 | Captured: [pieces]`
+- No time display when disabled: `White Captured: [pieces] | Black Captured: [pieces]`
+
+**Technical Complexity: Medium-High**
+
+#### Core Components Required
+
+**Data Structures:**
+```c
+typedef struct {
+    int minutes_per_side;
+    int increment_seconds;
+    bool enabled;
+} TimeControl;
+
+typedef struct {
+    int white_time_seconds;     // Seconds remaining
+    int black_time_seconds;
+    time_t move_start_time;
+    bool timing_active;
+} GameTimer;
+```
+
+**Implementation Requirements:**
+
+1. **Configuration Integration** (Low complexity)
+   - Add `DefaultTimeControl=30/10` to CHESS.ini parsing
+   - Validate time control format parsing
+   - Runtime override via TIME command
+
+2. **Timer Management System** (Medium complexity)
+   - Standard POSIX timing (time() function)
+   - Second-precision tracking during moves
+   - Coordinate with Stockfish AI thinking time
+   - Handle increment application after moves
+
+3. **Display Integration** (Medium complexity)
+   - Real-time timer updates during gameplay
+   - Format time as MM:SS with low-time warnings
+   - Integrate with existing captured pieces display
+   - Conditional display logic (show/hide time based on TIME 0/0)
+   - Maintain consistency across all game states
+
+4. **Game Logic Integration** (Medium complexity)
+   - Timer start/stop coordination with move system
+   - Time forfeit detection and game termination
+   - Undo system integration (restore timer states)
+   - Distinguish AI vs human move timing
+
+**Key Functions Needed:**
+- `parse_time_control()` - Parse TIME xx/yy command format (handle 0/0 disable case)
+- `init_game_timer()` - Initialize timer system with config
+- `start_move_timer()` - Begin timing a player's move
+- `stop_move_timer()` - End timing and apply increment
+- `get_remaining_time_string()` - Format time for display (MM:SS)
+- `check_time_forfeit()` - Detect time expiration (flag fall)
+- `save_timer_state()` - Store timer state for undo system
+- `restore_timer_state()` - Restore timer state on undo
+- `is_time_control_enabled()` - Check if time controls are active (not 0/0)
+
+**Technical Challenges:**
+
+1. **Threading/Timing Architecture**
+   - Current single-threaded design needs real-time updates
+   - Options: polling approach vs signal-based vs background thread
+   - Must not interfere with Stockfish UCI communication
+
+2. **Cross-Platform Timing**
+   - Standard POSIX time() function (universally available)
+   - Second precision requirements
+   - No special linking requirements
+
+3. **AI Integration Complexity**
+   - AI thinking time must not consume human clock
+   - Coordinate increment timing with move execution
+   - Handle Stockfish response timing accurately
+
+4. **Undo System Enhancement**
+   - Store timer state with each move in history
+   - Handle multiple undos with accurate time restoration
+   - Prevent timer manipulation exploits
+
+**Files Requiring Modification:**
+- `main.c` - Command parsing, display updates, timer coordination
+- `chess.h/chess.c` - Game state integration, undo system extension
+- `stockfish.c` - AI move timing coordination
+- Configuration system - CHESS.ini DefaultTimeControl parsing
+
+**Estimated Implementation:**
+- Core timer system: 200-300 lines
+- Display integration: 100-150 lines
+- Configuration updates: 50-75 lines
+- Testing framework: 100+ lines
+- **Total: ~500-600 lines** across multiple files
+
+**Risk Assessment:**
+- **Medium risk** - Timing precision and threading complexity
+- **Platform compatibility testing essential**
+- **Undo system integration requires careful state management**
+- **Well-scoped and feasible** within existing architecture
+
+**Testing Requirements:**
+- Cross-platform timing verification (second precision)
+- Time forfeit scenario testing
+- Undo/redo with timer state validation
+- AI vs human timing coordination tests
+- Configuration parsing and validation tests
+
 ---
 *Developer reference for Claude Chess - Focused technical documentation*
