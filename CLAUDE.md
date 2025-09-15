@@ -209,7 +209,7 @@ All core chess rules implemented except pawn promotion:
 - **Enhanced Configuration System** - DefaultSkillLevel + path validation
 - **Dual Directory LOAD System** - Pagination + section headers
 - **Interactive Game Browser** - Arrow key navigation
-- **Side-by-Side PGN Display** - Cross-platform terminal detection
+- **Live PGN Display with Auto-Updates** - Side-by-side terminal with real-time move updates
 - **Starting Position File Cleanup** - Auto-removal of meaningless games
 - **Complete FEN Counter System** - Standards-compliant tracking
 - **Captured Pieces Calculation** - FEN/LOAD positions show previously captured pieces

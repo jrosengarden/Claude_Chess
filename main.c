@@ -37,6 +37,10 @@ bool debug_mode = false;
 // Global FEN log filename for current game session
 char fen_log_filename[256];
 
+// Global persistent PGN temp filename for live updates
+char persistent_pgn_filename[256];
+bool pgn_window_active = false;
+
 // Global flag to track if gameplay has started (prevents skill level changes)
 bool game_started = false;
 
@@ -76,6 +80,52 @@ void generate_fen_filename() {
 }
 
 /**
+ * Generate persistent PGN temp filename for live updates
+ * Creates filename in format: /tmp/chess_pgn_live_[pid].txt
+ * This file persists during the game session for live PGN updates
+ */
+void generate_persistent_pgn_filename() {
+    snprintf(persistent_pgn_filename, sizeof(persistent_pgn_filename),
+             "/tmp/chess_pgn_live_%d.txt", getpid());
+}
+
+/**
+ * Update persistent PGN file with current game state
+ * Called after each move to refresh the live PGN display
+ */
+void update_persistent_pgn_file() {
+    if (!pgn_window_active) {
+        return;  // No PGN window is active, skip update
+    }
+
+    char* pgn_content = convert_fen_to_pgn_string(fen_log_filename);
+    if (!pgn_content) {
+        return;  // Could not generate PGN content
+    }
+
+    FILE* temp_file = fopen(persistent_pgn_filename, "w");
+    if (temp_file) {
+        fprintf(temp_file, "%s", pgn_content);
+        fprintf(temp_file, "\n\nLive PGN Display - Updates automatically after each move\n");
+        fprintf(temp_file, "Close this window when you're done viewing...\n");
+        fclose(temp_file);
+    }
+
+    free(pgn_content);
+}
+
+/**
+ * Clean up persistent PGN temp file
+ * Called on game exit to remove the temporary file
+ */
+void cleanup_persistent_pgn_file() {
+    if (pgn_window_active && persistent_pgn_filename[0] != '\0') {
+        unlink(persistent_pgn_filename);
+        pgn_window_active = false;
+    }
+}
+
+/**
  * Save current board position to FEN log file
  * Appends current board state to the session's FEN log file.
  * Called after every half-move to create complete game history.
@@ -89,6 +139,8 @@ void save_fen_log(ChessGame *game) {
         fprintf(fen_file, "%s\n", fen);
         fclose(fen_file);
     }
+    // Update live PGN display after saving FEN
+    update_persistent_pgn_file();
     // Note: FEN logging is always enabled - no debug messages needed
 }
 
@@ -515,12 +567,11 @@ char* detect_terminal_command() {
 }
 
 /**
- * Display PGN content in a new terminal window
- * Creates a separate terminal window showing the PGN notation while keeping
- * the chess board visible in the original window. Falls back to full-screen
- * display if new window creation fails.
+ * Display PGN content in a new terminal window with live updates
+ * Creates a separate terminal window showing the PGN notation that updates
+ * automatically after each move. Uses file watching to provide real-time updates.
  *
- * @param pgn_content The PGN string to display
+ * @param pgn_content The initial PGN string to display
  * @return true if new window was created successfully, false if fallback used
  */
 bool display_pgn_in_new_window(const char* pgn_content) {
@@ -530,64 +581,72 @@ bool display_pgn_in_new_window(const char* pgn_content) {
         return false;  // No suitable terminal found, use fallback
     }
 
-    // Create temporary file with PGN content
-    char temp_filename[256];
-    snprintf(temp_filename, sizeof(temp_filename), "/tmp/chess_pgn_%d.txt", getpid());
+    // Initialize persistent PGN filename if not already done
+    if (persistent_pgn_filename[0] == '\0') {
+        generate_persistent_pgn_filename();
+    }
 
-    FILE* temp_file = fopen(temp_filename, "w");
+    // Create initial persistent file with PGN content
+    FILE* temp_file = fopen(persistent_pgn_filename, "w");
     if (!temp_file) {
         return false;  // Could not create temp file, use fallback
     }
 
     fprintf(temp_file, "%s", pgn_content);
-    fprintf(temp_file, "\n\nPress Enter or close this window to continue playing...\n");
+    fprintf(temp_file, "\n\nLive PGN Display - Updates automatically after each move\n");
+    fprintf(temp_file, "Close this window when you're done viewing...\n");
     fclose(temp_file);
 
-    // Build command based on detected terminal
+    // Mark PGN window as active for live updates
+    pgn_window_active = true;
+
+    // Build command based on detected terminal with file watching
     char command[1024];
 
     if (strcmp(terminal_cmd, "osascript") == 0) {
-        // macOS Terminal using AppleScript
+        // macOS Terminal using AppleScript with file watching
         snprintf(command, sizeof(command),
-            "osascript -e 'tell application \"Terminal\" to do script \"clear; cat %s; echo \\\"\\nPress Enter to close...\\\"; read; rm %s; exit\"' > /dev/null 2>&1 &",
-            temp_filename, temp_filename);
+            "osascript -e 'tell application \"Terminal\" to do script \"clear; echo \\\"Chess Game - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; while [ -f %s ]; do clear; echo \\\"Chess Game - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; cat %s 2>/dev/null || echo \\\"PGN file not found\\\"; sleep 2; done; echo; echo \\\"Game ended - PGN window closing...\\\"; sleep 2; exit\"' > /dev/null 2>&1 &",
+            persistent_pgn_filename, persistent_pgn_filename);
     } else if (strcmp(terminal_cmd, "gnome-terminal") == 0) {
-        // GNOME Terminal
+        // GNOME Terminal with file watching
         snprintf(command, sizeof(command),
-            "gnome-terminal --title=\"Chess Game - PGN Notation\" -- bash -c 'clear; cat %s; echo; echo \"Press Enter to close...\"; read; rm %s' > /dev/null 2>&1 &",
-            temp_filename, temp_filename);
+            "gnome-terminal --title=\"Chess Game - Live PGN Notation\" -- bash -c 'while [ -f %s ]; do clear; echo \"Chess Game - Live PGN Notation\"; echo \"================================\"; echo; cat %s 2>/dev/null || echo \"PGN file not found\"; sleep 2; done; echo; echo \"Game ended - PGN window closing...\"; sleep 2' > /dev/null 2>&1 &",
+            persistent_pgn_filename, persistent_pgn_filename);
     } else if (strcmp(terminal_cmd, "konsole") == 0) {
-        // KDE Konsole
+        // KDE Konsole with file watching
         snprintf(command, sizeof(command),
-            "konsole --title \"Chess Game - PGN Notation\" -e bash -c 'clear; cat %s; echo; echo \"Press Enter to close...\"; read; rm %s' > /dev/null 2>&1 &",
-            temp_filename, temp_filename);
+            "konsole --title \"Chess Game - Live PGN Notation\" -e bash -c 'while [ -f %s ]; do clear; echo \"Chess Game - Live PGN Notation\"; echo \"================================\"; echo; cat %s 2>/dev/null || echo \"PGN file not found\"; sleep 2; done; echo; echo \"Game ended - PGN window closing...\"; sleep 2' > /dev/null 2>&1 &",
+            persistent_pgn_filename, persistent_pgn_filename);
     } else if (strcmp(terminal_cmd, "mate-terminal") == 0) {
-        // MATE Terminal
+        // MATE Terminal with file watching
         snprintf(command, sizeof(command),
-            "mate-terminal --title=\"Chess Game - PGN Notation\" -e 'bash -c \"clear; cat %s; echo; echo \\\"Press Enter to close...\\\"; read; rm %s\"' > /dev/null 2>&1 &",
-            temp_filename, temp_filename);
+            "mate-terminal --title=\"Chess Game - Live PGN Notation\" -e 'bash -c \"while [ -f %s ]; do clear; echo \\\"Chess Game - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; cat %s 2>/dev/null || echo \\\"PGN file not found\\\"; sleep 2; done; echo; echo \\\"Game ended - PGN window closing...\\\"; sleep 2\"' > /dev/null 2>&1 &",
+            persistent_pgn_filename, persistent_pgn_filename);
     } else if (strcmp(terminal_cmd, "xfce4-terminal") == 0) {
-        // Xfce Terminal
+        // Xfce Terminal with file watching
         snprintf(command, sizeof(command),
-            "xfce4-terminal --title=\"Chess Game - PGN Notation\" -e 'bash -c \"clear; cat %s; echo; echo \\\"Press Enter to close...\\\"; read; rm %s\"' > /dev/null 2>&1 &",
-            temp_filename, temp_filename);
+            "xfce4-terminal --title=\"Chess Game - Live PGN Notation\" -e 'bash -c \"while [ -f %s ]; do clear; echo \\\"Chess Game - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; cat %s 2>/dev/null || echo \\\"PGN file not found\\\"; sleep 2; done; echo; echo \\\"Game ended - PGN window closing...\\\"; sleep 2\"' > /dev/null 2>&1 &",
+            persistent_pgn_filename, persistent_pgn_filename);
     } else {
-        // Basic xterm fallback
+        // Basic xterm fallback with file watching
         snprintf(command, sizeof(command),
-            "xterm -title \"Chess Game - PGN Notation\" -e bash -c 'clear; cat %s; echo; echo \"Press Enter to close...\"; read; rm %s' > /dev/null 2>&1 &",
-            temp_filename, temp_filename);
+            "xterm -title \"Chess Game - Live PGN Notation\" -e bash -c 'while [ -f %s ]; do clear; echo \"Chess Game - Live PGN Notation\"; echo \"================================\"; echo; cat %s 2>/dev/null || echo \"PGN file not found\"; sleep 2; done; echo; echo \"Game ended - PGN window closing...\"; sleep 2' > /dev/null 2>&1 &",
+            persistent_pgn_filename, persistent_pgn_filename);
     }
 
     // Execute the command
     int result = system(command);
 
     if (result == 0) {
-        printf("\nPGN notation opened in new terminal window.\n");
+        printf("\nLive PGN notation opened in new terminal window.\n");
+        printf("The display will update automatically after each move.\n");
         printf("You can view both the chess board and PGN notation simultaneously.\n");
         return true;
     } else {
         // Clean up temp file if command failed
-        unlink(temp_filename);
+        pgn_window_active = false;
+        unlink(persistent_pgn_filename);
         return false;
     }
 }
@@ -1414,7 +1473,8 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     }
     
     if (strcmp(input, "quit") == 0) {
-        // Convert FEN log to PGN before exiting
+        // Clean up persistent PGN file and convert FEN log to PGN before exiting
+        cleanup_persistent_pgn_file();
         convert_fen_to_pgn();
         show_game_files();
         exit(0);
@@ -1634,11 +1694,12 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         if (strcmp(confirmation, "YES") == 0 || strcmp(confirmation, "yes") == 0) {
             printf("\n*** WHITE RESIGNS! BLACK WINS! ***\n");
             printf("Game ended by resignation.\n");
-            
-            // Convert FEN log to PGN before exiting
+
+            // Clean up persistent PGN file and convert FEN log to PGN before exiting
+            cleanup_persistent_pgn_file();
             convert_fen_to_pgn();
             show_game_files();
-            
+
             printf("Press Enter to exit...");
             getchar();
             exit(0);
@@ -1833,6 +1894,9 @@ int main(int argc, char *argv[]) {
     // Generate FEN log filename for this game session
     generate_fen_filename();
 
+    // Initialize persistent PGN filename for live updates
+    generate_persistent_pgn_filename();
+
     // Load configuration settings from CHESS.ini
     load_config();
 
@@ -1915,6 +1979,7 @@ int main(int argc, char *argv[]) {
             print_board(&game, NULL, 0);
             Color winner = (game.current_player == WHITE) ? BLACK : WHITE;
             printf("\n*** CHECKMATE! %s WINS! ***\n", winner == WHITE ? "WHITE" : "BLACK");
+            cleanup_persistent_pgn_file();  // Clean up persistent PGN file before exiting
             convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
             show_game_files();
             printf("Press Enter to exit...");
@@ -1925,6 +1990,7 @@ int main(int argc, char *argv[]) {
         if (is_stalemate(&game, game.current_player)) {
             print_board(&game, NULL, 0);
             printf("\n*** STALEMATE! IT'S A DRAW! ***\n");
+            cleanup_persistent_pgn_file();  // Clean up persistent PGN file before exiting
             convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
             show_game_files();
             printf("Press Enter to exit...");
@@ -1936,6 +2002,7 @@ int main(int argc, char *argv[]) {
             print_board(&game, NULL, 0);
             printf("\n*** 50-MOVE RULE DRAW! ***\n");
             printf("50 moves have passed without a pawn move or capture.\n");
+            cleanup_persistent_pgn_file();  // Clean up persistent PGN file before exiting
             convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
             show_game_files();
             printf("Press Enter to exit...");

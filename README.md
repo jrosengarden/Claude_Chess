@@ -16,7 +16,7 @@ A complete terminal chess game with AI opponent and comprehensive study features
 
 ### Game Analysis & Study
 - Position evaluation with visual scoring scale (-9 to +9)
-- Real-time PGN display in side-by-side terminal windows
+- **Live PGN display** in side-by-side terminal windows that updates automatically after each move
 - Custom board setup using FEN notation
 - Interactive game loading with arrow key navigation
 - **Verified classical opening library** (12 authenticated openings)
@@ -74,7 +74,7 @@ make && make run
 - `score` - Position evaluation (-9 to +9 scale)
 - `scale` - Shows conversion scale between Stockfish & Game
 	-  Stockfish Centipawns score converted to Chess Game -9/+9 scale
-- `pgn` - View game in standard notation (side-by-side window)
+- `pgn` - View game in standard notation (live-updating side-by-side window)
 - `fen` - View Current position in FEN format
 	- Can use OS copy cmd to copy current board in FEN format
 - `setup` - Configure custom position from FEN
