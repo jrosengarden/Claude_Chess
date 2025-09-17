@@ -13,6 +13,7 @@ A complete terminal chess game with AI opponent and comprehensive study features
 - Move visualization with `*` and highlighted captures
 - Unlimited undo functionality
 - AI opponent powered by Stockfish (adjustable difficulty 0-20)
+- **Command line options** for customizing file creation and debug output
 
 ### Game Analysis & Study
 - Position evaluation with visual scoring scale (-9 to +9)
@@ -46,6 +47,40 @@ sudo apt install stockfish      # Ubuntu/Debian
 make && make run
 ```
 
+## Command Line Options
+
+The chess program supports several command line options for customizing behavior:
+
+```bash
+chess [options]
+```
+
+**Available options** (case-insensitive, can be used in any order):
+
+- **`DEBUG`** - Enable debug mode with diagnostic output
+- **`PGNOFF`** - Suppress automatic PGN file creation on game exit
+- **`FENOFF`** - Delete FEN log file on game exit (after PGN creation)
+- **`/HELP`** - Display detailed help information and exit
+
+**Examples:**
+```bash
+chess                    # Start normal game
+chess DEBUG              # Start with debug output
+chess PGNOFF             # No PGN file created on exit
+chess FENOFF             # FEN file deleted on exit
+chess PGNOFF FENOFF      # No files saved on exit
+chess debug pgnoff       # Mixed case works fine
+chess /help              # Show detailed help
+```
+
+**Notes:**
+- All options are case-insensitive (`DEBUG`, `debug`, `Debug` all work)
+- Options can be combined in any order
+- **Configuration integration**: Options override settings in CHESS.ini file
+- **Set preferences in config**: Use CHESS.ini to avoid typing options repeatedly
+- Use `chess /help` for detailed descriptions and more examples
+- Invalid options will show an error and exit (won't start the game)
+
 ## How to Play
 
 **Basic Controls:**
@@ -63,6 +98,7 @@ make && make run
 - Automatic detection of checkmate, stalemate, draws
 - **Interactive pawn promotion** with piece selection menu
 - All games automatically saved as FEN and PGN files
+- **File saving preferences**: Configure in CHESS.ini or use command line options
 
 ## Commands
 
@@ -88,9 +124,10 @@ make && make run
 ### Special Features
 - **Verified classical opening library** accessible via `load` command
 - **Verified demonstration tactical library** accessible via `load` command
-- All games auto-saved as timestamped FEN and PGN files
-- Configuration via `CHESS.ini` file
+- All games auto-saved as timestamped FEN and PGN files (customizable via config file or command line)
+- **Enhanced configuration system** via `CHESS.ini` file with file management preferences
 - **Opening validation utilities** for study and analysis
+- **Command line help system** with `/help` option for user guidance
 
 ## Configuration (CHESS.ini)
 
@@ -102,11 +139,16 @@ FENDirectory=.                    # Directory for saved games
 
 [Settings]
 DefaultSkillLevel=5               # AI difficulty (0-20)
+AutoCreatePGN=true               # Create PGN files on exit (true=PGNON, false=PGNOFF)
+AutoDeleteFEN=false              # Delete FEN files on exit (true=FENOFF, false=FENON)
 ```
 
 **Customization:**
 - Move FEN files to custom directory and update `FENDirectory`
 - Set default AI skill level
+- **Configure file management preferences**: Set `AutoCreatePGN=false` for PGNOFF behavior, `AutoDeleteFEN=true` for FENOFF behavior
+- **Boolean values**: Use `true/false`, `yes/no`, `on/off`, or `1/0` (case-insensitive)
+- **Command line override**: Command line options (PGNOFF/FENOFF) override config file settings
 - Cross-platform path support
 
 ## Board Display

@@ -30,9 +30,14 @@
 #include <dirent.h>  // For directory scanning
 #include <termios.h>  // For terminal control (arrow keys)
 #include <sys/stat.h>  // For file statistics
+#include <strings.h>  // For strcasecmp() case-insensitive string comparison
 
 // Global debug flag for diagnostic output
 bool debug_mode = false;
+
+// Global flags for command line options
+bool suppress_pgn_creation = false;  // PGNOFF - suppress auto PGN creation on exit
+bool delete_fen_on_exit = false;     // FENOFF - delete FEN file on exit
 
 // Global FEN log filename for current game session
 char fen_log_filename[256];
@@ -51,6 +56,8 @@ int current_skill_level = 20;
 typedef struct {
     char fen_directory[512];    // Path to directory containing FEN files
     int default_skill_level;    // Default AI skill level (0-20)
+    bool auto_create_pgn;       // Create PGN files on exit (true=PGNON, false=PGNOFF)
+    bool auto_delete_fen;       // Delete FEN files on exit (true=FENOFF, false=FENON)
 } ChessConfig;
 
 // Global configuration instance
@@ -59,6 +66,33 @@ ChessConfig config = {0};
 // Configuration override tracking for debug messages
 bool fen_directory_overridden = false;
 bool skill_level_overridden = false;
+
+/**
+ * Display command line help information
+ * Shows all available command line options with descriptions
+ */
+void show_command_line_help() {
+    printf("=== Chess Game - Command Line Options ===\n\n");
+    printf("Usage: chess [options]\n\n");
+    printf("Available options (case-insensitive, can be used in any order):\n\n");
+    printf("  DEBUG      Enable debug mode with diagnostic output\n");
+    printf("             Shows configuration loading, engine communication, etc.\n\n");
+    printf("  PGNOFF     Suppress automatic PGN file creation on game exit\n");
+    printf("             FEN log will still be created during gameplay\n\n");
+    printf("  FENOFF     Delete FEN log file on game exit (after PGN creation)\n");
+    printf("             Useful for temporary games or testing\n\n");
+    printf("  /HELP      Display this help information and exit\n\n");
+    printf("Examples:\n");
+    printf("  chess                    # Start normal game\n");
+    printf("  chess DEBUG              # Start with debug output\n");
+    printf("  chess PGNOFF             # No PGN file created on exit\n");
+    printf("  chess FENOFF             # FEN file deleted on exit\n");
+    printf("  chess PGNOFF FENOFF      # No files saved on exit\n");
+    printf("  chess debug pgnoff       # Mixed case works fine\n");
+    printf("  chess /help              # Show this help\n\n");
+    printf("Note: Options can be combined in any order.\n");
+    printf("      All options are case-insensitive.\n");
+}
 
 /**
  * Generate timestamp-based FEN filename for current game session
@@ -182,6 +216,8 @@ void load_config() {
     // Initialize default values
     strcpy(config.fen_directory, ".");  // Default to current directory
     config.default_skill_level = 5;     // Default skill level
+    config.auto_create_pgn = true;      // Default PGNON (create PGN files)
+    config.auto_delete_fen = false;     // Default FENON (keep FEN files)
 
     if (!config_file) {
         // Create default config file if it doesn't exist
@@ -249,6 +285,26 @@ void load_config() {
                         config.default_skill_level = 5;
                         skill_level_overridden = true;
                     }
+                } else if (strcasecmp(key, "AutoCreatePGN") == 0) {
+                    // Parse boolean values: true/yes/on/1 = true, false/no/off/0 = false
+                    if (strcasecmp(value, "true") == 0 || strcasecmp(value, "yes") == 0 ||
+                        strcasecmp(value, "on") == 0 || strcmp(value, "1") == 0) {
+                        config.auto_create_pgn = true;
+                    } else if (strcasecmp(value, "false") == 0 || strcasecmp(value, "no") == 0 ||
+                               strcasecmp(value, "off") == 0 || strcmp(value, "0") == 0) {
+                        config.auto_create_pgn = false;
+                    }
+                    // Invalid values are ignored, keeping default
+                } else if (strcasecmp(key, "AutoDeleteFEN") == 0) {
+                    // Parse boolean values: true/yes/on/1 = true, false/no/off/0 = false
+                    if (strcasecmp(value, "true") == 0 || strcasecmp(value, "yes") == 0 ||
+                        strcasecmp(value, "on") == 0 || strcmp(value, "1") == 0) {
+                        config.auto_delete_fen = true;
+                    } else if (strcasecmp(value, "false") == 0 || strcasecmp(value, "no") == 0 ||
+                               strcasecmp(value, "off") == 0 || strcmp(value, "0") == 0) {
+                        config.auto_delete_fen = false;
+                    }
+                    // Invalid values are ignored, keeping default
                 }
             }
         }
@@ -285,8 +341,13 @@ void create_default_config() {
     fprintf(config_file, "# Can be overridden with 'skill N' command before first move\n");
     fprintf(config_file, "DefaultSkillLevel=5\n");
     fprintf(config_file, "\n");
-    fprintf(config_file, "# Future settings can be added here\n");
-    fprintf(config_file, "# AutoSavePGN=true\n");
+    fprintf(config_file, "# Automatic file creation settings\n");
+    fprintf(config_file, "# AutoCreatePGN: Create PGN files on game exit (true=PGNON, false=PGNOFF)\n");
+    fprintf(config_file, "# AutoDeleteFEN: Delete FEN files on game exit (true=FENOFF, false=FENON)\n");
+    fprintf(config_file, "# Command line options override these settings\n");
+    fprintf(config_file, "# Valid values: true/false, yes/no, on/off, 1/0 (case-insensitive)\n");
+    fprintf(config_file, "AutoCreatePGN=true\n");
+    fprintf(config_file, "AutoDeleteFEN=false\n");
 
     fclose(config_file);
 }
@@ -511,13 +572,7 @@ void convert_fen_to_pgn() {
  * Handles case where files may have been removed due to starting position only
  */
 void show_game_files() {
-    // Check if files were removed due to starting position only
-    if (access(fen_log_filename, F_OK) != 0) {
-        printf("\nNo game files created (game never progressed beyond starting position).\n");
-        return;
-    }
-
-    // Create PGN filename from FEN filename
+    // Create PGN filename from FEN filename for checking
     char pgn_filename[256];
     char* base_name = strdup(fen_log_filename);
 
@@ -528,9 +583,31 @@ void show_game_files() {
     snprintf(pgn_filename, sizeof(pgn_filename), "%s.pgn", base_name);
     free(base_name);
 
+    // Check what files exist and what command line options were used
+    bool fen_exists = (access(fen_log_filename, F_OK) == 0);
+    bool pgn_exists = (access(pgn_filename, F_OK) == 0);
+
+    if (!fen_exists && !pgn_exists) {
+        if (suppress_pgn_creation && delete_fen_on_exit) {
+            printf("\nNo game files saved (PGNOFF and FENOFF options used).\n");
+        } else {
+            printf("\nNo game files created (game never progressed beyond starting position).\n");
+        }
+        return;
+    }
+
     printf("\nGame files created:\n");
-    printf("  FEN log: %s\n", fen_log_filename);
-    printf("  PGN file: %s\n", pgn_filename);
+    if (fen_exists) {
+        printf("  FEN log: %s\n", fen_log_filename);
+    } else if (delete_fen_on_exit) {
+        printf("  FEN log: %s (deleted due to FENOFF option)\n", fen_log_filename);
+    }
+
+    if (pgn_exists) {
+        printf("  PGN file: %s\n", pgn_filename);
+    } else if (suppress_pgn_creation) {
+        printf("  PGN file: %s (not created due to PGNOFF option)\n", pgn_filename);
+    }
 }
 
 /**
@@ -1473,9 +1550,19 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     }
     
     if (strcmp(input, "quit") == 0) {
-        // Clean up persistent PGN file and convert FEN log to PGN before exiting
+        // Clean up persistent PGN file and handle file creation/deletion based on flags
         cleanup_persistent_pgn_file();
-        convert_fen_to_pgn();
+
+        // Create PGN file unless suppressed by PGNOFF
+        if (!suppress_pgn_creation) {
+            convert_fen_to_pgn();
+        }
+
+        // Delete FEN file if requested by FENOFF (after PGN creation)
+        if (delete_fen_on_exit) {
+            unlink(fen_log_filename);
+        }
+
         show_game_files();
         exit(0);
     }
@@ -1695,9 +1782,19 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
             printf("\n*** WHITE RESIGNS! BLACK WINS! ***\n");
             printf("Game ended by resignation.\n");
 
-            // Clean up persistent PGN file and convert FEN log to PGN before exiting
+            // Clean up persistent PGN file and handle file creation/deletion based on flags
             cleanup_persistent_pgn_file();
-            convert_fen_to_pgn();
+
+            // Create PGN file unless suppressed by PGNOFF
+            if (!suppress_pgn_creation) {
+                convert_fen_to_pgn();
+            }
+
+            // Delete FEN file if requested by FENOFF (after PGN creation)
+            if (delete_fen_on_exit) {
+                unlink(fen_log_filename);
+            }
+
             show_game_files();
 
             printf("Press Enter to exit...");
@@ -1888,23 +1985,41 @@ void handle_black_turn(ChessGame *game, StockfishEngine *engine) {
 int main(int argc, char *argv[]) {
     ChessGame game;
     StockfishEngine engine = {0};
-    
-    // Check for DEBUG command line argument
+
+    // Load configuration settings from CHESS.ini first
+    load_config();
+
+    // Initialize file creation flags from configuration
+    // These can be overridden by command line options
+    suppress_pgn_creation = !config.auto_create_pgn;  // true=PGNOFF, false=PGNON
+    delete_fen_on_exit = config.auto_delete_fen;      // true=FENOFF, false=FENON
+
+    // Parse command line arguments (case-insensitive)
+    // Command line options override configuration settings
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "DEBUG") == 0) {
+        if (strcasecmp(argv[i], "DEBUG") == 0) {
             debug_mode = true;
-            break;
+        } else if (strcasecmp(argv[i], "PGNOFF") == 0) {
+            suppress_pgn_creation = true;
+        } else if (strcasecmp(argv[i], "FENOFF") == 0) {
+            delete_fen_on_exit = true;
+        } else if (strcasecmp(argv[i], "/HELP") == 0) {
+            show_command_line_help();
+            exit(0);
+        } else {
+            printf("Error: Invalid command line option '%s'\n", argv[i]);
+            printf("Valid options: DEBUG, PGNOFF, FENOFF, /HELP (case-insensitive)\n");
+            printf("Usage: chess [DEBUG] [PGNOFF] [FENOFF] [/HELP]\n");
+            printf("Use 'chess /help' for detailed information.\n");
+            exit(1);
         }
     }
-    
+
     // Generate FEN log filename for this game session
     generate_fen_filename();
 
     // Initialize persistent PGN filename for live updates
     generate_persistent_pgn_filename();
-
-    // Load configuration settings from CHESS.ini
-    load_config();
 
     // Clear screen at startup
     clear_screen();
@@ -1938,6 +2053,10 @@ int main(int argc, char *argv[]) {
             printf("*** DEBUG MODE ENABLED ***\n");
             printf("Configuration loaded: FENDirectory='%s'\n", config.fen_directory);
             printf("Configuration loaded: DefaultSkillLevel=%d\n", config.default_skill_level);
+            printf("Configuration loaded: AutoCreatePGN=%s\n", config.auto_create_pgn ? "true" : "false");
+            printf("Configuration loaded: AutoDeleteFEN=%s\n", config.auto_delete_fen ? "true" : "false");
+            printf("Active flags: suppress_pgn_creation=%s, delete_fen_on_exit=%s\n",
+                   suppress_pgn_creation ? "true" : "false", delete_fen_on_exit ? "true" : "false");
 
             // Show any configuration overrides
             if (fen_directory_overridden) {
@@ -1953,6 +2072,10 @@ int main(int argc, char *argv[]) {
             printf("*** DEBUG MODE ENABLED ***\n");
             printf("Configuration loaded: FENDirectory='%s'\n", config.fen_directory);
             printf("Configuration loaded: DefaultSkillLevel=%d\n", config.default_skill_level);
+            printf("Configuration loaded: AutoCreatePGN=%s\n", config.auto_create_pgn ? "true" : "false");
+            printf("Configuration loaded: AutoDeleteFEN=%s\n", config.auto_delete_fen ? "true" : "false");
+            printf("Active flags: suppress_pgn_creation=%s, delete_fen_on_exit=%s\n",
+                   suppress_pgn_creation ? "true" : "false", delete_fen_on_exit ? "true" : "false");
 
             // Show any configuration overrides
             if (fen_directory_overridden) {
@@ -1985,8 +2108,20 @@ int main(int argc, char *argv[]) {
             print_board(&game, NULL, 0);
             Color winner = (game.current_player == WHITE) ? BLACK : WHITE;
             printf("\n*** CHECKMATE! %s WINS! ***\n", winner == WHITE ? "WHITE" : "BLACK");
-            cleanup_persistent_pgn_file();  // Clean up persistent PGN file before exiting
-            convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
+
+            // Clean up persistent PGN file and handle file creation/deletion based on flags
+            cleanup_persistent_pgn_file();
+
+            // Create PGN file unless suppressed by PGNOFF
+            if (!suppress_pgn_creation) {
+                convert_fen_to_pgn();
+            }
+
+            // Delete FEN file if requested by FENOFF (after PGN creation)
+            if (delete_fen_on_exit) {
+                unlink(fen_log_filename);
+            }
+
             show_game_files();
             printf("Press Enter to exit...");
             getchar();
@@ -1996,8 +2131,20 @@ int main(int argc, char *argv[]) {
         if (is_stalemate(&game, game.current_player)) {
             print_board(&game, NULL, 0);
             printf("\n*** STALEMATE! IT'S A DRAW! ***\n");
-            cleanup_persistent_pgn_file();  // Clean up persistent PGN file before exiting
-            convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
+
+            // Clean up persistent PGN file and handle file creation/deletion based on flags
+            cleanup_persistent_pgn_file();
+
+            // Create PGN file unless suppressed by PGNOFF
+            if (!suppress_pgn_creation) {
+                convert_fen_to_pgn();
+            }
+
+            // Delete FEN file if requested by FENOFF (after PGN creation)
+            if (delete_fen_on_exit) {
+                unlink(fen_log_filename);
+            }
+
             show_game_files();
             printf("Press Enter to exit...");
             getchar();
@@ -2008,8 +2155,20 @@ int main(int argc, char *argv[]) {
             print_board(&game, NULL, 0);
             printf("\n*** 50-MOVE RULE DRAW! ***\n");
             printf("50 moves have passed without a pawn move or capture.\n");
-            cleanup_persistent_pgn_file();  // Clean up persistent PGN file before exiting
-            convert_fen_to_pgn();  // Convert FEN log to PGN before exiting
+
+            // Clean up persistent PGN file and handle file creation/deletion based on flags
+            cleanup_persistent_pgn_file();
+
+            // Create PGN file unless suppressed by PGNOFF
+            if (!suppress_pgn_creation) {
+                convert_fen_to_pgn();
+            }
+
+            // Delete FEN file if requested by FENOFF (after PGN creation)
+            if (delete_fen_on_exit) {
+                unlink(fen_log_filename);
+            }
+
             show_game_files();
             printf("Press Enter to exit...");
             getchar();

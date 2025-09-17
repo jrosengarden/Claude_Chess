@@ -15,7 +15,7 @@ make install-deps      # Install Stockfish dependency
 ## Project Architecture
 
 ### Core Files
-- `main.c` - Game loop, UI, command handling (contains configuration system)
+- `main.c` - Game loop, UI, command handling (contains configuration system and command line parsing)
 - `chess.h/chess.c` - Chess logic, move validation (2050+ lines)
 - `stockfish.h/stockfish.c` - AI engine integration via UCI protocol
 - `fen_to_pgn.c` - Standalone FEN-to-PGN conversion utility
@@ -48,6 +48,8 @@ make install-deps      # Install Stockfish dependency
 typedef struct {
     char fen_directory[512];
     int default_skill_level;
+    bool auto_create_pgn;       // Create PGN files on exit (true=PGNON, false=PGNOFF)
+    bool auto_delete_fen;       // Delete FEN files on exit (true=FENOFF, false=FENON)
 } ChessConfig;
 
 // Global configuration tracking
@@ -56,15 +58,26 @@ bool skill_level_overridden = false;
 ```
 
 **Functions:**
-- `load_config()` - Parse CHESS.ini, validate paths/values
-- `create_default_config()` - Auto-create config with defaults
+- `load_config()` - Parse CHESS.ini, validate paths/values, parse boolean settings
+- `create_default_config()` - Auto-create config with defaults (PGNON/FENON)
 - `is_valid_directory()` - Path validation using stat() and opendir()
 - `expand_path()` - Tilde expansion for paths
+
+**Configuration Integration with Command Line:**
+- Config file settings used as defaults on startup
+- Command line options (PGNOFF/FENOFF) override config settings
+- Global flags initialized from config: `suppress_pgn_creation = !config.auto_create_pgn`
+
+**Boolean Value Parsing:**
+- Flexible case-insensitive parsing: `true/false`, `yes/no`, `on/off`, `1/0`
+- Invalid values ignored, keeping defaults
+- Comprehensive documentation in auto-created config file
 
 **Debug Output:**
 - Invalid FENDirectory → WARNING + fallback to current directory
 - Invalid DefaultSkillLevel → WARNING + fallback to level 5
-- Configuration loaded successfully → shows values in DEBUG mode
+- Configuration loaded successfully → shows all values including new boolean settings in DEBUG mode
+- Active flags displayed: `suppress_pgn_creation`, `delete_fen_on_exit`
 
 ### LOAD System Architecture
 **Dual Directory Scanning:**
@@ -77,6 +90,47 @@ bool skill_level_overridden = false;
 - Duplicate detection (current dir takes precedence)
 - Section headers: "Chess Program Directory" / "FEN Files Directory"
 - 20-line pagination with screen clearing
+
+### Command Line Options System
+**Implementation Architecture:**
+- Case-insensitive parsing using `strcasecmp()` from `strings.h`
+- Global boolean flags for option state tracking
+- Comprehensive help system with `/HELP` option
+- Exit-on-error for invalid options (prevents user confusion)
+- **Configuration integration**: Options override config file settings
+
+**Available Options:**
+- `DEBUG` - Enable diagnostic output and debug mode
+- `PGNOFF` - Suppress automatic PGN file creation on exit (overrides config)
+- `FENOFF` - Delete FEN log file on exit (overrides config)
+- `/HELP` - Display help information and exit with code 0
+
+**Global State Variables:**
+```c
+bool debug_mode = false;
+bool suppress_pgn_creation = false;  // PGNOFF flag
+bool delete_fen_on_exit = false;     // FENOFF flag
+```
+
+**Configuration Integration Flow:**
+1. `load_config()` called first to read CHESS.ini settings
+2. Global flags initialized from config:
+   - `suppress_pgn_creation = !config.auto_create_pgn`
+   - `delete_fen_on_exit = config.auto_delete_fen`
+3. Command line options parsed and override config settings
+4. User can set preferences in config file and occasionally override via command line
+
+**Key Functions:**
+- `show_command_line_help()` - Display comprehensive help with examples
+- Command line parsing in `main()` - Validates and sets option flags (after config loading)
+- Enhanced exit logic - Respects PGNOFF/FENOFF flags at all exit points
+
+**Exit Point Modifications:**
+All 5 exit points updated with consistent logic:
+1. Check `!suppress_pgn_creation` before calling `convert_fen_to_pgn()`
+2. Check `delete_fen_on_exit` before calling `unlink(fen_log_filename)`
+3. Order preserved: PGN creation → FEN deletion
+4. Enhanced `show_game_files()` provides user feedback about option effects
 
 ## Core Data Structures
 
@@ -264,10 +318,13 @@ All core chess rules now fully implemented:
 - ✅ **Pawn promotion** - Complete with interactive piece selection
 
 ### Recently Completed Major Features
+- **Enhanced Configuration System** - CHESS.ini support for PGNOFF/FENOFF settings with config/command-line integration, DefaultSkillLevel + path validation
+- **Command Line Options System** - PGNOFF, FENOFF, /HELP with case-insensitive parsing and config override
+- **Enhanced File Management** - User control over PGN creation and FEN retention via config file or command line
+- **Comprehensive Help System** - Built-in command line help with examples and usage
 - **Pawn Promotion System** - Complete implementation with interactive UI and validation
 - **AI Promotion Bug Fix** - AI now selects promotion pieces automatically without user prompts
 - **Feature Demonstration Library** - Educational FEN files with comprehensive documentation
-- **Enhanced Configuration System** - DefaultSkillLevel + path validation
 - **Dual Directory LOAD System** - Pagination + section headers
 - **Interactive Game Browser** - Arrow key navigation
 - **Live PGN Display with Auto-Updates** - Side-by-side terminal with real-time move updates
