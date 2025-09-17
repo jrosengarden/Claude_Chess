@@ -24,7 +24,8 @@ make install-deps      # Install Stockfish dependency
 
 ### Opening Validation Tools
 - `validate_openings` - Comprehensive FEN file validator using chess engine
-- `regenerate_openings` - Authentic opening sequence generator
+- `verify_openings` - Chess opening authenticity verification script
+- `regenerate_openings` - Authentic opening sequence and tactical position generator
 
 ### Key Entry Points
 - `get_possible_moves()` - Main move generation (chess.c)
@@ -114,6 +115,8 @@ make test                  # Safe micro-tests
 ./test_compile_only.sh    # Cross-platform compilation
 ./validate_openings        # Validate all FEN files in FEN_FILES/
 ./validate_openings file   # Validate specific FEN file
+./verify_openings          # Verify authenticity of opening sequences and tactical positions
+./verify_openings file     # Verify specific FEN file against expected patterns
 ```
 
 ## Platform Compatibility
@@ -279,13 +282,29 @@ All core chess rules now fully implemented:
 **Engine-Based Validation:**
 - All FEN positions validated using actual chess engine
 - Detects illegal moves, impossible positions, malformed FEN
-- Batch validation of entire opening library
+- Batch validation of entire opening library (24 files: 12 openings + 12 demonstrations)
 - Position-by-position error reporting
+- Cross-platform compatible (macOS bash 3.2 + Linux bash 4+)
 
 **Tools:**
 ```bash
 ./validate_openings                    # Validate all FEN files
 ./validate_openings FEN_FILES/RUY_LOPEZ.fen  # Validate specific file
+```
+
+### FEN File Authenticity Verification
+**Pattern-Based Verification:**
+- Verifies opening sequences match expected classical opening theory
+- Verifies demonstration positions match expected tactical scenarios
+- Two verification modes:
+  - **Opening sequence files** (UPPERCASE): Generated sequences vs expected move patterns
+  - **Demonstration files** (mixed case): Exact position matching for tactical scenarios
+- Comprehensive reporting with detailed diff output for mismatches
+
+**Tools:**
+```bash
+./verify_openings                      # Verify all FEN files against expected patterns
+./verify_openings FEN_FILES/RUY_LOPEZ.fen  # Verify specific file authenticity
 ```
 
 ### Opening Sequence Generation
@@ -302,22 +321,24 @@ All core chess rules now fully implemented:
 ./pgn_to_fen < game.pgn > output.fen      # Stdin input
 ```
 
-### Authentic Opening Library
-**Verified Classical Openings:**
-- 12 engine-validated opening sequences in FEN_FILES/
+### Complete Chess Library
+**24 Engine-Validated FEN Files:**
+
+**Classical Opening Sequences (12 files - UPPERCASE names):**
 - Each opening generated from historically accurate move sequences
 - All positions legal and reachable through proper gameplay
 - Suitable for study, testing, and competitive play
+- Contents: Ruy Lopez, Italian Game, Queen's Gambit, King's Gambit, French Defense, Caro-Kann, Sicilian Four Knights, Alekhine's Defense, Scandinavian, Nimzo-Indian, English Opening, King's Indian Defense
 
-**Library Contents:**
-- Ruy Lopez, Italian Game, Queen's Gambit, King's Gambit
-- French Defense, Caro-Kann, Sicilian Four Knights
-- Alekhine's Defense, Scandinavian, Nimzo-Indian
-- English Opening, King's Indian Defense
+**Tactical Demonstration Positions (12 files - mixed case names):**
+- Single-position scenarios showcasing specific chess tactics
+- Educational value for tactical training and study
+- Each position demonstrates a specific chess concept
+- Contents: BackRank, Castling, Check, Checkmate, Discovery, EnPassant, FiftyMoveRule, Fork, Pin, Promotion, Sacrifice, Stalemate
 
 **Regeneration:**
 ```bash
-./regenerate_openings  # Regenerate all openings from authentic sequences
+./regenerate_openings  # Regenerate all 24 files: opening sequences + tactical positions
 ```
 
 ### Memory Management for Opening Tools

@@ -4,58 +4,104 @@
 #
 # Verifies that FEN files represent authentic classical openings
 # by checking the first few moves against known opening sequences.
+# Compatible with both macOS (bash 3.2) and Linux (bash 4+).
 
-# Known opening move sequences (first 3-4 moves)
-declare -A OPENING_MOVES=(
-    ["RUY_LOPEZ"]="e4 e5 Nf3 Nc6 Bb5"
-    ["ITALIAN"]="e4 e5 Nf3 Nc6 Bc4"
-    ["QUEENS_GAMBIT"]="d4 d5 c4"
-    ["KINGS_GAMBIT"]="e4 e5 f4"
-    ["FRENCH_DEFENSE"]="e4 e6"
-    ["CARO_KANN"]="e4 c6"
-    ["SICILIAN_FOUR_KNIGHTS"]="e4 c5 Nf3 Nc6 Nc3 Nf6"
-    ["ALEKHINES_DEFENSE"]="e4 Nf6"
-    ["SCANDINAVIAN"]="e4 d5"
-    ["NIMZO_INDIAN"]="d4 Nf6 c4 e6 Nc3 Bb4"
-    ["ENGLISH"]="c4"
-    ["KINGS_INDIAN"]="d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O"
-)
+# Function to get expected moves for an opening (cross-platform compatible)
+get_opening_moves() {
+    case "$1" in
+        "RUY_LOPEZ") echo "e4 e5 Nf3 Nc6 Bb5" ;;
+        "ITALIAN") echo "e4 e5 Nf3 Nc6 Bc4" ;;
+        "QUEENS_GAMBIT") echo "d4 d5 c4" ;;
+        "KINGS_GAMBIT") echo "e4 e5 f4" ;;
+        "FRENCH_DEFENSE") echo "e4 e6" ;;
+        "CARO_KANN") echo "e4 c6" ;;
+        "SICILIAN_FOUR_KNIGHTS") echo "e4 c5 Nf3 Nc6 Nc3 Nf6" ;;
+        "ALEKHINES_DEFENSE") echo "e4 Nf6" ;;
+        "SCANDINAVIAN") echo "e4 d5" ;;
+        "NIMZO_INDIAN") echo "d4 Nf6 c4 e6 Nc3 Bb4" ;;
+        "ENGLISH") echo "c4" ;;
+        "KINGS_INDIAN") echo "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O" ;;
+        *) echo "" ;;
+    esac
+}
+
+# Function to get expected FEN position for tactical demonstrations
+get_demonstration_fen() {
+    case "$1" in
+        "BackRank") echo "r5k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1" ;;
+        "Castling") echo "r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1" ;;
+        "Check") echo "rnbqkbnr/ppppp1pp/5p2/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2" ;;
+        "Checkmate") echo "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1" ;;
+        "Discovery") echo "rnbqkbnr/pppp1p1p/8/8/8/4N3/PPPPQPPP/RNB1KB1R w KQkq - 0 1" ;;
+        "EnPassant") echo "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3" ;;
+        "FiftyMoveRule") echo "8/8/8/8/8/4k3/8/4K3 w - - 98 75" ;;
+        "Fork") echo "rnbqkbnr/ppqp1ppp/5r2/3N4/8/8/PPPP1PPP/R1BQKB1R w KQkq - 0 1" ;;
+        "Pin") echo "rnbqkbnr/pppppppp/8/1B6/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" ;;
+        "Promotion") echo "r1bqkb1r/ppppPppp/2n2n2/8/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5" ;;
+        "Sacrifice") echo "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 4 5" ;;
+        "Stalemate") echo "8/8/8/8/8/1Q6/p7/k1K5 w - - 0 1" ;;
+        *) echo "" ;;
+    esac
+}
 
 verify_opening() {
     local file="$1"
     local basename=$(basename "$file" .fen)
-    local expected_moves="${OPENING_MOVES[$basename]}"
+    local expected_moves=$(get_opening_moves "$basename")
+    local expected_fen=$(get_demonstration_fen "$basename")
 
-    if [[ -z "$expected_moves" ]]; then
+    # Check if this is an opening sequence file or a demonstration position file
+    if [[ -n "$expected_moves" ]]; then
+        # This is an opening sequence file
+        echo "🔍 Verifying $basename (opening sequence)..."
+        echo "   Expected: $expected_moves"
+
+        # Generate FEN from expected moves (cross-platform compatible)
+        local generated_fen=$(echo "$expected_moves" | ./pgn_to_fen 2>/dev/null)
+
+        if [[ -z "$generated_fen" ]]; then
+            echo "❌ $basename: Could not generate expected FEN sequence"
+            return 1
+        fi
+
+        # Get corresponding lines from existing file
+        local move_count=$(echo "$expected_moves" | wc -w)
+        local positions_needed=$((move_count + 1))  # +1 for starting position
+        local existing_fen=$(head -n "$positions_needed" "$file")
+
+        # Compare sequences
+        if [[ "$generated_fen" == "$existing_fen" ]]; then
+            echo "✅ $basename: Opening sequence verified as authentic"
+            return 0
+        else
+            echo "❌ $basename: Opening sequence does NOT match expected moves"
+            echo "   First difference:"
+            diff <(echo "$expected_moves" | ./pgn_to_fen 2>/dev/null) <(head -n "$positions_needed" "$file") | head -n 5
+            return 1
+        fi
+
+    elif [[ -n "$expected_fen" ]]; then
+        # This is a tactical demonstration position file
+        echo "🔍 Verifying $basename (tactical position)..."
+        echo "   Expected position: ${expected_fen:0:50}..."
+
+        # Get the actual FEN from the file (should be single line)
+        local actual_fen=$(head -n 1 "$file")
+
+        # Compare exact FEN positions
+        if [[ "$expected_fen" == "$actual_fen" ]]; then
+            echo "✅ $basename: Tactical position verified as correct"
+            return 0
+        else
+            echo "❌ $basename: Tactical position does NOT match expected FEN"
+            echo "   Expected: $expected_fen"
+            echo "   Actual:   $actual_fen"
+            return 1
+        fi
+
+    else
         echo "⚠️  $basename: No verification pattern defined"
         return 0
-    fi
-
-    echo "🔍 Verifying $basename..."
-    echo "   Expected: $expected_moves"
-
-    # Generate FEN from expected moves
-    local generated_fen=$(echo "$expected_moves" | ./pgn_to_fen 2>/dev/null | tail -n +2 | head -n -1)
-
-    if [[ -z "$generated_fen" ]]; then
-        echo "❌ $basename: Could not generate expected FEN sequence"
-        return 1
-    fi
-
-    # Get corresponding lines from existing file
-    local move_count=$(echo "$expected_moves" | wc -w)
-    local positions_needed=$((move_count + 1))  # +1 for starting position
-    local existing_fen=$(head -n "$positions_needed" "$file")
-
-    # Compare sequences
-    if [[ "$generated_fen" == "$existing_fen" ]]; then
-        echo "✅ $basename: Opening sequence verified as authentic"
-        return 0
-    else
-        echo "❌ $basename: Opening sequence does NOT match expected moves"
-        echo "   First difference:"
-        diff <(echo "$expected_moves" | ./pgn_to_fen 2>/dev/null) <(head -n "$positions_needed" "$file") | head -n 5
-        return 1
     fi
 }
 

@@ -192,10 +192,17 @@ This works for both regular promotion moves and promotion captures.
 **For advanced users and chess study:**
 
 ### Validate Opening Files
-Verify that all FEN files contain legal positions:
+Verify that all FEN files contain legal chess positions:
 ```bash
-./validate_openings                    # Check all opening files
+./validate_openings                    # Check all 24 FEN files (openings + demonstrations)
 ./validate_openings FEN_FILES/RUY_LOPEZ.fen  # Check specific opening
+```
+
+### Verify Opening Authenticity
+Confirm that opening files match expected patterns and tactical demonstrations are correct:
+```bash
+./verify_openings                      # Verify all files against expected patterns
+./verify_openings FEN_FILES/BackRank.fen  # Verify specific tactical position
 ```
 
 ### Convert Chess Moves to Positions (pgn_to_fen)
@@ -213,17 +220,18 @@ Generate clean, standard,  PGN file from FEN files:
 	(will output valid, standard, PGN file with same name as FEN file)
 ```
 
-### Regenerate Opening Library
-Recreate all openings from authentic move sequences:
+### Regenerate Complete Chess Library
+Recreate all 24 FEN files from authentic sources:
 ```bash
-./regenerate_openings  # Rebuild entire library with verified moves
+./regenerate_openings  # Rebuild all openings + tactical demonstrations with verified content
 ```
 
 **Use cases:**
-- Study opening theory with verified positions
-- Create custom opening collections
-- Validate downloaded FEN files
-- Generate training positions for analysis
+- Study opening theory with verified classical sequences (12 openings)
+- Practice chess tactics with demonstration positions (12 tactical scenarios)
+- Create custom opening collections from PGN files
+- Validate downloaded FEN files for legal positions
+- Verify authenticity of chess position libraries
 
 ## Building and Testing
 
@@ -236,7 +244,8 @@ make run               # Build and run chess game
 make test              # Run micro-tests
 make clean             # Clean build files
 ./test_compile_only.sh # Cross-platform compilation test
-./validate_openings    # Verify opening library integrity
+./validate_openings    # Verify chess library integrity (legal positions)
+./verify_openings      # Verify library authenticity (opening theory + tactics)
 ```
 
 ## Troubleshooting

@@ -29,8 +29,11 @@ validate_single_fen() {
         return 1
     fi
 
-    # Count positions in file
-    local position_count=$(wc -l < "$file")
+    # Count positions in file (handle files without trailing newlines)
+    local position_count=0
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -n "$line" ]] && position_count=$((position_count + 1))
+    done < "$file"
     echo "  Found $position_count positions"
 
     # Try to load each position and verify it's valid
