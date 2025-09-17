@@ -6,6 +6,7 @@ make                    # Build chess, fen_to_pgn, pgn_to_fen, micro_test
 make run               # Build and run chess game
 make test              # Run micro-testing framework
 make debug             # Build all debug programs
+make utilities		   # Build all utility programs
 make clean             # Clean all build artifacts
 make install-deps      # Install Stockfish dependency
 ./test_compile_only.sh # Cross-platform compilation tests

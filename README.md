@@ -21,6 +21,7 @@ A complete terminal chess game with AI opponent and comprehensive study features
 - Custom board setup using FEN notation
 - Interactive game loading with arrow key navigation
 - **Verified classical opening library** (12 authenticated openings)
+- **Verified demonstration opening library** (12 authenticated demo fen files)
 - Automatic game recording in FEN and PGN formats
 - Captured pieces display shows complete capture history for loaded positions
 - **Opening validation tools** ensure legal positions and authentic sequences
@@ -51,12 +52,13 @@ make && make run
 - Move: `e2 e4` (algebraic notation)
 - Castling: `e1 g1` (move king two squares)
 - **Pawn promotion**: Automatic when pawn reaches end - choose Q/R/B/N
+	- Black (Stockfish) decides on it's promotion piece choice
 - View moves: `e2` (show possible moves & captures from e2)
 	[Captures appear in reverse text block]
 - Undo: `undo` (unlimited)
 
 **Game Flow:**
-- You play White, AI plays Black
+- You play White, AI (Stockfish) plays Black
 - Clean single-board interface
 - Automatic detection of checkmate, stalemate, draws
 - **Interactive pawn promotion** with piece selection menu
@@ -85,6 +87,7 @@ make && make run
 
 ### Special Features
 - **Verified classical opening library** accessible via `load` command
+- **Verified demonstration tactical library** accessible via `load` command
 - All games auto-saved as timestamped FEN and PGN files
 - Configuration via `CHESS.ini` file
 - **Opening validation utilities** for study and analysis
@@ -131,7 +134,7 @@ DefaultSkillLevel=5               # AI difficulty (0-20)
 ## Pawn Promotion
 
 When a pawn reaches the opposite end of the board (8th rank for White, 1st rank for 
-   Black), it **automatically promotes**.
+   Black), it **automatically promotes** as follows:
 
 ### Human Player (White)
 You'll see this interactive menu when your pawn promotes:
@@ -194,7 +197,7 @@ This works for both regular promotion moves and promotion captures.
 ### Validate Opening Files
 Verify that all FEN files contain legal chess positions:
 ```bash
-./validate_openings                    # Check all 24 FEN files (openings + demonstrations)
+./validate_openings                  # Check all 24 FEN files (openings + demonstrations)
 ./validate_openings FEN_FILES/RUY_LOPEZ.fen  # Check specific opening
 ```
 
