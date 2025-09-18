@@ -294,6 +294,8 @@ is_fifty_move_rule_draw()  // Automatic draw detection
 2. **Clean Compilation** - Zero warnings on both platforms
 3. **Testing Verification** - All changes tested on both OS
 4. **Comprehensive Comments** - All new code fully documented
+5. **Claude development rule**: If debugging approaches fail 2-3 times, especially for
+     platform-specific issues, use web search to find documented solutions
 
 ### Development Workflow (CRITICAL)
 **After ANY code changes, ALWAYS:**
