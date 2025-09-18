@@ -124,7 +124,8 @@ chess /help              # Show detailed help
 ### Special Features
 - **Verified classical opening library** accessible via `load` command
 - **Verified demonstration tactical library** accessible via `load` command
-- All games auto-saved as timestamped FEN and PGN files (customizable via config file or command line)
+- All games auto-saved as timestamped FEN and PGN files (customizable via config 
+     file or command line)
 - **Enhanced configuration system** via `CHESS.ini` file with file management preferences
 - **Opening validation utilities** for study and analysis
 - **Command line help system** with `/help` option for user guidance
@@ -146,9 +147,11 @@ AutoDeleteFEN=false              # Delete FEN files on exit (true=FENOFF, false=
 **Customization:**
 - Move FEN files to custom directory and update `FENDirectory`
 - Set default AI skill level
-- **Configure file management preferences**: Set `AutoCreatePGN=false` for PGNOFF behavior, `AutoDeleteFEN=true` for FENOFF behavior
+- **Configure file management preferences**: Set `AutoCreatePGN=false` for PGNOFF 
+     behavior, `AutoDeleteFEN=true` for FENOFF behavior
 - **Boolean values**: Use `true/false`, `yes/no`, `on/off`, or `1/0` (case-insensitive)
-- **Command line override**: Command line options (PGNOFF/FENOFF) override config file settings
+- **Command line override**: Command line options (PGNOFF/FENOFF) override config file 
+     settings
 - Cross-platform path support
 
 ## Board Display
@@ -244,7 +247,8 @@ Verify that all FEN files contain legal chess positions:
 ```
 
 ### Verify Opening Authenticity
-Confirm that opening files match expected patterns and tactical demonstrations are correct:
+Confirm that opening files match expected patterns and tactical demonstrations are 
+     correct:
 ```bash
 ./verify_openings                      # Verify all files against expected patterns
 ./verify_openings FEN_FILES/BackRank.fen  # Verify specific tactical position
@@ -268,7 +272,8 @@ Generate clean, standard,  PGN file from FEN files:
 ### Regenerate Complete Chess Library
 Recreate all 24 FEN files from authentic sources:
 ```bash
-./regenerate_openings  # Rebuild all openings + tactical demonstrations with verified content
+./regenerate_openings  # Rebuild all openings + tactical demonstrations with 
+     verified content
 ```
 
 **Use cases:**
