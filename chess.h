@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <time.h>
 
 #define BOARD_SIZE 8  // Standard 8x8 chess board
 
@@ -92,6 +93,30 @@ typedef struct {
     int count;                  // Number of pieces currently captured
 } CapturedPieces;
 
+/**
+ * TimeControl - Time control settings for the game
+ * Configures timing rules for both players (can be different)
+ */
+typedef struct {
+    int white_minutes;          // Minutes allocated to White player
+    int white_increment;        // Seconds added after each White move
+    int black_minutes;          // Minutes allocated to Black player
+    int black_increment;        // Seconds added after each Black move
+    bool enabled;              // Whether time controls are active
+} TimeControl;
+
+/**
+ * GameTimer - Tracks time remaining for both players
+ * Manages actual timing during gameplay
+ */
+typedef struct {
+    int white_time_seconds;     // Seconds remaining for White player
+    int black_time_seconds;     // Seconds remaining for Black player
+    time_t move_start_time;     // When current player's move started
+    bool timing_active;         // Whether timer is currently running
+    Color timer_player;         // Which player the active timer belongs to
+} GameTimer;
+
 
 /**
  * ChessGame - Main game state structure
@@ -128,7 +153,11 @@ typedef struct {
     // En passant state tracking
     Position en_passant_target; // Target square for en passant capture (-1,-1 if none available)
     bool en_passant_available;  // True if en passant capture is currently available
-    
+
+    // Time control system
+    TimeControl time_control;   // Current time control settings
+    GameTimer timer;           // Current timer state
+
 } ChessGame;
 
 /* ========================================================================
@@ -169,7 +198,7 @@ bool is_square_attacked(ChessGame *game, Position pos, Color by_color);  // Chec
 int get_king_moves_no_castling(ChessGame *game, Position from, Position moves[]);  // Get king moves without castling (for attack checking)
 
 // Display and formatting utilities
-void print_captured_pieces(CapturedPieces *captured, const char* color_code, const char* player_name);  // Display captured pieces for UI
+void print_captured_pieces(CapturedPieces *captured, const char* color_code, const char* player_name, ChessGame* game);  // Display captured pieces for UI
 char piece_to_char(Piece piece);  // Convert piece to display character
 Position char_to_position(char *input);  // Convert algebraic notation (e.g. "e4") to Position
 char *position_to_string(Position pos);  // Convert Position to algebraic notation string
@@ -188,5 +217,14 @@ bool is_fifty_move_rule_draw(ChessGame *game);  // Check if 50-move rule draw co
 
 // PGN conversion
 char* convert_fen_to_pgn_string(const char* fen_filename);  // Convert FEN log file to PGN string
+
+// Time control functions
+bool parse_time_control(const char* time_str, TimeControl* tc);  // Parse TIME xx/yy command format
+void init_game_timer(ChessGame* game, TimeControl* time_control);  // Initialize timer system
+void start_move_timer(ChessGame* game);  // Begin timing current player's move
+void stop_move_timer(ChessGame* game);  // End timing and apply increment
+char* get_remaining_time_string(int seconds);  // Format time as MM:SS string
+bool check_time_forfeit(ChessGame* game);  // Check for time expiration
+bool is_time_control_enabled(ChessGame* game);  // Check if time controls are active
 
 #endif

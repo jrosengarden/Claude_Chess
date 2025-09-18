@@ -11,7 +11,9 @@ A complete terminal chess game with AI opponent and comprehensive study features
 - Castling (kingside/queenside), en passant, 50-move rule, and **pawn promotion**
 - Clean ASCII board display with coordinates
 - Move visualization with `*` and highlighted captures
-- Unlimited undo functionality
+- **Comprehensive time controls** with separate White/Black allocations (e.g., `TIME 30/10/5/0`)
+- **Intelligent AI timing**: Depth-based search when disabled, time-based when enabled
+- Unlimited undo functionality (disables time controls for remainder of game)
 - AI opponent powered by Stockfish (adjustable difficulty 0-20)
 - **Command line options** for customizing file creation and debug output
 
@@ -90,7 +92,8 @@ chess /help              # Show detailed help
 	- Black (Stockfish) decides on it's promotion piece choice
 - View moves: `e2` (show possible moves & captures from e2)
 	[Captures appear in reverse text block]
-- Undo: `undo` (unlimited)
+- **Time controls**: `TIME 30/10/5/0` (White: 30min+10s, Black: 5min+0s)
+- Undo: `undo` (unlimited, disables time controls for remainder of game)
 
 **Game Flow:**
 - You play White, AI (Stockfish) plays Black
@@ -106,7 +109,8 @@ chess /help              # Show detailed help
 - `help` - Show help
 - `hint` - Get AI's best move suggestion
 - `skill N` - Set AI difficulty (0-20, before first move only)
-- `undo` - Unlimited undo
+- `time xx/yy` - Set time controls (see Time Controls section below)
+- `undo` - Unlimited undo (disables time controls for remainder of game)
 - `resign` - Resign with confirmation
 - `quit` - Exit game
 - `title`- Redisplay game startup title screen
@@ -130,6 +134,69 @@ chess /help              # Show detailed help
 - **Opening validation utilities** for study and analysis
 - **Command line help system** with `/help` option for user guidance
 
+## Time Controls
+
+### Overview
+Complete time control system with separate time allocations for White and Black players. Perfect for balancing human vs AI gameplay!
+
+### Format Options
+```bash
+TIME xx/yy          # Same time controls for both players
+TIME xx/yy/zz/ww    # Different: White gets xx/yy, Black gets zz/ww
+TIME 0/0            # Disable time controls entirely
+```
+
+### Examples
+```bash
+TIME 15/5           # Both players: 15 minutes + 5 second increment
+TIME 30/10/5/0      # White: 30min+10sec, Black: 5min+0sec (recommended!)
+TIME 45/15/10/2     # White: 45min+15sec, Black: 10min+2sec
+TIME 1/0/1/0        # Blitz: 1 minute each, no increment
+TIME 0/0            # No time limits (fastest AI moves)
+```
+
+### How It Works
+
+**When Time Controls Are ENABLED (anything other than 0/0):**
+- ⏱️ **Real-time countdown**: See your time decrease as you think
+- 🤖 **AI uses actual time**: Stockfish thinks for appropriate duration based on time remaining
+- ⚡ **Smart AI timing**: Uses ~1/20th of remaining time per move (min 500ms, max 10s)
+- 🏃 **Time pressure**: Both players must manage their time strategically
+- 💀 **Time forfeit**: Run out of time = automatic loss
+- ➕ **Increment bonus**: Gain seconds after each move (if configured)
+
+**When Time Controls Are DISABLED (0/0):**
+- 🚀 **Instant AI moves**: Stockfish uses fast depth-10 search
+- ⚡ **No time pressure**: Think as long as you want
+- 🎯 **Consistent difficulty**: AI strength doesn't vary with "time pressure"
+
+### Perfect for Balance!
+**Problem**: Humans think slowly, Stockfish thinks instantly
+**Solution**: Give yourself more time, give Stockfish less time!
+
+```bash
+TIME 30/10/3/0      # You: 30min+10s, AI: 3min total (fair fight!)
+TIME 15/5/1/0       # Casual: You get plenty of time, AI gets 1 minute
+TIME 60/30/10/0     # Tournament: You get 1 hour, AI gets 10 minutes
+```
+
+### Display
+**With time controls enabled:**
+```
+White: 29:45 | Captured: [pieces] | Black: 1:23 | Captured: [pieces]
+```
+
+**With time controls disabled:**
+```
+White Captured: [pieces] | Black Captured: [pieces]
+```
+
+### Important Notes
+- **Undo disables time controls**: Using `undo` turns off timers for the rest of that game
+- **Real-time updates**: Timer shows live countdown during your turn
+- **Fair play**: AI cannot think during your time (pondering disabled)
+- **Time forfeit**: Game ends immediately when a player runs out of time
+
 ## Configuration (CHESS.ini)
 
 Auto-created configuration file with settings:
@@ -142,16 +209,19 @@ FENDirectory=.                    # Directory for saved games
 DefaultSkillLevel=5               # AI difficulty (0-20)
 AutoCreatePGN=true               # Create PGN files on exit (true=PGNON, false=PGNOFF)
 AutoDeleteFEN=false              # Delete FEN files on exit (true=FENOFF, false=FENON)
+DefaultTimeControl=30/10/5/0     # Default time controls (White/Black can be different)
 ```
 
 **Customization:**
 - Move FEN files to custom directory and update `FENDirectory`
 - Set default AI skill level
-- **Configure file management preferences**: Set `AutoCreatePGN=false` for PGNOFF 
+- **Configure file management preferences**: Set `AutoCreatePGN=false` for PGNOFF
      behavior, `AutoDeleteFEN=true` for FENOFF behavior
+- **Set default time controls**: Use 2-value format (same for both) or 4-value format (different for each player)
 - **Boolean values**: Use `true/false`, `yes/no`, `on/off`, or `1/0` (case-insensitive)
-- **Command line override**: Command line options (PGNOFF/FENOFF) override config file 
+- **Command line override**: Command line options (PGNOFF/FENOFF) override config file
      settings
+- **Runtime override**: `TIME` command during gameplay overrides config settings
 - Cross-platform path support
 
 ## Board Display

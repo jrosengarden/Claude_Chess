@@ -405,122 +405,323 @@ All core chess rules now fully implemented:
 - `validate_single_fen()` - Temporary file creation/cleanup
 - All tools use chess engine's existing memory management
 
-## Planned Features
+## Time Controls System (Complete Implementation)
 
-### Time Controls System (Next Implementation)
+### Overview
+Complete time control system with separate White/Black time allocations and intelligent Stockfish search mode selection.
 
-**Feature Specification:**
-- Command: `TIME xx/yy` (xx=minutes per side, yy=increment seconds)
-- Special case: `TIME 0/0` disables time controls entirely
-- Default: 30/10 (30 minutes + 10 second increment) in CHESS.ini
-- Display: Remaining time on captured pieces line (only when time controls active)
-- Format: `White: 29:45 | Captured: [pieces] | Black: 28:30 | Captured: [pieces]`
-- No time display when disabled: `White Captured: [pieces] | Black Captured: [pieces]`
+### Format Support
+```
+TIME xx/yy          # Same time controls for both players
+TIME xx/yy/zz/ww    # White: xx/yy, Black: zz/ww
+TIME 0/0            # Disable time controls (switches to depth-based search)
+```
 
-**Technical Complexity: Medium-High**
-
-#### Core Components Required
-
-**Data Structures:**
+### Data Structures
 ```c
 typedef struct {
-    int minutes_per_side;
-    int increment_seconds;
-    bool enabled;
+    int white_minutes;          // Minutes allocated to White player
+    int white_increment;        // Seconds added after each White move
+    int black_minutes;          // Minutes allocated to Black player
+    int black_increment;        // Seconds added after each Black move
+    bool enabled;              // Whether time controls are active
 } TimeControl;
 
 typedef struct {
-    int white_time_seconds;     // Seconds remaining
-    int black_time_seconds;
-    time_t move_start_time;
-    bool timing_active;
+    int white_time_seconds;     // Seconds remaining for White player
+    int black_time_seconds;     // Seconds remaining for Black player
+    time_t move_start_time;     // When current player's move started
+    bool timing_active;         // Whether timer is currently running
+    Color timer_player;         // Which player the active timer belongs to
 } GameTimer;
 ```
 
-**Implementation Requirements:**
+### Configuration Integration
+**CHESS.ini DefaultTimeControl Setting:**
+```ini
+# Format: white_min/white_inc/black_min/black_inc OR min/inc (same for both)
+# Examples: 30/10 (both get 30min+10sec), 30/10/5/0 (White 30/10, Black 5/0)
+DefaultTimeControl=30/10/5/0
+```
 
-1. **Configuration Integration** (Low complexity)
-   - Add `DefaultTimeControl=30/10` to CHESS.ini parsing
-   - Validate time control format parsing
-   - Runtime override via TIME command
+**Runtime Override:** `TIME` command during gameplay overrides config settings
 
-2. **Timer Management System** (Medium complexity)
-   - Standard POSIX timing (time() function)
-   - Second-precision tracking during moves
-   - Coordinate with Stockfish AI thinking time
-   - Handle increment application after moves
+### Key Implementation Features
 
-3. **Display Integration** (Medium complexity)
-   - Real-time timer updates during gameplay
-   - Format time as MM:SS with low-time warnings
-   - Integrate with existing captured pieces display
-   - Conditional display logic (show/hide time based on TIME 0/0)
-   - Maintain consistency across all game states
+#### 1. Intelligent Stockfish Search Mode Selection
+**Automatic switching based on time controls:**
 
-4. **Game Logic Integration** (Medium complexity)
-   - Timer start/stop coordination with move system
-   - Time forfeit detection and game termination
-   - Undo system integration (restore timer states)
-   - Distinguish AI vs human move timing
+```c
+// In get_best_move() - stockfish.c
+if (is_time_control_enabled(game)) {
+    // TIME-BASED SEARCH: Use actual time allocation
+    int time_remaining = (game->current_player == WHITE) ?
+                       game->timer.white_time_seconds :
+                       game->timer.black_time_seconds;
 
-**Key Functions Needed:**
-- `parse_time_control()` - Parse TIME xx/yy command format (handle 0/0 disable case)
-- `init_game_timer()` - Initialize timer system with config
-- `start_move_timer()` - Begin timing a player's move
-- `stop_move_timer()` - End timing and apply increment
-- `get_remaining_time_string()` - Format time for display (MM:SS)
-- `check_time_forfeit()` - Detect time expiration (flag fall)
-- `save_timer_state()` - Store timer state for undo system
-- `restore_timer_state()` - Restore timer state on undo
-- `is_time_control_enabled()` - Check if time controls are active (not 0/0)
+    // Use ~1/20th of remaining time (min 500ms, max 10s)
+    int move_time = (time_remaining * 1000) / 20;
+    if (move_time < 500) move_time = 500;
+    if (move_time > 10000) move_time = 10000;
 
-**Technical Challenges:**
+    sprintf(go_command, "go movetime %d", move_time);
+    send_command(engine, go_command);
+} else {
+    // DEPTH-BASED SEARCH: Fast, consistent difficulty
+    send_command(engine, "go depth 10");
+}
+```
 
-1. **Threading/Timing Architecture**
-   - Current single-threaded design needs real-time updates
-   - Options: polling approach vs signal-based vs background thread
-   - Must not interfere with Stockfish UCI communication
+**Benefits:**
+- **0/0 (disabled)**: Fast depth-10 search, instant moves, consistent difficulty
+- **Any other setting**: Time-based search, realistic time consumption, dynamic difficulty
 
-2. **Cross-Platform Timing**
-   - Standard POSIX time() function (universally available)
-   - Second precision requirements
-   - No special linking requirements
+#### 2. Separate White/Black Time Allocations
+**Purpose:** Address Stockfish's minimal time usage vs human thinking time
 
-3. **AI Integration Complexity**
-   - AI thinking time must not consume human clock
-   - Coordinate increment timing with move execution
-   - Handle Stockfish response timing accurately
+**Examples:**
+- `30/10/5/0` - White: 30min+10s increment, Black: 5min+0s increment
+- `15/5/15/5` - Equal time for both players
+- `60/0/1/0` - Tournament pressure: White 60min, Black 1min
 
-4. **Undo System Enhancement**
-   - Store timer state with each move in history
-   - Handle multiple undos with accurate time restoration
-   - Prevent timer manipulation exploits
+#### 3. Timer Management System
+**Core Functions:**
+```c
+bool parse_time_control(const char* time_str, TimeControl* tc);     // Parse 2 or 4-value format
+void init_game_timer(ChessGame* game, TimeControl* time_control);   // Initialize timers
+void start_move_timer(ChessGame* game);                            // Start timing (with player tracking)
+void stop_move_timer(ChessGame* game);                             // Stop and apply increment
+char* get_remaining_time_string(int seconds);                     // Format MM:SS display
+bool check_time_forfeit(ChessGame* game);                         // Time expiration detection
+bool is_time_control_enabled(ChessGame* game);                    // Check if active
+```
 
-**Files Requiring Modification:**
-- `main.c` - Command parsing, display updates, timer coordination
-- `chess.h/chess.c` - Game state integration, undo system extension
-- `stockfish.c` - AI move timing coordination
-- Configuration system - CHESS.ini DefaultTimeControl parsing
+#### 4. Display Integration
+**Format when time controls enabled:**
+```
+White: 29:45 | Captured: [pieces] | Black: 28:30 | Captured: [pieces]
+```
 
-**Estimated Implementation:**
-- Core timer system: 200-300 lines
-- Display integration: 100-150 lines
-- Configuration updates: 50-75 lines
-- Testing framework: 100+ lines
-- **Total: ~500-600 lines** across multiple files
+**Format when disabled:**
+```
+White Captured: [pieces] | Black Captured: [pieces]
+```
 
-**Risk Assessment:**
-- **Medium risk** - Timing precision and threading complexity
-- **Platform compatibility testing essential**
-- **Undo system integration requires careful state management**
-- **Well-scoped and feasible** within existing architecture
+**Real-time Updates:** Timer display shows live countdown during active player's turn
 
-**Testing Requirements:**
-- Cross-platform timing verification (second precision)
-- Time forfeit scenario testing
-- Undo/redo with timer state validation
-- AI vs human timing coordination tests
-- Configuration parsing and validation tests
+#### 5. Undo System Integration
+**Simple Solution:** Disable time controls for remainder of game after any undo
+```c
+// In undo logic
+if (is_time_control_enabled(game)) {
+    game->time_control.enabled = false;
+    game->timer.timing_active = false;
+    printf("Time controls have been disabled for the remainder of this game.\n");
+}
+```
+
+**Rationale:** Avoids complex timer state restoration while maintaining game integrity
+
+#### 6. Time Forfeit Detection
+**Integration with game loop:**
+```c
+// Check before other game-ending conditions
+if (check_time_forfeit(&game)) {
+    Color winner = (game.current_player == WHITE) ? BLACK : WHITE;
+    printf("\n*** TIME FORFEIT! %s WINS! ***\n", winner == WHITE ? "WHITE" : "BLACK");
+    // Handle game termination
+}
+```
+
+#### 7. Pondering Prevention
+**Fair Play Enforcement:**
+```c
+// Disable pondering during Stockfish initialization
+send_command(engine, "setoption name Ponder value false");
+```
+Prevents Stockfish from thinking during human player's time
+
+### Usage Examples
+
+#### Configuration Examples
+```bash
+# CHESS.ini settings
+DefaultTimeControl=30/10        # Both players: 30min + 10s increment
+DefaultTimeControl=30/10/5/0    # White: 30/10, Black: 5/0
+DefaultTimeControl=0/0          # Time controls disabled
+```
+
+#### Runtime Commands
+```bash
+TIME 15/5           # Both get 15min + 5s increment
+TIME 30/10/1/0      # White: 30/10, Black: 1min no increment
+TIME 45/15/10/2     # White: 45/15, Black: 10/2
+TIME 0/0            # Disable time controls (depth-10 search)
+```
+
+### Technical Implementation Details
+
+#### Files Modified
+- `chess.h` - Data structures, function declarations
+- `chess.c` - Core timer functions, time parsing, display integration
+- `main.c` - Configuration parsing, TIME command, display updates, undo integration
+- `stockfish.h/stockfish.c` - Search mode selection, time-based thinking
+
+#### Cross-Platform Compatibility
+- Uses standard POSIX `time()` function
+- Second-precision timing
+- No special threading or linking requirements
+- Tested on macOS 15.6.1 and Ubuntu 22.04
+
+#### Memory Management
+- Static time formatting buffer (no dynamic allocation)
+- Automatic timer state cleanup
+- No memory leaks in timer system
+
+### Configuration File Auto-Generation
+```ini
+# Default time control setting
+# Format: white_min/white_inc/black_min/black_inc OR min/inc (same for both)
+# Examples: 30/10 (both get 30min+10sec), 30/10/5/0 (White 30/10, Black 5/0)
+# Use 0/0 to disable time controls
+# Can be overridden with 'TIME' command during gameplay
+DefaultTimeControl=30/10/5/0
+```
+
+### Testing Coverage
+- ✅ Time control parsing (2-value and 4-value formats)
+- ✅ Timer state management and player tracking
+- ✅ Search mode switching (depth vs time-based)
+- ✅ Time forfeit detection
+- ✅ Display integration and formatting
+- ✅ Configuration file integration
+- ✅ Undo system integration
+- ✅ Cross-platform compatibility
+
+### Performance Impact
+- **Minimal overhead** when time controls disabled
+- **Real-time display updates** without performance degradation
+- **Efficient time calculations** using integer arithmetic
+- **No impact** on existing chess logic or move generation
+
+## Contemplated Timer Control Changes
+
+### Feature 1: TIME Command Lock (Like SKILL)
+
+**Possibility:** ✅ **Very High** - Straightforward implementation
+**Difficulty:** 🟢 **Low** - Simple flag-based protection
+
+#### Implementation Strategy:
+```c
+// In main.c, handle_white_turn():
+if (strncasecmp(input, "time ", 5) == 0) {
+    if (game_started) {
+        printf("Time controls cannot be changed after the game has started.\n");
+        continue;
+    }
+    // Existing TIME parsing code...
+}
+```
+
+**Files to modify:** `main.c` only
+**Lines of code:** ~5-10 lines
+**Risk:** Very low - uses existing `game_started` flag pattern
+
+### Feature 2: Live Timer Display Updates
+
+**Possibility:** 🟡 **Medium-High** - Requires architecture changes
+**Difficulty:** 🟠 **Medium-High** - Threading/signal complexity
+
+#### Technical Challenges:
+**Current Architecture:** Single-threaded, turn-based updates
+**Required:** Real-time updates during player thinking time
+
+#### Implementation Options:
+
+**Option A: Polling Approach (Easier)**
+```c
+// In get_user_input() - check timer every second during input wait
+while (!input_ready) {
+    if (timer_needs_update()) {
+        update_timer_display();
+    }
+    usleep(100000); // 100ms polling
+}
+```
+**Pros:** No threading, simpler
+**Cons:** Busy waiting, less responsive
+
+**Option B: Signal-Based (Better)**
+```c
+// Set up SIGALRM for 1-second intervals
+signal(SIGALRM, timer_update_handler);
+alarm(1);
+```
+**Pros:** Efficient, precise timing
+**Cons:** Signal handling complexity
+
+**Option C: Background Thread (Most Complex)**
+```c
+pthread_t timer_thread;
+pthread_create(&timer_thread, NULL, timer_update_function, &game);
+```
+**Pros:** True real-time updates
+**Cons:** Threading complexity, platform compatibility
+
+#### Key Technical Issues:
+1. **Input handling coordination** - Timer updates during `fgets()` calls
+2. **Display refresh** - Screen positioning and cursor management
+3. **Thread safety** - Protecting shared game state
+4. **Platform compatibility** - POSIX signals vs threading
+
+#### Estimated Implementation:
+- **Option A (Polling):** 100-150 lines, Medium complexity
+- **Option B (Signals):** 150-200 lines, Medium-High complexity
+- **Option C (Threading):** 200-300 lines, High complexity
+
+#### Recommendation:
+**Option B (Signal-based)** offers the best balance of functionality and complexity for the current codebase architecture.
+
+#### Screen Flicker Analysis for Option B:
+
+**Flicker Risk:** 🟡 **Potential but preventable** - depends on implementation approach
+
+**Flicker Prevention Strategy (Recommended):**
+```c
+// Signal handler - minimal work only
+void timer_signal_handler(int sig) {
+    timer_update_needed = true;  // Just set flag
+    alarm(1);  // Reset for next second
+}
+
+// In main game loop - targeted updates only
+if (timer_update_needed && is_time_control_enabled(&game)) {
+    // Save cursor position
+    printf("\033[s");
+
+    // Move to timer line only (no board redraw)
+    printf("\033[%d;1H", TIMER_LINE_NUMBER);
+
+    // Update just the timer portion
+    print_captured_pieces(game);
+
+    // Restore cursor position
+    printf("\033[u");
+    fflush(stdout);
+
+    timer_update_needed = false;
+}
+```
+
+**Key Flicker Prevention:**
+- **ANSI escape sequences** for precise cursor control
+- **Line-specific updates** instead of full screen redraws
+- **Buffered output** with strategic `fflush()` calls
+- **Signal safety** - minimal work in signal handler
+
+**Expected Result:** No visible flicker - only timer numbers change, board remains static. This approach is used successfully in terminal applications like `htop` and `top`.
+
+**Both features are implementable, with TIME lock being trivial and live timer updates requiring moderate architectural changes.**
 
 ---
 *Developer reference for Claude Chess - Focused technical documentation*

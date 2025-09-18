@@ -82,7 +82,10 @@ bool init_stockfish(StockfishEngine *engine) {
     if (!wait_for_ready(engine)) {  // Wait for Stockfish to be ready
         return false;
     }
-    
+
+    // Disable pondering to prevent Stockfish from thinking on human player's time
+    send_command(engine, "setoption name Ponder value false");
+
     send_command(engine, "isready");
     char buffer[1024];
     while (read_response(engine, buffer, sizeof(buffer))) {
@@ -227,7 +230,7 @@ char* board_to_fen(ChessGame *game) {
  * @param move_str Buffer to store the returned move (e.g., "e2e4")
  * @return true if move obtained successfully, false on error
  */
-bool get_best_move(StockfishEngine *engine, ChessGame *game, char *move_str) {
+bool get_best_move(StockfishEngine *engine, ChessGame *game, char *move_str, bool debug) {
     if (!engine->is_ready) return false;
     
     char *fen = board_to_fen(game);
@@ -235,7 +238,33 @@ bool get_best_move(StockfishEngine *engine, ChessGame *game, char *move_str) {
     sprintf(position_command, "position fen %s", fen);
     
     send_command(engine, position_command);
-    send_command(engine, "go depth 10");
+
+    // Use time-based search if time controls are enabled, otherwise use depth-based
+    if (is_time_control_enabled(game)) {
+        // Calculate appropriate time allocation for this move
+        int time_remaining = (game->current_player == WHITE) ?
+                           game->timer.white_time_seconds :
+                           game->timer.black_time_seconds;
+
+        // Use a fraction of remaining time (roughly 1/20th with minimum 500ms)
+        int move_time = (time_remaining * 1000) / 20;  // Convert to milliseconds
+        if (move_time < 500) move_time = 500;  // Minimum 500ms
+        if (move_time > 10000) move_time = 10000;  // Maximum 10 seconds
+
+        char go_command[64];
+        sprintf(go_command, "go movetime %d", move_time);
+
+        // Debug output for time allocation
+        if (debug) {
+            printf("\nDEBUG: Stockfish time allocation - Remaining: %ds, Allocated: %dms\n",
+                   time_remaining, move_time);
+        }
+
+        send_command(engine, go_command);
+    } else {
+        // Use depth-based search when time controls are disabled
+        send_command(engine, "go depth 10");
+    }
     
     char buffer[1024];
     while (read_response(engine, buffer, sizeof(buffer))) {

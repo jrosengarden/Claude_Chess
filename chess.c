@@ -660,8 +660,39 @@ bool make_move(ChessGame *game, Position from, Position to) {
     return true;
 }
 
-void print_captured_pieces(CapturedPieces *captured, const char* color_code, const char* player_name) {
-    printf("%s%s Has Captured:%s ", color_code, player_name, "\033[0m");
+void print_captured_pieces(CapturedPieces *captured, const char* color_code, const char* player_name, ChessGame* game) {
+    // Determine if this is White or Black based on player name
+    bool is_white = (strcmp(player_name, "White") == 0);
+
+    // Display time if time controls are enabled
+    if (is_time_control_enabled(game)) {
+        int current_time;
+        if (is_white) {
+            current_time = game->timer.white_time_seconds;
+            // If White is currently moving and timer is active, subtract elapsed time
+            if (game->current_player == WHITE && game->timer.timing_active) {
+                time_t now = time(NULL);
+                int elapsed = (int)(now - game->timer.move_start_time);
+                current_time -= elapsed;
+                if (current_time < 0) current_time = 0;
+            }
+        } else {
+            current_time = game->timer.black_time_seconds;
+            // If Black is currently moving and timer is active, subtract elapsed time
+            if (game->current_player == BLACK && game->timer.timing_active) {
+                time_t now = time(NULL);
+                int elapsed = (int)(now - game->timer.move_start_time);
+                current_time -= elapsed;
+                if (current_time < 0) current_time = 0;
+            }
+        }
+
+        printf("%s%s: %s%s | Captured: ", color_code, player_name,
+               get_remaining_time_string(current_time), "\033[0m");
+    } else {
+        printf("%s%s Captured:%s ", color_code, player_name, "\033[0m");
+    }
+
     if (captured->count == 0) {
         printf("%sNone%s", color_code, "\033[0m");
     } else {
@@ -1462,4 +1493,224 @@ bool execute_move(ChessGame *game, Move move) {
 
     // For regular moves (including human promotions handled by make_move)
     return make_move(game, move.from, move.to);
+}
+
+/**
+ * Parse time control string format (xx/yy or xx/yy/zz/ww)
+ *
+ * @param time_str String in format "minutes/increment" or "white_min/white_inc/black_min/black_inc"
+ * @param tc TimeControl structure to populate
+ * @return true if parsing was successful, false if invalid format
+ */
+bool parse_time_control(const char* time_str, TimeControl* tc) {
+    if (!time_str || !tc) {
+        return false;
+    }
+
+    // Count slashes to determine format
+    int slash_count = 0;
+    for (const char* p = time_str; *p; p++) {
+        if (*p == '/') slash_count++;
+    }
+
+    if (slash_count == 1) {
+        // Format: xx/yy (same time controls for both players)
+        const char* slash = strchr(time_str, '/');
+        int minutes = atoi(time_str);
+        int increment = atoi(slash + 1);
+
+        // Validate ranges
+        if (minutes < 0 || increment < 0 || minutes > 999 || increment > 999) {
+            return false;
+        }
+
+        // Set same time controls for both players
+        tc->white_minutes = minutes;
+        tc->white_increment = increment;
+        tc->black_minutes = minutes;
+        tc->black_increment = increment;
+        tc->enabled = (minutes > 0 || increment > 0);
+
+    } else if (slash_count == 3) {
+        // Format: xx/yy/zz/ww (different time controls for each player)
+        char temp_str[64];
+        strncpy(temp_str, time_str, sizeof(temp_str) - 1);
+        temp_str[sizeof(temp_str) - 1] = '\0';
+
+        char* token = strtok(temp_str, "/");
+        if (!token) return false;
+        int white_minutes = atoi(token);
+
+        token = strtok(NULL, "/");
+        if (!token) return false;
+        int white_increment = atoi(token);
+
+        token = strtok(NULL, "/");
+        if (!token) return false;
+        int black_minutes = atoi(token);
+
+        token = strtok(NULL, "/");
+        if (!token) return false;
+        int black_increment = atoi(token);
+
+        // Validate ranges
+        if (white_minutes < 0 || white_increment < 0 || black_minutes < 0 || black_increment < 0 ||
+            white_minutes > 999 || white_increment > 999 || black_minutes > 999 || black_increment > 999) {
+            return false;
+        }
+
+        // Set different time controls for each player
+        tc->white_minutes = white_minutes;
+        tc->white_increment = white_increment;
+        tc->black_minutes = black_minutes;
+        tc->black_increment = black_increment;
+        tc->enabled = (white_minutes > 0 || white_increment > 0 || black_minutes > 0 || black_increment > 0);
+
+    } else {
+        // Invalid format
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Initialize game timer with given time control settings
+ *
+ * @param game Game state to initialize
+ * @param time_control Time control settings
+ */
+void init_game_timer(ChessGame* game, TimeControl* time_control) {
+    if (!game || !time_control) {
+        return;
+    }
+
+    game->time_control = *time_control;
+
+    if (time_control->enabled) {
+        // Convert minutes to seconds for both players (can be different now)
+        game->timer.white_time_seconds = time_control->white_minutes * 60;
+        game->timer.black_time_seconds = time_control->black_minutes * 60;
+        game->timer.timing_active = false;
+        game->timer.move_start_time = 0;
+        game->timer.timer_player = WHITE; // Initialize to WHITE (will be set properly on first start)
+    } else {
+        // Disabled time controls
+        game->timer.white_time_seconds = 0;
+        game->timer.black_time_seconds = 0;
+        game->timer.timing_active = false;
+        game->timer.move_start_time = 0;
+        game->timer.timer_player = WHITE;
+    }
+}
+
+/**
+ * Start timing the current player's move
+ *
+ * @param game Game state
+ */
+void start_move_timer(ChessGame* game) {
+    if (!game || !game->time_control.enabled) {
+        return;
+    }
+
+    // Only start timer if not already active for this player
+    if (!game->timer.timing_active || game->timer.timer_player != game->current_player) {
+        game->timer.timing_active = true;
+        game->timer.timer_player = game->current_player;
+        game->timer.move_start_time = time(NULL);
+    }
+}
+
+/**
+ * Stop timing and apply increment to current player
+ *
+ * @param game Game state
+ */
+void stop_move_timer(ChessGame* game) {
+    if (!game || !game->time_control.enabled || !game->timer.timing_active) {
+        return;
+    }
+
+    time_t now = time(NULL);
+    int elapsed = (int)(now - game->timer.move_start_time);
+
+    // Subtract elapsed time from the player who was being timed (timer_player)
+    if (game->timer.timer_player == WHITE) {
+        game->timer.white_time_seconds -= elapsed;
+        // Add White's increment
+        game->timer.white_time_seconds += game->time_control.white_increment;
+        // Ensure time doesn't go below 0
+        if (game->timer.white_time_seconds < 0) {
+            game->timer.white_time_seconds = 0;
+        }
+    } else {
+        game->timer.black_time_seconds -= elapsed;
+        // Add Black's increment
+        game->timer.black_time_seconds += game->time_control.black_increment;
+        // Ensure time doesn't go below 0
+        if (game->timer.black_time_seconds < 0) {
+            game->timer.black_time_seconds = 0;
+        }
+    }
+
+    game->timer.timing_active = false;
+    game->timer.move_start_time = 0;
+}
+
+/**
+ * Format remaining time as MM:SS string
+ *
+ * @param seconds Time in seconds
+ * @return Static string with formatted time (do not free)
+ */
+char* get_remaining_time_string(int seconds) {
+    static char time_str[16];
+
+    if (seconds < 0) {
+        seconds = 0;
+    }
+
+    int minutes = seconds / 60;
+    int secs = seconds % 60;
+    snprintf(time_str, sizeof(time_str), "%d:%02d", minutes, secs);
+
+    return time_str;
+}
+
+/**
+ * Check if either player has run out of time (time forfeit)
+ *
+ * @param game Game state
+ * @return true if a player has forfeited on time
+ */
+bool check_time_forfeit(ChessGame* game) {
+    if (!game || !game->time_control.enabled) {
+        return false;
+    }
+
+    // Update active timer player's time if timer is active
+    if (game->timer.timing_active) {
+        time_t now = time(NULL);
+        int elapsed = (int)(now - game->timer.move_start_time);
+
+        if (game->timer.timer_player == WHITE) {
+            return (game->timer.white_time_seconds - elapsed) <= 0;
+        } else {
+            return (game->timer.black_time_seconds - elapsed) <= 0;
+        }
+    }
+
+    // Check stored times
+    return (game->timer.white_time_seconds <= 0 || game->timer.black_time_seconds <= 0);
+}
+
+/**
+ * Check if time controls are currently enabled
+ *
+ * @param game Game state
+ * @return true if time controls are active
+ */
+bool is_time_control_enabled(ChessGame* game) {
+    return (game && game->time_control.enabled);
 }

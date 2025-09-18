@@ -58,6 +58,7 @@ typedef struct {
     int default_skill_level;    // Default AI skill level (0-20)
     bool auto_create_pgn;       // Create PGN files on exit (true=PGNON, false=PGNOFF)
     bool auto_delete_fen;       // Delete FEN files on exit (true=FENOFF, false=FENON)
+    char default_time_control[16]; // Default time control (e.g., "30/10")
 } ChessConfig;
 
 // Global configuration instance
@@ -218,6 +219,7 @@ void load_config() {
     config.default_skill_level = 5;     // Default skill level
     config.auto_create_pgn = true;      // Default PGNON (create PGN files)
     config.auto_delete_fen = false;     // Default FENON (keep FEN files)
+    strcpy(config.default_time_control, "30/10/5/0"); // Default: White 30/10, Black 5/0
 
     if (!config_file) {
         // Create default config file if it doesn't exist
@@ -305,6 +307,13 @@ void load_config() {
                         config.auto_delete_fen = false;
                     }
                     // Invalid values are ignored, keeping default
+                } else if (strcasecmp(key, "DefaultTimeControl") == 0) {
+                    // Validate time control format (xx/yy or 0/0)
+                    TimeControl temp_tc;
+                    if (parse_time_control(value, &temp_tc)) {
+                        strcpy(config.default_time_control, value);
+                    }
+                    // Invalid values are ignored, keeping default
                 }
             }
         }
@@ -348,6 +357,13 @@ void create_default_config() {
     fprintf(config_file, "# Valid values: true/false, yes/no, on/off, 1/0 (case-insensitive)\n");
     fprintf(config_file, "AutoCreatePGN=true\n");
     fprintf(config_file, "AutoDeleteFEN=false\n");
+    fprintf(config_file, "\n");
+    fprintf(config_file, "# Default time control setting\n");
+    fprintf(config_file, "# Format: white_min/white_inc/black_min/black_inc OR min/inc (same for both)\n");
+    fprintf(config_file, "# Examples: 30/10 (both get 30min+10sec), 30/10/5/0 (White 30/10, Black 5/0)\n");
+    fprintf(config_file, "# Use 0/0 to disable time controls\n");
+    fprintf(config_file, "# Can be overridden with 'TIME' command during gameplay\n");
+    fprintf(config_file, "DefaultTimeControl=30/10/5/0\n");
 
     fclose(config_file);
 }
@@ -1418,8 +1434,8 @@ void print_game_info(ChessGame *game) {
     
     // Display captured pieces for both players
     printf("\n");
-    print_captured_pieces(&game->black_captured, "\033[1;96m", "Black");
-    print_captured_pieces(&game->white_captured, "\033[1;95m", "White");
+    print_captured_pieces(&game->black_captured, "\033[1;96m", "Black", game);
+    print_captured_pieces(&game->white_captured, "\033[1;95m", "White", game);
 }
 
 /**
@@ -1476,6 +1492,7 @@ void print_help() {
     printf("Type 'score'   to display current game evaluation score\n");
     printf("Type 'scale'   to view the score conversion chart (centipawns to -9/+9 scale)\n");
     printf("Type 'skill N' to set AI difficulty level (0=easiest, 20=strongest, only before first move)\n");
+    printf("Type 'time xx/yy' to set time controls (minutes/increment for both, or xx/yy/zz/ww for White/Black)\n");
     printf("Type 'fen'     to display current board position in FEN notation\n");
     printf("Type 'pgn'     to display current game in PGN (Portable Game Notation) format\n");
     printf("Type 'title'   to re-display the game title and info screen\n");
@@ -1537,14 +1554,14 @@ bool is_stalemate(ChessGame *game, Color color) {
 void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     char input[100];
     printf("\nWhite's turn. Enter move (e.g., 'e2 e4') or 'help': ");
-    
+
     if (!fgets(input, sizeof(input), stdin)) {
         return;
     }
-    
+
     input[strcspn(input, "\n")] = '\0';
-    
-    // Skip empty input
+
+    // Skip empty input - but don't stop timer since no move was made
     if (strlen(input) == 0) {
         return;
     }
@@ -1580,7 +1597,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         fflush(stdout);
         
         char hint_move[10];
-        if (get_best_move(engine, game, hint_move)) {
+        if (get_best_move(engine, game, hint_move, debug_mode)) {
             if (debug_mode) {
                 printf("\nDebug: Stockfish returned hint: '%s'\n", hint_move);
             }
@@ -1635,7 +1652,46 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         getchar();
         return;
     }
-    
+
+    if (strncmp(input, "time ", 5) == 0 || strncmp(input, "TIME ", 5) == 0) {
+        char *time_str = input + 5;  // Skip "time "
+        TimeControl new_time_control;
+
+        if (parse_time_control(time_str, &new_time_control)) {
+            // Update game time control settings
+            game->time_control = new_time_control;
+
+            if (new_time_control.enabled) {
+                if (new_time_control.white_minutes == new_time_control.black_minutes &&
+                    new_time_control.white_increment == new_time_control.black_increment) {
+                    printf("\nTime controls set: %d minutes + %d second increment (both players)\n",
+                           new_time_control.white_minutes, new_time_control.white_increment);
+                } else {
+                    printf("\nTime controls set:\n");
+                    printf("  White: %d minutes + %d second increment\n",
+                           new_time_control.white_minutes, new_time_control.white_increment);
+                    printf("  Black: %d minutes + %d second increment\n",
+                           new_time_control.black_minutes, new_time_control.black_increment);
+                }
+                // Initialize timer with new settings
+                init_game_timer(game, &new_time_control);
+            } else {
+                printf("\nTime controls disabled\n");
+            }
+        } else {
+            printf("\nInvalid time control format. Use:\n");
+            printf("  TIME xx/yy (same for both players)\n");
+            printf("  TIME xx/yy/zz/ww (White: xx/yy, Black: zz/ww)\n");
+            printf("Examples:\n");
+            printf("  TIME 15/5 (both get 15 min + 5 sec increment)\n");
+            printf("  TIME 30/10/5/0 (White: 30/10, Black: 5/0)\n");
+            printf("  TIME 0/0 (disable time controls)\n");
+        }
+        printf("Press Enter to continue...");
+        getchar();
+        return;
+    }
+
     if (strcmp(input, "fen") == 0 || strcmp(input, "FEN") == 0) {
         char *fen = board_to_fen(game);
         printf("\nCurrent FEN: %s\n", fen);
@@ -1734,8 +1790,17 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
                     if (undo_count >= 1 && undo_count <= available_undos) {
                         truncate_fen_log_by_moves(undo_count);
                         if (restore_from_fen_log(game)) {
-                            printf("\n%d move pair%s undone! Restored to previous position.\n", 
-                                   undo_count, undo_count > 1 ? "s" : "");
+                            // Disable time controls for remainder of game after undo
+                            if (is_time_control_enabled(game)) {
+                                game->time_control.enabled = false;
+                                game->timer.timing_active = false;
+                                printf("\n%d move pair%s undone! Restored to previous position.\n",
+                                       undo_count, undo_count > 1 ? "s" : "");
+                                printf("Time controls have been disabled for the remainder of this game.\n");
+                            } else {
+                                printf("\n%d move pair%s undone! Restored to previous position.\n",
+                                       undo_count, undo_count > 1 ? "s" : "");
+                            }
                         } else {
                             printf("\nError restoring game state from FEN log.\n");
                         }
@@ -1749,7 +1814,15 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
                 // Single undo available
                 truncate_fen_log_by_moves(1);
                 if (restore_from_fen_log(game)) {
-                    printf("\nMove pair undone! Restored to previous position.\n");
+                    // Disable time controls for remainder of game after undo
+                    if (is_time_control_enabled(game)) {
+                        game->time_control.enabled = false;
+                        game->timer.timing_active = false;
+                        printf("\nMove pair undone! Restored to previous position.\n");
+                        printf("Time controls have been disabled for the remainder of this game.\n");
+                    } else {
+                        printf("\nMove pair undone! Restored to previous position.\n");
+                    }
                 } else {
                     printf("\nError restoring game state from FEN log.\n");
                 }
@@ -1864,8 +1937,8 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
                 printf("Current player: %s\n", game->current_player == WHITE ? "WHITE" : "BLACK");
                 
                 printf("\n");
-                print_captured_pieces(&game->black_captured, "\033[1;96m", "Black");
-                print_captured_pieces(&game->white_captured, "\033[1;95m", "White");
+                print_captured_pieces(&game->black_captured, "\033[1;96m", "Black", game);
+                print_captured_pieces(&game->white_captured, "\033[1;95m", "White", game);
                 
                 if (game->in_check[WHITE]) {
                     printf("\nYour king is in check! You can only make moves that get out of check.\n");
@@ -1909,6 +1982,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     
     if (make_move(game, from, to)) {
         game_started = true;  // Mark game as started after first move
+        stop_move_timer(game);  // Stop timer after successful move
         printf("Move made: %s to %s\n", from_str, to_str);
         save_fen_log(game);  // Save FEN after White's move
         printf("Press Enter to continue...");
@@ -1922,9 +1996,10 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
 void handle_black_turn(ChessGame *game, StockfishEngine *engine) {
     printf("\nBlack's turn (AI thinking...)");
     fflush(stdout);
-    
+
+
     char move_str[10];
-    if (get_best_move(engine, game, move_str)) {
+    if (get_best_move(engine, game, move_str, debug_mode)) {
         if (debug_mode) {
             printf("\nDebug: Stockfish returned move: '%s'\n", move_str);
         }
@@ -1942,6 +2017,7 @@ void handle_black_turn(ChessGame *game, StockfishEngine *engine) {
             Position to_pos = ai_move.to;
             
             if (execute_move(game, ai_move)) {
+                stop_move_timer(game);  // Stop timer after successful AI move
                 char from_str[4], to_str[4];
                 strcpy(from_str, position_to_string(from_pos));
                 strcpy(to_str, position_to_string(to_pos));
@@ -2095,7 +2171,14 @@ int main(int argc, char *argv[]) {
     print_help();
     
     init_board(&game);
-    
+
+    // Initialize time controls from config
+    TimeControl default_time_control;
+    if (parse_time_control(config.default_time_control, &default_time_control)) {
+        game.time_control = default_time_control;
+        init_game_timer(&game, &default_time_control);
+    }
+
     // Log initial board position to FEN file
     save_fen_log(&game);
     
@@ -2103,6 +2186,32 @@ int main(int argc, char *argv[]) {
         clear_screen();
         print_game_info(&game);
         
+        // Check for time forfeit before other game ending conditions
+        if (check_time_forfeit(&game)) {
+            print_board(&game, NULL, 0);
+            Color winner = (game.current_player == WHITE) ? BLACK : WHITE;
+            printf("\n*** TIME FORFEIT! %s WINS! ***\n", winner == WHITE ? "WHITE" : "BLACK");
+            printf("%s ran out of time.\n", game.current_player == WHITE ? "White" : "Black");
+
+            // Clean up persistent PGN file and handle file creation/deletion based on flags
+            cleanup_persistent_pgn_file();
+
+            // Create PGN file unless suppressed by PGNOFF
+            if (!suppress_pgn_creation) {
+                convert_fen_to_pgn();
+            }
+
+            // Delete FEN file if requested by FENOFF (after PGN creation)
+            if (delete_fen_on_exit) {
+                unlink(fen_log_filename);
+            }
+
+            show_game_files();
+            printf("Press Enter to exit...");
+            getchar();
+            break;
+        }
+
         // Check for game ending conditions
         if (is_checkmate(&game, game.current_player)) {
             print_board(&game, NULL, 0);
@@ -2176,7 +2285,10 @@ int main(int argc, char *argv[]) {
         }
         
         print_board(&game, NULL, 0);
-        
+
+        // Start timer for current player's turn (safe - won't restart if already active)
+        start_move_timer(&game);
+
         if (game.current_player == WHITE) {
             handle_white_turn(&game, &engine);
         } else {
