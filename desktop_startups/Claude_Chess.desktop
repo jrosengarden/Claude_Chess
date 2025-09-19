@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Claude Chess
+Comment=Launch Claude Chess game with command line options
+Exec=gnome-terminal -- bash -c 'cd "/home/parallels/Dropbox/Tech Books/Chess Stuff/Claude_Chess"; clear; echo "Claude Chess Launcher (Linux)"; echo "============================="; echo ""; echo "Available command line options:"; echo "  DEBUG    - Enable diagnostic output and debug mode"; echo "  PGNOFF   - Suppress automatic PGN file creation on exit"; echo "  FENOFF   - Delete FEN log file on exit"; echo "  /HELP    - Display help information and exit"; echo ""; echo "Examples:"; echo "  (press Enter)          - Start with default settings"; echo "  DEBUG                  - Start in debug mode"; echo "  PGNOFF FENOFF          - Suppress PGN creation and delete FEN file"; echo "  DEBUG PGNOFF           - Debug mode without PGN creation"; echo ""; echo -n "Enter command line options (or press Enter for defaults): "; read user_options; if [ -z "$user_options" ]; then echo ""; echo "Starting chess with default settings..."; ./chess; else echo ""; echo "Starting chess with options: $user_options"; ./chess $user_options; fi; echo "Chess game has ended. Press any key to close this window..."; read -n 1'
+Icon=applications-games
+Terminal=true
+Type=Application
+Categories=Game;
