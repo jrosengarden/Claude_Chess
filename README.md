@@ -110,7 +110,7 @@ chess /help              # Show detailed help
 - `hint` - Get AI's best move suggestion
 - `skill N` - Set AI difficulty (0-20, before first move only)
 - `time xx/yy` - Set time controls (before first move only, see Time Controls section below)
-- `clock` - Refresh display and show current time remaining
+- Press RETURN - Update remaining time display
 - `undo` - Unlimited undo (disables time controls for remainder of game)
 - `resign` - Resign with confirmation
 - `quit` - Exit game

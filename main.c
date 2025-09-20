@@ -1495,7 +1495,6 @@ void print_help() {
         "Type 'scale'      to view the score conversion chart (centipawns to -9/+9 scale)",
         "Type 'skill N'    to set AI difficulty level (0=easiest, 20=strongest, only before first move)",
         "Type 'time xx/yy' to set time controls (minutes/increment for both, or xx/yy/zz/ww for White/Black)",
-        "Type 'clock'      to refresh display and show current time remaining",
         "Type 'fen'        to display current board position in FEN notation",
         "Type 'pgn'        to display current game in PGN (Portable Game Notation) format",
         "Type 'title'      to re-display the game title and info screen",
@@ -1592,6 +1591,8 @@ bool is_stalemate(ChessGame *game, Color color) {
 void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     char input[100];
     printf("\nWhite's turn. Enter move (e.g., 'e2 e4') or 'help': ");
+    printf("\n(Press RETURN to update remaining time)");
+    printf("\033[A\033[12C");  // Move cursor up one line and forward to end of prompt
 
     if (!fgets(input, sizeof(input), stdin)) {
         return;
@@ -1630,11 +1631,6 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         return;
     }
 
-    if (strcmp(input, "clock") == 0 || strcmp(input, "CLOCK") == 0) {
-        // Refresh screen to show current timer values without making a move
-        return;  // Return to input prompt with updated display
-    }
-    
     if (strcmp(input, "hint") == 0) {
         printf("\nGetting hint from Stockfish...");
         fflush(stdout);

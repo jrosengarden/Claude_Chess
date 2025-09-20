@@ -325,7 +325,6 @@ All core chess rules now fully implemented:
 - **Enhanced File Management** - User control over PGN creation and FEN retention via config file or command line
 - **Comprehensive Help System** - Built-in command line help with examples and usage
 - **Help Pagination System** - Generic 11-lines-per-page display with continuation headers
-- **CLOCK Command** - Manual timer refresh command for checking time remaining
 - **Pawn Promotion System** - Complete implementation with interactive UI and validation
 - **AI Promotion Bug Fix** - AI now selects promotion pieces automatically without user prompts
 - **Feature Demonstration Library** - Educational FEN files with comprehensive documentation
