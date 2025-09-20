@@ -1591,8 +1591,10 @@ bool is_stalemate(ChessGame *game, Color color) {
 void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     char input[100];
     printf("\nWhite's turn. Enter move (e.g., 'e2 e4') or 'help': ");
-    printf("\n(Press RETURN to update remaining time)");
-    printf("\033[A\033[12C");  // Move cursor up one line and forward to end of prompt
+    if (is_time_control_enabled(game)) {
+        printf("\n(Press RETURN to update remaining time)");
+        printf("\033[A\033[12C");  // Move cursor up one line and forward to end of prompt
+    }
 
     if (!fgets(input, sizeof(input), stdin)) {
         return;
@@ -2027,7 +2029,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     if (make_move(game, from, to)) {
         game_started = true;  // Mark game as started after first move
         stop_move_timer(game);  // Stop timer after successful move
-        printf("Move made: %s to %s\n", from_str, to_str);
+        printf("Move made: %s to %s                             \n", from_str, to_str);
         save_fen_log(game);  // Save FEN after White's move
         printf("Press Enter to continue...");
         getchar();
