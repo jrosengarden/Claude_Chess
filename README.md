@@ -109,7 +109,7 @@ chess /help              # Show detailed help
 - `help` - Show help
 - `hint` - Get AI's best move suggestion
 - `skill N` - Set AI difficulty (0-20, before first move only)
-- `time xx/yy` - Set time controls (see Time Controls section below)
+- `time xx/yy` - Set time controls (before first move only, see Time Controls section below)
 - `undo` - Unlimited undo (disables time controls for remainder of game)
 - `resign` - Resign with confirmation
 - `quit` - Exit game
@@ -192,6 +192,7 @@ White Captured: [pieces] | Black Captured: [pieces]
 ```
 
 ### Important Notes
+- **TIME command locked after first move**: Like the `skill` command, time controls can only be changed before making your first move
 - **Undo disables time controls**: Using `undo` turns off timers for the rest of that game
 - **Real-time updates**: Timer shows live countdown during your turn
 - **Fair play**: AI cannot think during your time (pondering disabled)

@@ -335,6 +335,7 @@ All core chess rules now fully implemented:
 - **Captured Pieces Calculation** - FEN/LOAD positions show previously captured pieces
 - **Opening Library Validation System** - Engine-validated authentic classical openings
 - **PGN-to-FEN Conversion Tools** - Create verified opening sequences
+- **TIME Command Lock** - Prevents changing time controls after game starts (like SKILL command)
 
 ## Opening Library Management
 
@@ -606,28 +607,29 @@ DefaultTimeControl=30/10/5/0
 - **Efficient time calculations** using integer arithmetic
 - **No impact** on existing chess logic or move generation
 
-## Contemplated Timer Control Changes
+## Timer Control Features
 
-### Feature 1: TIME Command Lock (Like SKILL)
+### ✅ Feature 1: TIME Command Lock (IMPLEMENTED)
 
-**Possibility:** ✅ **Very High** - Straightforward implementation
-**Difficulty:** 🟢 **Low** - Simple flag-based protection
+**Status:** ✅ **COMPLETED** - Simple flag-based protection successfully implemented
+**Implementation:** Uses existing `game_started` flag pattern identical to SKILL command
 
-#### Implementation Strategy:
+#### Implementation Details:
 ```c
-// In main.c, handle_white_turn():
-if (strncasecmp(input, "time ", 5) == 0) {
+// In main.c, line 1656-1660:
+if (strncmp(input, "time ", 5) == 0 || strncmp(input, "TIME ", 5) == 0) {
     if (game_started) {
-        printf("Time controls cannot be changed after the game has started.\n");
-        continue;
+        printf("\nTime controls cannot be changed after the game has started!\n");
+        printf("Use this command only before making your first move.\n");
+    } else {
+        // Existing TIME parsing code...
     }
-    // Existing TIME parsing code...
 }
 ```
 
-**Files to modify:** `main.c` only
-**Lines of code:** ~5-10 lines
-**Risk:** Very low - uses existing `game_started` flag pattern
+**Result:** TIME command now locked after first move, preventing mid-game time control changes
+**Files modified:** `main.c` only (6 lines added)
+**Testing:** ✅ All micro-tests pass, zero compilation warnings
 
 ### Feature 2: Live Timer Display Updates
 

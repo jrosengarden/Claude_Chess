@@ -1654,10 +1654,14 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     }
 
     if (strncmp(input, "time ", 5) == 0 || strncmp(input, "TIME ", 5) == 0) {
-        char *time_str = input + 5;  // Skip "time "
-        TimeControl new_time_control;
+        if (game_started) {
+            printf("\nTime controls cannot be changed after the game has started!\n");
+            printf("Use this command only before making your first move.\n");
+        } else {
+            char *time_str = input + 5;  // Skip "time "
+            TimeControl new_time_control;
 
-        if (parse_time_control(time_str, &new_time_control)) {
+            if (parse_time_control(time_str, &new_time_control)) {
             // Update game time control settings
             game->time_control = new_time_control;
 
@@ -1686,6 +1690,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
             printf("  TIME 15/5 (both get 15 min + 5 sec increment)\n");
             printf("  TIME 30/10/5/0 (White: 30/10, Black: 5/0)\n");
             printf("  TIME 0/0 (disable time controls)\n");
+            }
         }
         printf("Press Enter to continue...");
         getchar();
