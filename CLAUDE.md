@@ -324,6 +324,8 @@ All core chess rules now fully implemented:
 - **Command Line Options System** - PGNOFF, FENOFF, /HELP with case-insensitive parsing and config override
 - **Enhanced File Management** - User control over PGN creation and FEN retention via config file or command line
 - **Comprehensive Help System** - Built-in command line help with examples and usage
+- **Help Pagination System** - Generic 11-lines-per-page display with continuation headers
+- **CLOCK Command** - Manual timer refresh command for checking time remaining
 - **Pawn Promotion System** - Complete implementation with interactive UI and validation
 - **AI Promotion Bug Fix** - AI now selects promotion pieces automatically without user prompts
 - **Feature Demonstration Library** - Educational FEN files with comprehensive documentation
@@ -609,7 +611,7 @@ DefaultTimeControl=30/10/5/0
 
 ## Timer Control Features
 
-### ✅ Feature 1: TIME Command Lock (IMPLEMENTED)
+### ✅ TIME Command Lock (IMPLEMENTED)
 
 **Status:** ✅ **COMPLETED** - Simple flag-based protection successfully implemented
 **Implementation:** Uses existing `game_started` flag pattern identical to SKILL command
@@ -631,101 +633,22 @@ if (strncmp(input, "time ", 5) == 0 || strncmp(input, "TIME ", 5) == 0) {
 **Files modified:** `main.c` only (6 lines added)
 **Testing:** ✅ All micro-tests pass, zero compilation warnings
 
-### Feature 2: Live Timer Display Updates
+### ❌ Live Timer Display Updates (ABANDONED)
 
-**Possibility:** 🟡 **Medium-High** - Requires architecture changes
-**Difficulty:** 🟠 **Medium-High** - Threading/signal complexity
+**Status:** ❌ **ABANDONED** - Incompatible with current terminal-based architecture
 
-#### Technical Challenges:
-**Current Architecture:** Single-threaded, turn-based updates
-**Required:** Real-time updates during player thinking time
+**Analysis Summary:**
+Multiple implementation approaches were attempted (signal-based, ANSI cursor positioning, select() with timeouts), but all resulted in terminal display issues including screen scrolling, input interference, and cursor positioning problems.
 
-#### Implementation Options:
+**Technical Challenges Encountered:**
+- Terminal display corruption during real-time updates
+- Complex ANSI cursor positioning unreliable across different terminals
+- Input blocking (`fgets()`) incompatible with live display updates
+- Screen scrolling and line interference issues
 
-**Option A: Polling Approach (Easier)**
-```c
-// In get_user_input() - check timer every second during input wait
-while (!input_ready) {
-    if (timer_needs_update()) {
-        update_timer_display();
-    }
-    usleep(100000); // 100ms polling
-}
-```
-**Pros:** No threading, simpler
-**Cons:** Busy waiting, less responsive
+**Decision:** The existing timer display (which shows real-time values on screen refreshes between turns) is adequate for chess gameplay. The complexity and display issues introduced by live updates during input are not justified for this use case.
 
-**Option B: Signal-Based (Better)**
-```c
-// Set up SIGALRM for 1-second intervals
-signal(SIGALRM, timer_update_handler);
-alarm(1);
-```
-**Pros:** Efficient, precise timing
-**Cons:** Signal handling complexity
-
-**Option C: Background Thread (Most Complex)**
-```c
-pthread_t timer_thread;
-pthread_create(&timer_thread, NULL, timer_update_function, &game);
-```
-**Pros:** True real-time updates
-**Cons:** Threading complexity, platform compatibility
-
-#### Key Technical Issues:
-1. **Input handling coordination** - Timer updates during `fgets()` calls
-2. **Display refresh** - Screen positioning and cursor management
-3. **Thread safety** - Protecting shared game state
-4. **Platform compatibility** - POSIX signals vs threading
-
-#### Estimated Implementation:
-- **Option A (Polling):** 100-150 lines, Medium complexity
-- **Option B (Signals):** 150-200 lines, Medium-High complexity
-- **Option C (Threading):** 200-300 lines, High complexity
-
-#### Recommendation:
-**Option B (Signal-based)** offers the best balance of functionality and complexity for the current codebase architecture.
-
-#### Screen Flicker Analysis for Option B:
-
-**Flicker Risk:** 🟡 **Potential but preventable** - depends on implementation approach
-
-**Flicker Prevention Strategy (Recommended):**
-```c
-// Signal handler - minimal work only
-void timer_signal_handler(int sig) {
-    timer_update_needed = true;  // Just set flag
-    alarm(1);  // Reset for next second
-}
-
-// In main game loop - targeted updates only
-if (timer_update_needed && is_time_control_enabled(&game)) {
-    // Save cursor position
-    printf("\033[s");
-
-    // Move to timer line only (no board redraw)
-    printf("\033[%d;1H", TIMER_LINE_NUMBER);
-
-    // Update just the timer portion
-    print_captured_pieces(game);
-
-    // Restore cursor position
-    printf("\033[u");
-    fflush(stdout);
-
-    timer_update_needed = false;
-}
-```
-
-**Key Flicker Prevention:**
-- **ANSI escape sequences** for precise cursor control
-- **Line-specific updates** instead of full screen redraws
-- **Buffered output** with strategic `fflush()` calls
-- **Signal safety** - minimal work in signal handler
-
-**Expected Result:** No visible flicker - only timer numbers change, board remains static. This approach is used successfully in terminal applications like `htop` and `top`.
-
-**Both features are implementable, with TIME lock being trivial and live timer updates requiring moderate architectural changes.**
+**Current Timer Behavior:** Timer values are dynamically calculated and displayed whenever the screen refreshes (after moves, commands, etc.), providing sufficient timing information for chess games.
 
 ---
 *Developer reference for Claude Chess - Focused technical documentation*

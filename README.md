@@ -106,10 +106,11 @@ chess /help              # Show detailed help
 ## Commands
 
 ### Gameplay
-- `help` - Show help
+- `help` - Show help (paginated display with 11 lines per page)
 - `hint` - Get AI's best move suggestion
 - `skill N` - Set AI difficulty (0-20, before first move only)
 - `time xx/yy` - Set time controls (before first move only, see Time Controls section below)
+- `clock` - Refresh display and show current time remaining
 - `undo` - Unlimited undo (disables time controls for remainder of game)
 - `resign` - Resign with confirmation
 - `quit` - Exit game

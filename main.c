@@ -1485,25 +1485,63 @@ void print_scale_chart() {
  * Used by the help command and during game startup
  */
 void print_help() {
-    printf("\n=== COMMANDS ===\n");
-    printf("Enter moves in format: e2 e4 (from to)\n");
-    printf("Type 'help'       for this help message\n");
-    printf("Type 'hint'       to get Stockfish's best move suggestion for White\n");
-    printf("Type 'score'      to display current game evaluation score\n");
-    printf("Type 'scale'      to view the score conversion chart (centipawns to -9/+9 scale)\n");
-    printf("Type 'skill N'    to set AI difficulty level (0=easiest, 20=strongest, only before first move)\n");
-    printf("Type 'time xx/yy' to set time controls (minutes/increment for both, or xx/yy/zz/ww for White/Black)\n");
-    printf("Type 'fen'        to display current board position in FEN notation\n");
-    printf("Type 'pgn'        to display current game in PGN (Portable Game Notation) format\n");
-    printf("Type 'title'      to re-display the game title and info screen\n");
-    printf("Type 'setup'      to setup a custom board position from FEN string\n");
-    printf("Type 'load'       to interactively browse and load saved games (with arrow key navigation)\n");
-    printf("Type 'undo'       for unlimited undo (undo any number of move pairs)\n");
-    printf("Type 'resign'     to resign the game (with confirmation)\n");
-    printf("Type 'quit'       to exit the game\n");
-    printf("\nType a piece position to see its possible moves (marked with * or highlighted)\n");
-    printf("\t* = empty square you can move to\n");
-    printf("\thighlighted piece = piece you can capture\n\n");
+    // Help content stored as an array of strings for generic pagination
+    const char* help_lines[] = {
+        "\n=== COMMANDS ===",
+        "Enter moves in format: e2 e4 (from to)",
+        "Type 'help'       for this help message",
+        "Type 'hint'       to get Stockfish's best move suggestion for White",
+        "Type 'score'      to display current game evaluation score",
+        "Type 'scale'      to view the score conversion chart (centipawns to -9/+9 scale)",
+        "Type 'skill N'    to set AI difficulty level (0=easiest, 20=strongest, only before first move)",
+        "Type 'time xx/yy' to set time controls (minutes/increment for both, or xx/yy/zz/ww for White/Black)",
+        "Type 'clock'      to refresh display and show current time remaining",
+        "Type 'fen'        to display current board position in FEN notation",
+        "Type 'pgn'        to display current game in PGN (Portable Game Notation) format",
+        "Type 'title'      to re-display the game title and info screen",
+        "Type 'setup'      to setup a custom board position from FEN string",
+        "Type 'load'       to interactively browse and load saved games (with arrow key navigation)",
+        "Type 'undo'       for unlimited undo (undo any number of move pairs)",
+        "Type 'resign'     to resign the game (with confirmation)",
+        "Type 'quit'       to exit the game",
+        "",  // Blank line
+        "Type a piece position to see its possible moves (marked with * or highlighted)",
+        "\t* = empty square you can move to",
+        "\thighlighted piece = piece you can capture",
+        ""  // Final blank line
+    };
+
+    const int total_lines = sizeof(help_lines) / sizeof(help_lines[0]);
+    const int lines_per_page = 11;
+    int current_line = 0;
+    int page_number = 1;
+
+    while (current_line < total_lines) {
+        // Add continuation header for subsequent pages
+        if (page_number > 1) {
+            printf("\n=== COMMANDS === (continued)\n");
+        }
+
+        // Display up to lines_per_page lines
+        int lines_this_page = 0;
+
+        // Display lines for this page
+        while (current_line < total_lines && lines_this_page < lines_per_page) {
+            printf("%s\n", help_lines[current_line]);
+            current_line++;
+            lines_this_page++;
+        }
+
+        // If there are more lines to display, show pagination prompt
+        if (current_line < total_lines) {
+            printf("\nPress RETURN to continue");
+            getchar();  // Wait for user to press Enter
+            clear_screen();  // Clear screen for next page
+            page_number++;
+        }
+    }
+
+    printf("\n");  // Final blank line
 }
 
 bool has_legal_moves(ChessGame *game, Color color) {
@@ -1590,6 +1628,11 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         printf("Press Enter to continue...");
         getchar();
         return;
+    }
+
+    if (strcmp(input, "clock") == 0 || strcmp(input, "CLOCK") == 0) {
+        // Refresh screen to show current timer values without making a move
+        return;  // Return to input prompt with updated display
     }
     
     if (strcmp(input, "hint") == 0) {
@@ -2173,8 +2216,7 @@ int main(int argc, char *argv[]) {
     getchar();
     
     clear_screen();
-    print_help();
-    
+
     init_board(&game);
 
     // Initialize time controls from config
