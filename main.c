@@ -32,6 +32,9 @@
 #include <sys/stat.h>  // For file statistics
 #include <strings.h>  // For strcasecmp() case-insensitive string comparison
 
+// Global version string
+char* version_string = "v0.9 Sep-22-2025";
+
 // Global debug flag for diagnostic output
 bool debug_mode = false;
 
@@ -73,7 +76,7 @@ bool skill_level_overridden = false;
  * Shows all available command line options with descriptions
  */
 void show_command_line_help() {
-    printf("=== Chess Game - Command Line Options ===\n\n");
+    printf("=== Claude Chess - Command Line Options ===\n\n");
     printf("Usage: chess [options]\n\n");
     printf("Available options (case-insensitive, can be used in any order):\n\n");
     printf("  DEBUG      Enable debug mode with diagnostic output\n");
@@ -333,7 +336,7 @@ void create_default_config() {
         return;  // Silently fail and use defaults
     }
 
-    fprintf(config_file, "# Chess Game Configuration File\n");
+    fprintf(config_file, "# Claude Chess Configuration File\n");
     fprintf(config_file, "# Modify these settings to customize your chess experience\n");
     fprintf(config_file, "\n");
     fprintf(config_file, "[Paths]\n");
@@ -699,32 +702,32 @@ bool display_pgn_in_new_window(const char* pgn_content) {
     if (strcmp(terminal_cmd, "osascript") == 0) {
         // macOS Terminal using AppleScript with file watching
         snprintf(command, sizeof(command),
-            "osascript -e 'tell application \"Terminal\" to do script \"clear; echo \\\"Chess Game - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; while [ -f %s ]; do clear; echo \\\"Chess Game - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; cat %s 2>/dev/null || echo \\\"PGN file not found\\\"; sleep 2; done; echo; echo \\\"Game ended - PGN window closing...\\\"; sleep 2; exit\"' > /dev/null 2>&1 &",
+            "osascript -e 'tell application \"Terminal\" to do script \"clear; echo \\\"Claude Chess - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; while [ -f %s ]; do clear; echo \\\"Claude Chess - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; cat %s 2>/dev/null || echo \\\"PGN file not found\\\"; sleep 2; done; echo; echo \\\"Game ended - PGN window closing...\\\"; sleep 2; exit\"' > /dev/null 2>&1 &",
             persistent_pgn_filename, persistent_pgn_filename);
     } else if (strcmp(terminal_cmd, "gnome-terminal") == 0) {
         // GNOME Terminal with file watching
         snprintf(command, sizeof(command),
-            "gnome-terminal --title=\"Chess Game - Live PGN Notation\" -- bash -c 'while [ -f %s ]; do clear; echo \"Chess Game - Live PGN Notation\"; echo \"================================\"; echo; cat %s 2>/dev/null || echo \"PGN file not found\"; sleep 2; done; echo; echo \"Game ended - PGN window closing...\"; sleep 2' > /dev/null 2>&1 &",
+            "gnome-terminal --title=\"Claude Chess - Live PGN Notation\" -- bash -c 'while [ -f %s ]; do clear; echo \"Claude Chess - Live PGN Notation\"; echo \"================================\"; echo; cat %s 2>/dev/null || echo \"PGN file not found\"; sleep 2; done; echo; echo \"Game ended - PGN window closing...\"; sleep 2' > /dev/null 2>&1 &",
             persistent_pgn_filename, persistent_pgn_filename);
     } else if (strcmp(terminal_cmd, "konsole") == 0) {
         // KDE Konsole with file watching
         snprintf(command, sizeof(command),
-            "konsole --title \"Chess Game - Live PGN Notation\" -e bash -c 'while [ -f %s ]; do clear; echo \"Chess Game - Live PGN Notation\"; echo \"================================\"; echo; cat %s 2>/dev/null || echo \"PGN file not found\"; sleep 2; done; echo; echo \"Game ended - PGN window closing...\"; sleep 2' > /dev/null 2>&1 &",
+            "konsole --title \"Claude Chess - Live PGN Notation\" -e bash -c 'while [ -f %s ]; do clear; echo \"Claude Chess - Live PGN Notation\"; echo \"================================\"; echo; cat %s 2>/dev/null || echo \"PGN file not found\"; sleep 2; done; echo; echo \"Game ended - PGN window closing...\"; sleep 2' > /dev/null 2>&1 &",
             persistent_pgn_filename, persistent_pgn_filename);
     } else if (strcmp(terminal_cmd, "mate-terminal") == 0) {
         // MATE Terminal with file watching
         snprintf(command, sizeof(command),
-            "mate-terminal --title=\"Chess Game - Live PGN Notation\" -e 'bash -c \"while [ -f %s ]; do clear; echo \\\"Chess Game - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; cat %s 2>/dev/null || echo \\\"PGN file not found\\\"; sleep 2; done; echo; echo \\\"Game ended - PGN window closing...\\\"; sleep 2\"' > /dev/null 2>&1 &",
+            "mate-terminal --title=\"Claude Chess - Live PGN Notation\" -e 'bash -c \"while [ -f %s ]; do clear; echo \\\"Claude Chess - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; cat %s 2>/dev/null || echo \\\"PGN file not found\\\"; sleep 2; done; echo; echo \\\"Game ended - PGN window closing...\\\"; sleep 2\"' > /dev/null 2>&1 &",
             persistent_pgn_filename, persistent_pgn_filename);
     } else if (strcmp(terminal_cmd, "xfce4-terminal") == 0) {
         // Xfce Terminal with file watching
         snprintf(command, sizeof(command),
-            "xfce4-terminal --title=\"Chess Game - Live PGN Notation\" -e 'bash -c \"while [ -f %s ]; do clear; echo \\\"Chess Game - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; cat %s 2>/dev/null || echo \\\"PGN file not found\\\"; sleep 2; done; echo; echo \\\"Game ended - PGN window closing...\\\"; sleep 2\"' > /dev/null 2>&1 &",
+            "xfce4-terminal --title=\"Claude Chess - Live PGN Notation\" -e 'bash -c \"while [ -f %s ]; do clear; echo \\\"Claude Chess - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; cat %s 2>/dev/null || echo \\\"PGN file not found\\\"; sleep 2; done; echo; echo \\\"Game ended - PGN window closing...\\\"; sleep 2\"' > /dev/null 2>&1 &",
             persistent_pgn_filename, persistent_pgn_filename);
     } else {
         // Basic xterm fallback with file watching
         snprintf(command, sizeof(command),
-            "xterm -title \"Chess Game - Live PGN Notation\" -e bash -c 'while [ -f %s ]; do clear; echo \"Chess Game - Live PGN Notation\"; echo \"================================\"; echo; cat %s 2>/dev/null || echo \"PGN file not found\"; sleep 2; done; echo; echo \"Game ended - PGN window closing...\"; sleep 2' > /dev/null 2>&1 &",
+            "xterm -title \"Claude Chess - Live PGN Notation\" -e bash -c 'while [ -f %s ]; do clear; echo \"Claude Chess - Live PGN Notation\"; echo \"================================\"; echo; cat %s 2>/dev/null || echo \"PGN file not found\"; sleep 2; done; echo; echo \"Game ended - PGN window closing...\"; sleep 2' > /dev/null 2>&1 &",
             persistent_pgn_filename, persistent_pgn_filename);
     }
 
@@ -1428,7 +1431,7 @@ void print_evaluation_line(int evaluation) {
  * @param game Current game state to display
  */
 void print_game_info(ChessGame *game) {
-    printf("\n=== CHESS GAME ===\n");
+    printf("\n=== Claude Chess ===\n");
     printf("Current player: %s\n", game->current_player == WHITE ? "WHITE" : "BLACK");
     printf("Stockfish Skill Level: %d\n", current_skill_level);
     
@@ -1498,6 +1501,7 @@ void print_help() {
         "Type 'fen'        to display current board position in FEN notation",
         "Type 'pgn'        to display current game in PGN (Portable Game Notation) format",
         "Type 'title'      to re-display the game title and info screen",
+        "Type 'credits'    to view program credits",
         "Type 'setup'      to setup a custom board position from FEN string",
         "Type 'load'       to interactively browse and load saved games (with arrow key navigation)",
         "Type 'undo'       for unlimited undo (undo any number of move pairs)",
@@ -1802,9 +1806,30 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     if (strcmp(input, "title") == 0 || strcmp(input, "TITLE") == 0) {
         clear_screen();
         
-        printf("=== Chess Game (v0.9) with Stockfish AI ===\n");
+        printf("=== Claude Chess (%s) with Stockfish AI ===\n",version_string);
         printf("You play as White, AI plays as Black\n");
         printf("Stockfish engine is running successfully!\n");
+        
+        if (debug_mode) {
+            printf("*** DEBUG MODE ENABLED ***\n");
+        }
+        
+        printf("\nPress Enter to continue...");
+        getchar();
+        return;
+    }
+
+        if (strcmp(input, "credits") == 0 || strcmp(input, "CREDITS") == 0) {
+        clear_screen();
+        
+        printf("=== Claude Chess Credits===\n\n\n");
+        printf("Version:                %s\n",version_string);
+        printf("Designed by:            Jeff Rosengarden\n");
+        printf("Programming:            Jeff Rosengarden\n");
+        printf("Programming assistance: Claude-Code AI\n");
+        printf("Chess Engine:           Stockfish (v17.1)\n");
+        printf("                            (special thanks to the Stockfish team for their incredible open-source engine!)\n");
+
         
         if (debug_mode) {
             printf("*** DEBUG MODE ENABLED ***\n");
@@ -1979,7 +2004,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
                 }
                 
                 clear_screen();
-                printf("\n=== CHESS GAME ===\n");
+                printf("\n=== Claude Chess ===\n");
                 printf("Current player: %s\n", game->current_player == WHITE ? "WHITE" : "BLACK");
                 
                 printf("\n");
@@ -2146,7 +2171,7 @@ int main(int argc, char *argv[]) {
     // Clear screen at startup
     clear_screen();
     
-    printf("=== Chess Game with Stockfish AI ===\n");
+    printf("=== Claude Chess with Stockfish AI ===\n");
     printf("You play as White, AI plays as Black\n");
     if (debug_mode) {
         printf("*** DEBUG MODE ENABLED ***\n");
@@ -2169,7 +2194,7 @@ int main(int argc, char *argv[]) {
     char version_str[256];
     if (get_stockfish_version(&engine, version_str, sizeof(version_str))) {
         clear_screen();
-        printf("=== Chess Game with %s AI ===\n", version_str);
+        printf("=== Claude Chess with %s AI ===\n", version_str);
         printf("You play as White, AI plays as Black\n");
         if (debug_mode) {
             printf("*** DEBUG MODE ENABLED ***\n");

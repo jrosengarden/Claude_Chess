@@ -1094,7 +1094,7 @@ char* convert_fen_to_pgn_string(const char* fen_filename) {
 
     snprintf(pgn_string, MAX_PGN_SIZE,
         "[Event \"Current Game\"]\n"
-        "[Site \"Chess Game\"]\n"
+        "[Site \"Claude Chess\"]\n"
         "[Date \"%s\"]\n"
         "[Round \"?\"]\n"
         "[White \"Player\"]\n"

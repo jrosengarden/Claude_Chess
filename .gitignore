@@ -7,6 +7,9 @@ Claude_Chess.code-workspace
 !FEN_FILES/
 !FEN_FILES/*
 *.pgn
+# But do not ignore the PGN_FILES directory or it's contents
+!PGN_FILES/
+!PGN_FILES/*
 chess
 fen_to_pgn
 micro_test
