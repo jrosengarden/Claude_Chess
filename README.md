@@ -124,11 +124,14 @@ chess /help              # Show detailed help
 - `fen` - View Current position in FEN format
 	- Can use OS copy cmd to copy current board in FEN format
 - `setup` - Configure custom position from FEN
-- `load` - Browse saved games with arrow key navigation
+- `load` - Show help for LOAD FEN and LOAD PGN commands
+- `load fen` - Browse saved FEN games with arrow key navigation
+- `load pgn` - Browse saved PGN games with arrow key navigation
 
 ### Special Features
-- **Verified classical opening library** accessible via `load` command
-- **Verified demonstration tactical library** accessible via `load` command
+- **Verified classical opening library** accessible via `load fen` command
+- **Verified demonstration tactical library** accessible via `load fen` command
+- **PGN file support** accessible via `load pgn` command for full move-by-move navigation
 - All games auto-saved as timestamped FEN and PGN files (customizable via config 
      file or command line)
 - **Enhanced configuration system** via `CHESS.ini` file with file management preferences
@@ -205,7 +208,8 @@ Auto-created configuration file with settings:
 
 ```ini
 [Paths]
-FENDirectory=.                    # Directory for saved games
+FENDirectory=.                    # Directory for saved FEN games (for LOAD FEN)
+PGNDirectory=PGN_FILES            # Directory for saved PGN games (for LOAD PGN)
 
 [Settings]
 DefaultSkillLevel=5               # AI difficulty (0-20)
@@ -216,6 +220,7 @@ DefaultTimeControl=30/10/5/0     # Default time controls (White/Black can be dif
 
 **Customization:**
 - Move FEN files to custom directory and update `FENDirectory`
+- Move PGN files to custom directory and update `PGNDirectory`
 - Set default AI skill level
 - **Configure file management preferences**: Set `AutoCreatePGN=false` for PGNOFF
      behavior, `AutoDeleteFEN=true` for FENOFF behavior
@@ -277,10 +282,45 @@ AI played: e7 to e8 (promoted to Queen)
 
 This works for both regular promotion moves and promotion captures.
 
+## Game Loading System
+
+The chess program provides dual game loading capabilities for both FEN and PGN files:
+
+### LOAD FEN Command
+Browse and load saved FEN games from your chess game history:
+- **Dual directory scanning**: Current directory and FENDirectory (from CHESS.ini)
+- **Arrow key navigation**: Browse through positions with ← → keys
+- **Interactive selection**: Press ENTER at any position to continue playing from that point
+- **Classical opening library**: Access to 12 verified opening sequences
+- **Demonstration positions**: 12 tactical scenarios for study
+- **Smart filtering**: Current game's FEN file is automatically excluded from the list
+
+### LOAD PGN Command
+Browse and load PGN games with full move-by-move navigation:
+- **Dual directory scanning**: Current directory and PGNDirectory (from CHESS.ini)
+- **Full PGN parsing**: Supports standard PGN format with headers and move notation
+- **Arrow key navigation**: Browse through moves with ← → keys
+- **Interactive selection**: Press ENTER at any position to continue playing from that point
+- **Automatic conversion**: PGN moves converted to FEN positions for seamless navigation
+
+### Game Continuation Features
+When you select a position from either FEN or PGN files:
+- **Save current game prompt**: Choose whether to save your current game before loading
+- **New game creation**: Fresh FEN log created with complete history up to selected position
+- **Settings reset**: Game settings (skill level, time controls) become adjustable again
+- **Seamless transition**: Continue playing from the selected position with full game logging
+
+### Usage Examples
+```bash
+load          # Show help for both commands
+load fen      # Browse FEN files
+load pgn      # Browse PGN files
+```
+
 ## Classical Opening Library
 
-**Authenticated 12 classic chess openings** plus **feature demonstration files** using 
-  the `load` command:
+**Authenticated 12 classic chess openings** plus **feature demonstration files** using
+  the `load fen` command:
 
 **Classical Openings:**
 - Italian Game, Ruy López, Queen's Gambit
@@ -295,12 +335,13 @@ This works for both regular promotion moves and promotion captures.
 **All files are engine-validated and historically accurate!**
 
 **Study workflow:**
-1. Type `load` and select an opening or demonstration
+1. Type `load fen` and select an opening or demonstration
 2. Navigate through moves with ← → arrow keys (openings only)
 3. Press ENTER at any position to resume play
+	- Choose whether to save your current game
 	- New time stamped FEN file created containing all moves from
 	  the original game up to the point selected to continue play.
-	  At that point normal move/FEN loggin continues
+	  At that point normal move/FEN logging continues
 4. Practice continuations against AI
 
 **Feature Demonstrations:** Load any demo file to see chess rules and tactics in action. 

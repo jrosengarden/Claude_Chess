@@ -46,10 +46,12 @@ make install-deps      # Install Stockfish dependency
 ### Configuration System (CHESS.ini)
 ```c
 typedef struct {
-    char fen_directory[512];
+    char fen_directory[512];    // Path to directory containing FEN files
+    char pgn_directory[512];    // Path to directory containing PGN files
     int default_skill_level;
     bool auto_create_pgn;       // Create PGN files on exit (true=PGNON, false=PGNOFF)
     bool auto_delete_fen;       // Delete FEN files on exit (true=FENOFF, false=FENON)
+    char default_time_control[16]; // Default time control (e.g., "30/10")
 } ChessConfig;
 
 // Global configuration tracking
@@ -80,16 +82,29 @@ bool skill_level_overridden = false;
 - Active flags displayed: `suppress_pgn_creation`, `delete_fen_on_exit`
 
 ### LOAD System Architecture
-**Dual Directory Scanning:**
-- `scan_fen_files()` - Master function coordinating dual scan
-- `scan_single_directory()` - Helper for scanning individual directories
-- `handle_load_command()` - Pagination and display logic
+**Dual Command Structure:**
+- `load` - Shows help for both LOAD FEN and LOAD PGN commands
+- `load fen` - Browse and load FEN games (renamed from original `load`)
+- `load pgn` - Browse and load PGN games with full move-by-move navigation
 
-**Features:**
-- Scans current directory AND FENDirectory
+**FEN Loading Functions:**
+- `scan_fen_files()` - Master function coordinating dual FEN scan
+- `scan_single_directory()` - Helper for scanning individual directories for .fen files
+- `handle_load_fen_command()` - FEN pagination and display logic
+- **Smart filtering**: Excludes current game's FEN file from display
+
+**PGN Loading Functions:**
+- `scan_pgn_files()` - Master function coordinating dual PGN scan
+- `scan_single_directory_pgn()` - Helper for scanning individual directories for .pgn files
+- `handle_load_pgn_command()` - PGN pagination and display logic
+- `load_pgn_positions()` - Converts PGN to FEN positions using `pgn_to_fen` utility
+
+**Shared Features:**
+- Dual directory scanning (current directory + configured directory)
 - Duplicate detection (current dir takes precedence)
-- Section headers: "Chess Program Directory" / "FEN Files Directory"
+- Section headers: "Chess Program Directory" / "FEN Files Directory" or "PGN Files Directory"
 - 20-line pagination with screen clearing
+- **Save current game prompt**: User chooses whether to save current game before loading
 
 ### Command Line Options System
 **Implementation Architecture:**
@@ -154,6 +169,43 @@ typedef struct {
 - `board_to_fen()` returns **static buffer** - DO NOT free()
 - Always use proper cleanup in dynamic allocations
 - FEN log file handles require explicit closure
+
+### LOAD System Data Structures
+
+**File Information Structures:**
+```c
+typedef struct {
+    char filename[256];
+    char display_name[300];  // Larger buffer to accommodate filename + formatting
+    int move_count;
+    time_t timestamp;
+    bool from_current_dir;  // true if from current directory, false if from FENDirectory
+} FENGameInfo;
+
+typedef struct {
+    char filename[256];
+    char display_name[300];  // Larger buffer to accommodate filename + formatting
+    int move_count;
+    time_t timestamp;
+    bool from_current_dir;  // true if from current directory, false if from PGNDirectory
+} PGNGameInfo;
+```
+
+**Navigation Structure:**
+```c
+typedef struct {
+    char **positions;     // Array of FEN strings
+    int count;           // Number of positions
+    int current;         // Current position index
+} FENNavigator;
+```
+
+**Key Features:**
+- **FENGameInfo**: Used by `scan_fen_files()` and `scan_single_directory()` for FEN file metadata
+- **PGNGameInfo**: Mirror structure for PGN files with identical functionality
+- **FENNavigator**: Shared by both FEN and PGN systems for position navigation
+- **Smart filtering**: FEN scanner excludes current game's file using `fen_log_filename`
+- **Dual directory support**: Both structures track source directory for proper section headers
 
 ## Testing Framework
 
@@ -328,7 +380,10 @@ All core chess rules now fully implemented:
 - **Pawn Promotion System** - Complete implementation with interactive UI and validation
 - **AI Promotion Bug Fix** - AI now selects promotion pieces automatically without user prompts
 - **Feature Demonstration Library** - Educational FEN files with comprehensive documentation
-- **Dual Directory LOAD System** - Pagination + section headers
+- **Dual Command LOAD System** - Separate `load fen` and `load pgn` commands with shared navigation
+- **PGN File Loading System** - Complete PGN parsing and conversion to FEN positions for navigation
+- **Smart FEN Filtering** - Current game's FEN file excluded from LOAD FEN display
+- **Save Current Game Prompt** - User choice to save/discard current game when loading new position
 - **Interactive Game Browser** - Arrow key navigation
 - **Live PGN Display with Auto-Updates** - Side-by-side terminal with real-time move updates
 - **Starting Position File Cleanup** - Auto-removal of meaningless games

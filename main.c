@@ -58,6 +58,7 @@ int current_skill_level = 20;
 // Configuration structure for chess game settings
 typedef struct {
     char fen_directory[512];    // Path to directory containing FEN files
+    char pgn_directory[512];    // Path to directory containing PGN files
     int default_skill_level;    // Default AI skill level (0-20)
     bool auto_create_pgn;       // Create PGN files on exit (true=PGNON, false=PGNOFF)
     bool auto_delete_fen;       // Delete FEN files on exit (true=FENOFF, false=FENON)
@@ -186,6 +187,8 @@ void save_fen_log(ChessGame *game) {
 void create_default_config();
 void expand_path(const char* input_path, char* expanded_path, size_t max_len);
 bool is_valid_directory(const char* path);
+void handle_load_help_command();
+void handle_load_fen_command(ChessGame *game);
 
 /**
  * Check if a directory path exists and is accessible
@@ -219,6 +222,7 @@ void load_config() {
 
     // Initialize default values
     strcpy(config.fen_directory, ".");  // Default to current directory
+    strcpy(config.pgn_directory, "PGN_FILES");  // Default to PGN_FILES directory
     config.default_skill_level = 5;     // Default skill level
     config.auto_create_pgn = true;      // Default PGNON (create PGN files)
     config.auto_delete_fen = false;     // Default FENON (keep FEN files)
@@ -277,6 +281,18 @@ void load_config() {
                         // Invalid directory - fallback to default and mark for debug message
                         strcpy(config.fen_directory, ".");
                         fen_directory_overridden = true;
+                    }
+                } else if (strcmp(key, "PGNDirectory") == 0) {
+                    // Expand path (handle tilde, etc.)
+                    char temp_path[512];
+                    expand_path(value, temp_path, sizeof(temp_path));
+
+                    // Validate that the directory exists and is accessible
+                    if (is_valid_directory(temp_path)) {
+                        strcpy(config.pgn_directory, temp_path);
+                    } else {
+                        // Invalid directory - fallback to default
+                        strcpy(config.pgn_directory, "PGN_FILES");
                     }
                 }
             } else if (strcmp(section, "Settings") == 0) {
@@ -340,13 +356,21 @@ void create_default_config() {
     fprintf(config_file, "# Modify these settings to customize your chess experience\n");
     fprintf(config_file, "\n");
     fprintf(config_file, "[Paths]\n");
-    fprintf(config_file, "# Directory containing FEN files for the LOAD command\n");
+    fprintf(config_file, "# Directory containing FEN files for the LOAD FEN command\n");
     fprintf(config_file, "# Use . for current directory, or specify full path\n");
     fprintf(config_file, "# Examples: \n");
     fprintf(config_file, "#   FENDirectory=.\n");
     fprintf(config_file, "#   FENDirectory=/home/user/chess/games\n");
     fprintf(config_file, "#   FENDirectory=C:\\Users\\User\\Chess\\Games\n");
     fprintf(config_file, "FENDirectory=.\n");
+    fprintf(config_file, "\n");
+    fprintf(config_file, "# Directory containing PGN files for the LOAD PGN command\n");
+    fprintf(config_file, "# Use . for current directory, or specify full path\n");
+    fprintf(config_file, "# Examples: \n");
+    fprintf(config_file, "#   PGNDirectory=.\n");
+    fprintf(config_file, "#   PGNDirectory=/home/user/chess/game\n");
+    fprintf(config_file, "#   PGNDirectory=C:\\Users\\User\\Chess\\Games\n");
+    fprintf(config_file, "PGNDirectory=.\n");
     fprintf(config_file, "\n");
     fprintf(config_file, "[Settings]\n");
     fprintf(config_file, "# Default AI skill level (0=easiest, 20=strongest)\n");
@@ -768,6 +792,22 @@ typedef struct {
 } FENGameInfo;
 
 /**
+ * Structure to hold PGN file information for LOAD PGN command
+ */
+typedef struct {
+    char filename[256];
+    char display_name[300];  // Larger buffer to accommodate filename + formatting
+    int move_count;
+    time_t timestamp;
+    bool from_current_dir;  // true if from current directory, false if from PGNDirectory
+} PGNGameInfo;
+
+// Forward declarations for PGN functions (after typedef)
+void handle_load_pgn_command(ChessGame *game);
+int scan_pgn_files(PGNGameInfo **games);
+int scan_single_directory_pgn(const char* directory_path, PGNGameInfo **games, int count, int *capacity, bool is_current_dir);
+
+/**
  * Structure to hold loaded FEN positions for navigation
  */
 typedef struct {
@@ -851,6 +891,11 @@ int scan_single_directory(const char* directory_path, FENGameInfo **games, int c
         // Check if file has .fen extension
         char *fen_ext = strstr(entry->d_name, ".fen");
         if (fen_ext != NULL && strcmp(fen_ext, ".fen") == 0) {
+
+            // Skip the current game's FEN file - no point in loading the game you're already playing
+            if (strcmp(entry->d_name, strrchr(fen_log_filename, '/') ? strrchr(fen_log_filename, '/') + 1 : fen_log_filename) == 0) {
+                continue;
+            }
 
             if (count >= *capacity) {
                 *capacity *= 2;
@@ -942,6 +987,111 @@ int scan_single_directory(const char* directory_path, FENGameInfo **games, int c
 }
 
 /**
+ * Helper function to scan a single directory for .pgn files
+ * @param directory_path Path to the directory to scan
+ * @param games Pointer to array of PGNGameInfo structures
+ * @param count Current count of games in the array
+ * @param capacity Current capacity of the games array
+ * @param is_current_dir true if scanning current directory, false for PGNDirectory
+ * @return new count of games, or -1 on error
+ */
+int scan_single_directory_pgn(const char* directory_path, PGNGameInfo **games, int count, int *capacity, bool is_current_dir) {
+    DIR *dir;
+    struct dirent *entry;
+    struct stat file_stat;
+
+    dir = opendir(directory_path);
+    if (!dir) {
+        return count;  // Silently skip inaccessible directories
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        // Check if file has .pgn extension
+        char *pgn_ext = strstr(entry->d_name, ".pgn");
+        if (pgn_ext != NULL && strcmp(pgn_ext, ".pgn") == 0) {
+
+            if (count >= *capacity) {
+                *capacity *= 2;
+                *games = realloc(*games, (*capacity) * sizeof(PGNGameInfo));
+                if (!*games) {
+                    closedir(dir);
+                    return -1;
+                }
+            }
+
+            // Store filename
+            strncpy((*games)[count].filename, entry->d_name, sizeof((*games)[count].filename) - 1);
+            (*games)[count].filename[sizeof((*games)[count].filename) - 1] = '\0';
+
+            // Track source directory
+            (*games)[count].from_current_dir = is_current_dir;
+
+            // Get file statistics for timestamp
+            char full_path[512];
+            snprintf(full_path, sizeof(full_path), "%s/%s", directory_path, entry->d_name);
+            if (stat(full_path, &file_stat) == 0) {
+                (*games)[count].timestamp = file_stat.st_mtime;
+            } else {
+                (*games)[count].timestamp = 0;
+            }
+
+            // Count moves in PGN file (count moves, not just lines)
+            FILE *file = fopen(full_path, "r");
+            if (file) {
+                int moves = 0;
+                char line[512];
+                bool in_header = true;
+
+                while (fgets(line, sizeof(line), file)) {
+                    // Skip empty lines and header lines (lines starting with [)
+                    if (line[0] == '\n' || line[0] == '\r') continue;
+                    if (line[0] == '[') {
+                        in_header = true;
+                        continue;
+                    }
+
+                    if (in_header && line[0] != '[') {
+                        in_header = false;  // Now in move section
+                    }
+
+                    if (!in_header) {
+                        // Count move numbers (like "1.", "2.", etc.)
+                        char *ptr = line;
+                        while (*ptr) {
+                            if (isdigit(*ptr)) {
+                                char *end_ptr = ptr;
+                                while (isdigit(*end_ptr)) end_ptr++;
+                                if (*end_ptr == '.') {
+                                    moves++;
+                                    ptr = end_ptr + 1;
+                                } else {
+                                    ptr++;
+                                }
+                            } else {
+                                ptr++;
+                            }
+                        }
+                    }
+                }
+                fclose(file);
+                (*games)[count].move_count = moves;
+            } else {
+                (*games)[count].move_count = 0;
+            }
+
+            // Create display name - PGN files typically have descriptive names
+            snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
+                     "%s - %d moves", entry->d_name, (*games)[count].move_count);
+
+            count++;
+        }
+    }
+
+    closedir(dir);
+    return count;
+}
+
+/**
  * Scan both current directory and FENDirectory for all .fen files and return sorted list
  */
 int scan_fen_files(FENGameInfo **games) {
@@ -982,6 +1132,56 @@ int scan_fen_files(FENGameInfo **games) {
         for (int j = i + 1; j < count; j++) {
             if ((*games)[i].timestamp < (*games)[j].timestamp) {
                 FENGameInfo temp = (*games)[i];
+                (*games)[i] = (*games)[j];
+                (*games)[j] = temp;
+            }
+        }
+    }
+
+    return count;
+}
+
+/**
+ * Scan both current directory and PGNDirectory for all .pgn files and return sorted list
+ */
+int scan_pgn_files(PGNGameInfo **games) {
+    int count = 0;
+    int capacity = 10;
+
+    *games = malloc(capacity * sizeof(PGNGameInfo));
+    if (!*games) return 0;
+
+    // First, scan current directory (takes precedence for duplicates)
+    count = scan_single_directory_pgn(".", games, count, &capacity, true);
+    if (count == -1) {
+        free(*games);
+        return -1;
+    }
+
+    // Then, scan PGNDirectory if it's different from current directory
+    if (strcmp(config.pgn_directory, ".") != 0) {
+        count = scan_single_directory_pgn(config.pgn_directory, games, count, &capacity, false);
+        if (count == -1) {
+            free(*games);
+            return -1;
+        }
+    }
+
+    // Return error if no directories could be accessed
+    if (count == 0) {
+        // Check if we can access current directory
+        if (!is_valid_directory(".")) {
+            free(*games);
+            return -1;
+        }
+        // Current directory accessible but no files found - this is ok
+    }
+
+    // Sort by timestamp (newest first)
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = i + 1; j < count; j++) {
+            if ((*games)[i].timestamp < (*games)[j].timestamp) {
+                PGNGameInfo temp = (*games)[i];
                 (*games)[i] = (*games)[j];
                 (*games)[j] = temp;
             }
@@ -1162,10 +1362,43 @@ int interactive_fen_browser(ChessGame *game, FENNavigator *nav) {
 }
 
 /**
- * Main LOAD command implementation
- * Allows user to select and interactively browse saved games
+ * LOAD help command implementation
+ * Shows help for both LOAD FEN and LOAD PGN commands
  */
-void handle_load_command(ChessGame *game) {
+void handle_load_help_command() {
+    clear_screen();
+    printf("=== LOAD COMMAND HELP ===\n\n");
+    printf("The LOAD command has two modes:\n\n");
+
+    printf("LOAD FEN\n");
+    printf("--------\n");
+    printf("Load and browse saved FEN games from your chess game history.\n");
+    printf("- Browse games with arrow keys\n");
+    printf("- Select any position to continue playing from that point\n");
+    printf("- Scans current directory and FENDirectory (from CHESS.ini)\n");
+    printf("- Shows classical opening library and demonstration positions\n\n");
+
+    printf("LOAD PGN\n");
+    printf("--------\n");
+    printf("Load and browse PGN games with full move-by-move navigation.\n");
+    printf("- Browse moves with arrow keys\n");
+    printf("- Select any position to continue playing from that point\n");
+    printf("- Scans current directory and PGNDirectory (from CHESS.ini)\n");
+    printf("- Full PGN parsing with standard notation support\n\n");
+
+    printf("Usage:\n");
+    printf("  load fen  - Browse FEN game files\n");
+    printf("  load pgn  - Browse PGN game files\n\n");
+
+    printf("Press Enter to continue...");
+    getchar();
+}
+
+/**
+ * LOAD FEN command implementation
+ * Allows user to select and interactively browse saved FEN games
+ */
+void handle_load_fen_command(ChessGame *game) {
     FENGameInfo *games = NULL;
     int game_count = scan_fen_files(&games);
 
@@ -1315,6 +1548,260 @@ void handle_load_command(ChessGame *game) {
         if (setup_board_from_fen(game, nav.positions[selected_position])) {
             printf("\nPosition loaded successfully!\n");
             printf("Resuming game from position %d/%d\n", selected_position + 1, nav.count);
+
+            // Ask user if they want to save current game before starting new one
+            printf("\nSave current game? (y/n): ");
+            char save_response[10];
+            if (fgets(save_response, sizeof(save_response), stdin)) {
+                save_response[strcspn(save_response, "\n")] = '\0';  // Remove newline
+
+                if (strcasecmp(save_response, "y") == 0 || strcasecmp(save_response, "yes") == 0) {
+                    printf("Current game saved as: %s\n", fen_log_filename);
+                } else {
+                    printf("Current game not saved.\n");
+                    // Delete current FEN file since user doesn't want to save it
+                    unlink(fen_log_filename);
+                }
+            }
+
+            // Create new FEN log for continued gameplay
+            generate_fen_filename();
+            printf("New game log: %s\n", fen_log_filename);
+
+            // Copy complete game history up to selected position
+            copy_game_history_to_new_log(&nav, selected_position);
+
+            // Reset game started flag to allow new skill settings
+            game_started = false;
+        } else {
+            printf("\nError loading selected position!\n");
+        }
+    } else {
+        printf("\nLoad cancelled. Returning to current game.\n");
+    }
+
+    // Cleanup
+    free_fen_navigator(&nav);
+    free(games);
+
+    printf("Press Enter to continue...");
+    getchar();
+}
+
+/**
+ * Parse PGN file and convert to FEN positions for navigation
+ * Uses existing pgn_to_fen utility logic
+ */
+int load_pgn_positions(const char *filename, FENNavigator *nav) {
+    // We'll use a simplified approach: call our existing pgn_to_fen utility
+    // and parse its output to create FEN positions
+
+    char temp_fen_file[256];
+    snprintf(temp_fen_file, sizeof(temp_fen_file), "/tmp/pgn_to_fen_%d.fen", getpid());
+
+    // Convert PGN to FEN using our existing utility
+    char command[512];
+    snprintf(command, sizeof(command), "./pgn_to_fen \"%s\" > \"%s\" 2>/dev/null", filename, temp_fen_file);
+
+    int result = system(command);
+    if (result != 0) {
+        return 0;  // Conversion failed
+    }
+
+    // Now load the generated FEN positions
+    int success = load_fen_positions(temp_fen_file, nav);
+
+    // Clean up temp file
+    unlink(temp_fen_file);
+
+    return success;
+}
+
+/**
+ * LOAD PGN command implementation
+ * Allows user to select and interactively browse saved PGN games
+ */
+void handle_load_pgn_command(ChessGame *game) {
+    PGNGameInfo *games = NULL;
+    int game_count = scan_pgn_files(&games);
+
+    if (game_count == -1) {
+        printf("\nError: Cannot access PGN directory '%s'\n", config.pgn_directory);
+        printf("Please check:\n");
+        printf("1. The directory exists\n");
+        printf("2. You have read permissions\n");
+        printf("3. The path is correct in CHESS.ini\n");
+        printf("\nCurrent configured path: %s\n", config.pgn_directory);
+        return;
+    }
+
+    if (game_count == 0) {
+        printf("\nNo .pgn files found in directories\n");
+        printf("Current directory: .\n");
+        printf("PGN directory: %s\n", config.pgn_directory);
+        printf("Add some PGN files to these directories to use this feature!\n");
+        return;
+    }
+
+    // Display available games with pagination
+    clear_screen();
+    printf("=== LOAD PGN GAME ===\n\n");
+
+    int item_number = 1;
+    int line_count = 3;  // Starting with title and blank lines
+    bool has_current_dir_files = false;
+    bool has_pgn_dir_files = false;
+
+    // Check what types of files we have
+    for (int i = 0; i < game_count; i++) {
+        if (games[i].from_current_dir) {
+            has_current_dir_files = true;
+        } else {
+            has_pgn_dir_files = true;
+        }
+    }
+
+    // Display current directory files first
+    if (has_current_dir_files) {
+        printf("Chess Program Directory:\n");
+        line_count++;
+
+        for (int i = 0; i < game_count; i++) {
+            if (games[i].from_current_dir) {
+                // Check if we need to paginate
+                if (line_count >= 20) {
+                    printf("\nPress Enter to continue...");
+                    getchar();
+                    clear_screen();
+                    printf("=== LOAD PGN GAME ===\n\n");
+                    printf("Chess Program Directory (continued):\n");
+                    line_count = 4;  // Reset line count
+                }
+
+                printf("%d. %s\n", item_number++, games[i].display_name);
+                line_count++;
+            }
+        }
+    }
+
+    // Add blank line and display PGN directory files
+    if (has_pgn_dir_files) {
+        // Check if we need to paginate before the section header
+        if (has_current_dir_files) {
+            if (line_count >= 19) {  // Reserve space for blank line and header
+                printf("\nPress Enter to continue...");
+                getchar();
+                clear_screen();
+                printf("=== LOAD PGN GAME ===\n\n");
+                printf("PGN Files Directory:\n");
+                line_count = 4;
+            } else {
+                printf("\n");  // Blank line between sections
+                printf("PGN Files Directory:\n");
+                line_count += 2;
+            }
+        } else {
+            printf("PGN Files Directory:\n");
+            line_count++;
+        }
+
+        for (int i = 0; i < game_count; i++) {
+            if (!games[i].from_current_dir) {
+                // Check if we need to paginate
+                if (line_count >= 20) {
+                    printf("\nPress Enter to continue...");
+                    getchar();
+                    clear_screen();
+                    printf("=== LOAD PGN GAME ===\n\n");
+                    printf("PGN Files Directory (continued):\n");
+                    line_count = 4;  // Reset line count
+                }
+
+                printf("%d. %s\n", item_number++, games[i].display_name);
+                line_count++;
+            }
+        }
+    }
+
+    printf("\nSelect PGN game to load (1-%d) or 0 to cancel: ", game_count);
+    fflush(stdout);
+
+    // Get user selection
+    char input[10];
+    if (!fgets(input, sizeof(input), stdin)) {
+        free(games);
+        return;
+    }
+
+    int selection = atoi(input);
+    if (selection == 0) {
+        printf("Load cancelled.\n");
+        free(games);
+        return;
+    }
+
+    if (selection < 1 || selection > game_count) {
+        printf("Invalid selection. Load cancelled.\n");
+        free(games);
+        return;
+    }
+
+    // Load selected game
+    selection--;  // Convert to 0-based index
+    FENNavigator nav;
+
+    printf("\nLoading PGN game: %s\n", games[selection].display_name);
+    printf("Converting PGN to positions...");
+    fflush(stdout);
+
+    // Get full path for selected file
+    char full_path[512];
+    if (games[selection].from_current_dir) {
+        snprintf(full_path, sizeof(full_path), "./%s", games[selection].filename);
+    } else {
+        snprintf(full_path, sizeof(full_path), "%s/%s", config.pgn_directory, games[selection].filename);
+    }
+
+    if (!load_pgn_positions(full_path, &nav)) {
+        printf("\nError loading PGN file. Load cancelled.\n");
+        printf("Please ensure:\n");
+        printf("1. The file is a valid PGN format\n");
+        printf("2. The pgn_to_fen utility is available\n");
+        free(games);
+        return;
+    }
+
+    printf(" Done!\n");
+    printf("Game loaded successfully! Starting interactive browser...\n");
+    printf("Use arrow keys to navigate positions.\n");
+    printf("ENTER to resume game from selected position.\n");
+    printf("ESC ESC (twice) to cancel loading.\n");
+    printf("Press any key to continue...");
+    getchar();
+
+    // Start interactive browser (same as FEN files)
+    int selected_position = interactive_fen_browser(game, &nav);
+
+    if (selected_position >= 0) {
+        // Load selected position into game
+        if (setup_board_from_fen(game, nav.positions[selected_position])) {
+            printf("\nPosition loaded successfully!\n");
+            printf("Resuming game from position %d/%d\n", selected_position + 1, nav.count);
+
+            // Ask user if they want to save current game before starting new one
+            printf("\nSave current game? (y/n): ");
+            char save_response[10];
+            if (fgets(save_response, sizeof(save_response), stdin)) {
+                save_response[strcspn(save_response, "\n")] = '\0';  // Remove newline
+
+                if (strcasecmp(save_response, "y") == 0 || strcasecmp(save_response, "yes") == 0) {
+                    printf("Current game saved as: %s\n", fen_log_filename);
+                } else {
+                    printf("Current game not saved.\n");
+                    // Delete current FEN file since user doesn't want to save it
+                    unlink(fen_log_filename);
+                }
+            }
 
             // Create new FEN log for continued gameplay
             generate_fen_filename();
@@ -1503,7 +1990,9 @@ void print_help() {
         "Type 'title'      to re-display the game title and info screen",
         "Type 'credits'    to view program credits",
         "Type 'setup'      to setup a custom board position from FEN string",
-        "Type 'load'       to interactively browse and load saved games (with arrow key navigation)",
+        "Type 'load'       to show help for LOAD FEN and LOAD PGN commands",
+        "Type 'load fen'   to browse and load saved FEN games (with arrow key navigation)",
+        "Type 'load pgn'   to browse and load saved PGN games (with arrow key navigation)",
         "Type 'undo'       for unlimited undo (undo any number of move pairs)",
         "Type 'resign'     to resign the game (with confirmation)",
         "Type 'quit'       to exit the game",
@@ -1841,7 +2330,17 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     }
 
     if (strcmp(input, "load") == 0 || strcmp(input, "LOAD") == 0) {
-        handle_load_command(game);
+        handle_load_help_command();
+        return;
+    }
+
+    if (strncmp(input, "load fen", 8) == 0 || strncmp(input, "LOAD FEN", 8) == 0) {
+        handle_load_fen_command(game);
+        return;
+    }
+
+    if (strncmp(input, "load pgn", 8) == 0 || strncmp(input, "LOAD PGN", 8) == 0) {
+        handle_load_pgn_command(game);
         return;
     }
 
