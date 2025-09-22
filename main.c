@@ -213,16 +213,19 @@ bool is_valid_directory(const char* path) {
 }
 
 /**
- * Load configuration from CHESS.ini file
+ * Load configuration from chess.ini or CHESS.ini file
  * Parses the configuration file and sets up global config structure.
- * Creates default configuration file if it doesn't exist.
+ * Creates default configuration file if neither exists.
  */
 void load_config() {
-    FILE *config_file = fopen("CHESS.ini", "r");
+    FILE *config_file = fopen("chess.ini", "r");
+    if (!config_file) {
+        config_file = fopen("CHESS.ini", "r");
+    }
 
     // Initialize default values
     strcpy(config.fen_directory, ".");  // Default to current directory
-    strcpy(config.pgn_directory, "PGN_FILES");  // Default to PGN_FILES directory
+    strcpy(config.pgn_directory, ".");  // Default to current directory
     config.default_skill_level = 5;     // Default skill level
     config.auto_create_pgn = true;      // Default PGNON (create PGN files)
     config.auto_delete_fen = false;     // Default FENON (keep FEN files)
@@ -292,7 +295,7 @@ void load_config() {
                         strcpy(config.pgn_directory, temp_path);
                     } else {
                         // Invalid directory - fallback to default
-                        strcpy(config.pgn_directory, "PGN_FILES");
+                        strcpy(config.pgn_directory, ".");
                     }
                 }
             } else if (strcmp(section, "Settings") == 0) {
@@ -893,7 +896,13 @@ int scan_single_directory(const char* directory_path, FENGameInfo **games, int c
         if (fen_ext != NULL && strcmp(fen_ext, ".fen") == 0) {
 
             // Skip the current game's FEN file - no point in loading the game you're already playing
-            if (strcmp(entry->d_name, strrchr(fen_log_filename, '/') ? strrchr(fen_log_filename, '/') + 1 : fen_log_filename) == 0) {
+            const char *current_fen_basename = strrchr(fen_log_filename, '/');
+            if (current_fen_basename) {
+                current_fen_basename++; // Skip the '/'
+            } else {
+                current_fen_basename = fen_log_filename; // No path separator found
+            }
+            if (strcmp(entry->d_name, current_fen_basename) == 0) {
                 continue;
             }
 
@@ -1027,7 +1036,7 @@ int scan_single_directory_pgn(const char* directory_path, PGNGameInfo **games, i
             (*games)[count].from_current_dir = is_current_dir;
 
             // Get file statistics for timestamp
-            char full_path[512];
+            char full_path[768];
             snprintf(full_path, sizeof(full_path), "%s/%s", directory_path, entry->d_name);
             if (stat(full_path, &file_stat) == 0) {
                 (*games)[count].timestamp = file_stat.st_mtime;
@@ -1412,15 +1421,20 @@ void handle_load_fen_command(ChessGame *game) {
         return;
     }
 
+    // Display the LOAD screen whether files exist or not
+    clear_screen();
+    printf("=== LOAD FEN GAMES ===\n\n");
+
     if (game_count == 0) {
-        printf("\nNo .fen files found in directory '%s'\n", config.fen_directory);
-        printf("Play some games first to create FEN logs, or move your FEN files to this directory!\n");
+        printf("No FEN files found in directories\n");
+        printf("Current directory: .\n");
+        printf("FEN directory: %s\n", config.fen_directory);
+        printf("Play some games first to create FEN logs, or move your FEN files to these directories!\n");
+        printf("\nPress ENTER to continue...");
+        fflush(stdout);
+        getchar();
         return;
     }
-
-    // Display available games with pagination
-    clear_screen();
-    printf("=== LOAD SAVED GAME ===\n\n");
 
     int item_number = 1;
     int line_count = 3;  // Starting with title and blank lines
@@ -1635,17 +1649,20 @@ void handle_load_pgn_command(ChessGame *game) {
         return;
     }
 
+    // Display the LOAD screen whether files exist or not
+    clear_screen();
+    printf("=== LOAD PGN GAMES ===\n\n");
+
     if (game_count == 0) {
-        printf("\nNo .pgn files found in directories\n");
+        printf("No PGN files found in directories\n");
         printf("Current directory: .\n");
         printf("PGN directory: %s\n", config.pgn_directory);
         printf("Add some PGN files to these directories to use this feature!\n");
+        printf("\nPress ENTER to continue...");
+        fflush(stdout);
+        getchar();
         return;
     }
-
-    // Display available games with pagination
-    clear_screen();
-    printf("=== LOAD PGN GAME ===\n\n");
 
     int item_number = 1;
     int line_count = 3;  // Starting with title and blank lines
@@ -1755,7 +1772,7 @@ void handle_load_pgn_command(ChessGame *game) {
     fflush(stdout);
 
     // Get full path for selected file
-    char full_path[512];
+    char full_path[768];
     if (games[selection].from_current_dir) {
         snprintf(full_path, sizeof(full_path), "./%s", games[selection].filename);
     } else {
@@ -2334,12 +2351,12 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         return;
     }
 
-    if (strncmp(input, "load fen", 8) == 0 || strncmp(input, "LOAD FEN", 8) == 0) {
+    if (strcmp(input, "load fen") == 0 || strcmp(input, "LOAD FEN") == 0) {
         handle_load_fen_command(game);
         return;
     }
 
-    if (strncmp(input, "load pgn", 8) == 0 || strncmp(input, "LOAD PGN", 8) == 0) {
+    if (strcmp(input, "load pgn") == 0 || strcmp(input, "LOAD PGN") == 0) {
         handle_load_pgn_command(game);
         return;
     }
@@ -2698,9 +2715,25 @@ int main(int argc, char *argv[]) {
         if (debug_mode) {
             printf("*** DEBUG MODE ENABLED ***\n");
             printf("Configuration loaded: FENDirectory='%s'\n", config.fen_directory);
+            printf("Configuration loaded: PGNDirectory='%s'\n", config.pgn_directory);
             printf("Configuration loaded: DefaultSkillLevel=%d\n", config.default_skill_level);
             printf("Configuration loaded: AutoCreatePGN=%s\n", config.auto_create_pgn ? "true" : "false");
             printf("Configuration loaded: AutoDeleteFEN=%s\n", config.auto_delete_fen ? "true" : "false");
+            printf("Configuration loaded: DefaultTimeControl='%s'", config.default_time_control);
+            if (strcmp(config.default_time_control, "0/0") == 0) {
+                printf(" (time controls disabled)\n");
+            } else {
+                // Check if it's 2-value (same for both) or 4-value (different for each)
+                int count = 0;
+                for (int i = 0; config.default_time_control[i]; i++) {
+                    if (config.default_time_control[i] == '/') count++;
+                }
+                if (count == 1) {
+                    printf(" (both players get same time allocation)\n");
+                } else {
+                    printf(" (White gets first pair, Black gets second pair)\n");
+                }
+            }
             printf("Active flags: suppress_pgn_creation=%s, delete_fen_on_exit=%s\n",
                    suppress_pgn_creation ? "true" : "false", delete_fen_on_exit ? "true" : "false");
 
@@ -2717,9 +2750,25 @@ int main(int argc, char *argv[]) {
         if (debug_mode) {
             printf("*** DEBUG MODE ENABLED ***\n");
             printf("Configuration loaded: FENDirectory='%s'\n", config.fen_directory);
+            printf("Configuration loaded: PGNDirectory='%s'\n", config.pgn_directory);
             printf("Configuration loaded: DefaultSkillLevel=%d\n", config.default_skill_level);
             printf("Configuration loaded: AutoCreatePGN=%s\n", config.auto_create_pgn ? "true" : "false");
             printf("Configuration loaded: AutoDeleteFEN=%s\n", config.auto_delete_fen ? "true" : "false");
+            printf("Configuration loaded: DefaultTimeControl='%s'", config.default_time_control);
+            if (strcmp(config.default_time_control, "0/0") == 0) {
+                printf(" (time controls disabled)\n");
+            } else {
+                // Check if it's 2-value (same for both) or 4-value (different for each)
+                int count = 0;
+                for (int i = 0; config.default_time_control[i]; i++) {
+                    if (config.default_time_control[i] == '/') count++;
+                }
+                if (count == 1) {
+                    printf(" (both players get same time allocation)\n");
+                } else {
+                    printf(" (White gets first pair, Black gets second pair)\n");
+                }
+            }
             printf("Active flags: suppress_pgn_creation=%s, delete_fen_on_exit=%s\n",
                    suppress_pgn_creation ? "true" : "false", delete_fen_on_exit ? "true" : "false");
 
