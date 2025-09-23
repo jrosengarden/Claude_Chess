@@ -9,7 +9,7 @@ DEBUG_TARGETS = debug_position debug_castling debug_input debug_move debug_castl
 SOURCES = main.c chess.c stockfish.c
 OBJECTS = $(SOURCES:.c=.o)
 
-all: $(TARGET) utilities $(DEBUG_TARGETS)
+all: $(TARGET) utilities
 
 utilities: $(UTILITIES)
 

@@ -10,6 +10,8 @@ Claude_Chess.code-workspace
 # But do not ignore the PGN_FILES directory or it's contents
 !PGN_FILES/
 !PGN_FILES/*
+debug_*
+debug_*.dSYM
 # Do not ignore the DEBUG directory or it's contents
 !debug/
 !debug/*
