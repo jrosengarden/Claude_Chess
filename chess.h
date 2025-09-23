@@ -190,10 +190,9 @@ bool is_promotion_move(ChessGame *game, Position from, Position to);  // Check i
 PieceType get_promotion_choice();  // Interactive UI for promotion piece selection
 bool is_valid_promotion_piece(PieceType piece_type);  // Validate promotion piece type
 
-// Check and game state analysis  
+// Check and game state analysis
 bool is_in_check(ChessGame *game, Color color);  // Determine if player is in check
 bool would_be_in_check_after_move(ChessGame *game, Position from, Position to);  // Test if move would leave king in check
-bool can_block_or_capture_threat(ChessGame *game, Color color);  // Check if player can escape check
 bool is_square_attacked(ChessGame *game, Position pos, Color by_color);  // Check if square is attacked by given color
 int get_king_moves_no_castling(ChessGame *game, Position from, Position moves[]);  // Get king moves without castling (for attack checking)
 
