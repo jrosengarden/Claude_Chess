@@ -13,8 +13,11 @@
 
 #include "chess.h"
 #include "stockfish.h"
+#include "pgn_utils.h"
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
+#include <unistd.h>
 
 /**
  * Test basic board initialization
@@ -594,12 +597,45 @@ void test_uci_promotion_parsing() {
  * Run all micro-tests
  * Executes all test functions with minimal output
  */
+/**
+ * Test PGN conversion from FEN log file
+ * Tests: convert_fen_to_pgn_string() function from pgn_utils.c
+ */
+void test_pgn_conversion() {
+    printf("Testing PGN conversion... ");
+
+    const char* test_filename = "test_pgn_conversion.fen";
+    FILE* test_file = fopen(test_filename, "w");
+    assert(test_file != NULL);
+
+    fprintf(test_file, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\n");
+    fprintf(test_file, "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1\n");
+    fprintf(test_file, "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2\n");
+    fprintf(test_file, "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2\n");
+    fclose(test_file);
+
+    char* pgn_result = convert_fen_to_pgn_string(test_filename);
+    assert(pgn_result != NULL);
+
+    assert(strstr(pgn_result, "[Event \"Current Game\"]") != NULL);
+    assert(strstr(pgn_result, "[White \"Player\"]") != NULL);
+    assert(strstr(pgn_result, "[Black \"AI\"]") != NULL);
+    assert(strstr(pgn_result, "1. e4") != NULL);
+    assert(strstr(pgn_result, "e5") != NULL);
+    assert(strstr(pgn_result, "2. Nf3") != NULL);
+
+    free(pgn_result);
+    unlink(test_filename);
+
+    printf("PASSED\n");
+}
+
 int main() {
     printf("=== MICRO-TESTING FRAMEWORK ===\n");
     printf("Running safe, minimal-output tests...\n\n");
     
     test_board_init();
-    test_position_conversion(); 
+    test_position_conversion();
     test_basic_move_validation();
     test_castling_rights();
     test_piece_operations();
@@ -616,9 +652,10 @@ int main() {
     test_promotion_move_execution();
     test_promotion_fen_integration();
     test_uci_promotion_parsing();
+    test_pgn_conversion();
 
     printf("\n✅ ALL MICRO-TESTS PASSED\n");
     printf("=== TESTING COMPLETE ===\n");
-    
+
     return 0;
 }

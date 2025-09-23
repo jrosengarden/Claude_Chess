@@ -214,9 +214,6 @@ PieceType char_to_piece_type(char c);  // Convert character to piece type (helpe
 // Draw conditions
 bool is_fifty_move_rule_draw(ChessGame *game);  // Check if 50-move rule draw condition is met
 
-// PGN conversion
-char* convert_fen_to_pgn_string(const char* fen_filename);  // Convert FEN log file to PGN string
-
 // Time control functions
 bool parse_time_control(const char* time_str, TimeControl* tc);  // Parse TIME xx/yy command format
 void init_game_timer(ChessGame* game, TimeControl* time_control);  // Initialize timer system

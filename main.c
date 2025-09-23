@@ -24,6 +24,7 @@
 #define _GNU_SOURCE  // Enable GNU/Linux extensions like strdup
 #include "chess.h"
 #include "stockfish.h"
+#include "pgn_utils.h"
 #include <time.h>
 #include <unistd.h>  // For getpid() and unlink()
 #include <sys/types.h>  // For process ID types

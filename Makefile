@@ -6,7 +6,7 @@ PGN_FEN_TARGET = pgn_to_fen
 MICROTEST_TARGET = micro_test
 UTILITIES = $(FEN_TARGET) $(PGN_FEN_TARGET) $(MICROTEST_TARGET)
 DEBUG_TARGETS = debug_position debug_castling debug_input debug_move debug_castle_input debug_queenside
-SOURCES = main.c chess.c stockfish.c
+SOURCES = main.c chess.c stockfish.c pgn_utils.c
 OBJECTS = $(SOURCES:.c=.o)
 
 all: $(TARGET) utilities
@@ -22,8 +22,8 @@ $(FEN_TARGET): fen_to_pgn.c
 $(PGN_FEN_TARGET): pgn_to_fen.c chess.o stockfish.o
 	$(CC) $(CFLAGS) pgn_to_fen.c chess.o stockfish.o -o $(PGN_FEN_TARGET)
 
-$(MICROTEST_TARGET): micro_test.c chess.o stockfish.o
-	$(CC) $(CFLAGS) micro_test.c chess.o stockfish.o -o $(MICROTEST_TARGET)
+$(MICROTEST_TARGET): micro_test.c chess.o stockfish.o pgn_utils.o
+	$(CC) $(CFLAGS) micro_test.c chess.o stockfish.o pgn_utils.o -o $(MICROTEST_TARGET)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
