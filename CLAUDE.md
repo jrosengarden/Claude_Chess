@@ -704,5 +704,128 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
 
 **Current Timer Behavior:** Timer values are dynamically calculated and displayed whenever the screen refreshes (after moves, commands, etc.), providing sufficient timing information for chess games.
 
+## Code Cleanup & Refactoring (In Progress)
+
+**Status:** 🚧 Active refactoring session - 4 of 12 items complete
+
+### Forensic Analysis Summary
+
+**Date:** September 23, 2025
+**Scope:** Complete codebase audit (8 core files, 7,008 lines analyzed)
+**Code Quality Score:** 7/10
+
+**Key Findings:**
+- ✅ **Strengths**: 70% documented, consistent style, comprehensive features
+- ❌ **Weaknesses**: Long functions (>200 lines), code duplication (~200 lines), organizational issues
+
+**Technical Debt Identified:** ~25-35 hours of refactoring work
+
+### Priority 1 - CRITICAL (Affects Maintainability)
+
+#### ✅ **COMPLETED**
+
+1. **Removed Unused Function Declaration** ✅
+   - **Issue**: `can_block_or_capture_threat()` declared in chess.h but never implemented
+   - **Fix**: Removed orphaned declaration from chess.h:196
+   - **Impact**: Fixed broken API contract
+   - **Commit**: Sep 23, 2025
+
+2. **Organized Debug Files** ✅
+   - **Issue**: 6 debug_*.c files cluttering main directory (11KB)
+   - **Fix**: Created debug/ subdirectory, moved all debug files, updated Makefile
+   - **Impact**: Cleaner project structure, separated debug from production code
+   - **Commit**: Sep 23, 2025
+
+3. **Extracted PGN Conversion Module** ✅
+   - **Issue**: 292-line `convert_fen_to_pgn_string()` embedded in chess.c
+   - **Fix**: Created pgn_utils.c/h module, removed from chess.c
+   - **Impact**: chess.c reduced 1,715 → 1,423 lines (292 lines removed)
+   - **Added**: Micro-test for PGN conversion (19 tests total)
+   - **Commit**: Sep 23, 2025
+
+4. **Eliminated Duplicate Directory Scanning Code** ✅
+   - **Issue**: ~90% duplicate code between FEN/PGN scanning (200+ lines)
+   - **Fix**: Extracted 4 helper functions (`count_fen_moves()`, `count_pgn_moves()`, `format_fen_display_name()`, `format_pgn_display_name()`)
+   - **Impact**: Removed ~100 lines of duplication, cleaner maintenance
+   - **Commit**: Sep 23, 2025
+
+#### 🔲 **REMAINING**
+
+5. **Refactor handle_white_turn() Function (482 lines)** 🔲
+   - **Issue**: Massive function doing input, commands, moves, and display
+   - **Recommendation**: Split into:
+     - `handle_user_input()` - Input parsing
+     - `handle_game_commands()` - Command processing (undo, skill, hint, etc.)
+     - `execute_white_move()` - Move execution logic
+     - `update_game_display()` - Screen refresh and status
+   - **Risk**: HIGH (core game loop, extensive testing required)
+   - **Estimated effort**: 2-3 hours
+
+### Priority 2 - IMPORTANT (Affects Readability)
+
+6. **Refactor setup_board_from_fen() (171 lines)** 🔲
+   - Split into: `parse_fen_fields()`, `validate_fen_structure()`, `apply_fen_to_board()`
+   - Effort: 2-3 hours
+
+7. **Add Documentation to Undocumented Functions** 🔲
+   - Target: 14 functions in chess.c, 6 in main.c
+   - Effort: 2-3 hours
+
+8. **Define Named Constants for Magic Numbers** 🔲
+   - Examples: `FIFTY_MOVE_HALFMOVES`, `MAX_GAME_MOVES`, `MAX_PGN_OUTPUT_SIZE`
+   - Effort: 1 hour
+
+### Priority 3 - NICE TO HAVE (Minor Improvements)
+
+9. **Reorganize chess.c by Logical Subsystem** 🔲
+   - Group: Board mgmt → Move generation → Validation → Execution → Display
+   - Effort: 2 hours
+
+10. **Encapsulate Global Variables in Context Structs** 🔲
+    - Create `GameSession` and `RuntimeConfig` structures
+    - Effort: 4-6 hours
+
+11. **Standardize Naming Conventions** 🔲
+    - Enforce: snake_case (functions), PascalCase (types), SCREAMING_SNAKE_CASE (constants)
+    - Effort: 3-4 hours
+
+12. **Clean Up Header Includes** 🔲
+    - Remove duplicates, organize dependencies
+    - Effort: 1 hour
+
+### Progress Metrics
+
+**Lines of Code Reduced:** ~392 lines removed so far
+- PGN extraction: 292 lines
+- Duplicate scanning: ~100 lines
+
+**New Modules Created:** 2
+- `pgn_utils.c/h` - PGN conversion utilities
+- `debug/` - Debug programs directory
+
+**Files Organized:** 6 debug files moved to subdirectory
+
+**Test Coverage:** Added PGN conversion test (19 total micro-tests)
+
+### Next Session Plan
+
+1. **Tackle Priority 1, Item 5**: Refactor `handle_white_turn()` (482 lines)
+   - Highest risk, save for fresh session with full tokens
+   - Requires extensive testing after refactoring
+
+2. **Continue with Priority 2 items** as time permits
+
+3. **Final cleanup**: When all Priority 1 & 2 complete:
+   - Replace this section with concise summary
+   - Document total lines removed, modules created
+   - Update "Recently Completed Major Features" section
+
+### Notes for Future Sessions
+
+- All refactoring tested on both macOS 15.6.1 and Ubuntu 22.04
+- Zero compilation warnings maintained throughout
+- All 19 micro-tests passing
+- Incremental commits after each major change (safe approach)
+
 ---
 *Developer reference for Claude Chess - Focused technical documentation*
