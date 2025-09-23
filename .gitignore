@@ -10,11 +10,13 @@ Claude_Chess.code-workspace
 # But do not ignore the PGN_FILES directory or it's contents
 !PGN_FILES/
 !PGN_FILES/*
+# Do not ignore the DEBUG directory or it's contents
+!debug/
+!debug/*
 chess
 fen_to_pgn
 micro_test
 fen_to_pgn.dSYM/
 micro_test.dSYM/
-debug_*
 pgn_to_fen
 pgn_to_fen.dSYM/

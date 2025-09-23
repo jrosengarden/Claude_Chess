@@ -57,23 +57,23 @@ test: $(MICROTEST_TARGET)
 # Debug programs compilation (cross-platform compatible)
 debug: $(DEBUG_TARGETS)
 
-debug_position: debug_position.c chess.o
-	$(CC) $(CFLAGS) debug_position.c chess.o -o debug_position
+debug_position: debug/debug_position.c chess.o
+	$(CC) $(CFLAGS) -I. debug/debug_position.c chess.o -o debug_position
 
-debug_castling: debug_castling.c chess.o
-	$(CC) $(CFLAGS) debug_castling.c chess.o -o debug_castling
+debug_castling: debug/debug_castling.c chess.o
+	$(CC) $(CFLAGS) -I. debug/debug_castling.c chess.o -o debug_castling
 
-debug_input: debug_input.c chess.o
-	$(CC) $(CFLAGS) debug_input.c chess.o -o debug_input
+debug_input: debug/debug_input.c chess.o
+	$(CC) $(CFLAGS) -I. debug/debug_input.c chess.o -o debug_input
 
-debug_move: debug_move.c chess.o
-	$(CC) $(CFLAGS) debug_move.c chess.o -o debug_move
+debug_move: debug/debug_move.c chess.o
+	$(CC) $(CFLAGS) -I. debug/debug_move.c chess.o -o debug_move
 
-debug_castle_input: debug_castle_input.c chess.o
-	$(CC) $(CFLAGS) debug_castle_input.c chess.o -o debug_castle_input
+debug_castle_input: debug/debug_castle_input.c chess.o
+	$(CC) $(CFLAGS) -I. debug/debug_castle_input.c chess.o -o debug_castle_input
 
-debug_queenside: debug_queenside.c chess.o
-	$(CC) $(CFLAGS) debug_queenside.c chess.o -o debug_queenside
+debug_queenside: debug/debug_queenside.c chess.o
+	$(CC) $(CFLAGS) -I. debug/debug_queenside.c chess.o -o debug_queenside
 
 clean-debug:
 	rm -f $(DEBUG_TARGETS)
