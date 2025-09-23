@@ -2021,7 +2021,7 @@ void print_help() {
     };
 
     const int total_lines = sizeof(help_lines) / sizeof(help_lines[0]);
-    const int lines_per_page = 11;
+    const int lines_per_page = 15;
     int current_line = 0;
     int page_number = 1;
 
