@@ -873,6 +873,94 @@ int get_key() {
 }
 
 /**
+ * Count moves in a FEN file (simple line count)
+ */
+static int count_fen_moves(const char* filepath) {
+    FILE *file = fopen(filepath, "r");
+    if (!file) return 0;
+
+    int moves = 0;
+    char line[512];
+    while (fgets(line, sizeof(line), file)) {
+        moves++;
+    }
+    fclose(file);
+    return moves;
+}
+
+/**
+ * Count moves in a PGN file (count move numbers like "1.", "2.", etc.)
+ */
+static int count_pgn_moves(const char* filepath) {
+    FILE *file = fopen(filepath, "r");
+    if (!file) return 0;
+
+    int moves = 0;
+    char line[512];
+    bool in_header = true;
+
+    while (fgets(line, sizeof(line), file)) {
+        if (line[0] == '\n' || line[0] == '\r') continue;
+        if (line[0] == '[') {
+            in_header = true;
+            continue;
+        }
+
+        if (in_header && line[0] != '[') {
+            in_header = false;
+        }
+
+        if (!in_header) {
+            char *ptr = line;
+            while (*ptr) {
+                if (isdigit(*ptr)) {
+                    char *end_ptr = ptr;
+                    while (isdigit(*end_ptr)) end_ptr++;
+                    if (*end_ptr == '.') {
+                        moves++;
+                        ptr = end_ptr + 1;
+                    } else {
+                        ptr++;
+                    }
+                } else {
+                    ptr++;
+                }
+            }
+        }
+    }
+    fclose(file);
+    return moves;
+}
+
+/**
+ * Format display name for FEN files (handles CHESS_ timestamp format)
+ */
+static void format_fen_display_name(char* display_name, size_t size, const char* filename, int move_count) {
+    if (strncmp(filename, "CHESS_", 6) == 0) {
+        char date_str[20];
+        char time_str[20];
+
+        if (sscanf(filename, "CHESS_%6s_%6s.fen", date_str, time_str) == 2) {
+            snprintf(display_name, size,
+                     "%.2s/%.2s/%.2s %.2s:%.2s:%.2s - %d moves",
+                     date_str, date_str + 2, date_str + 4,
+                     time_str, time_str + 2, time_str + 4,
+                     move_count);
+            return;
+        }
+    }
+
+    snprintf(display_name, size, "%s - %d moves", filename, move_count);
+}
+
+/**
+ * Format display name for PGN files (simple filename + move count)
+ */
+static void format_pgn_display_name(char* display_name, size_t size, const char* filename, int move_count) {
+    snprintf(display_name, size, "%s - %d moves", filename, move_count);
+}
+
+/**
  * Helper function to scan a single directory for .fen files
  * @param directory_path Path to the directory to scan
  * @param games Pointer to array of FENGameInfo structures
@@ -953,40 +1041,12 @@ int scan_single_directory(const char* directory_path, FENGameInfo **games, int c
                 (*games)[count].timestamp = 0;
             }
 
-            // Count moves in file
-            FILE *file = fopen(full_path, "r");
-            if (file) {
-                int moves = 0;
-                char line[512];
-                while (fgets(line, sizeof(line), file)) {
-                    moves++;
-                }
-                fclose(file);
-                (*games)[count].move_count = moves;
-            } else {
-                (*games)[count].move_count = 0;
-            }
-
-            // Create display name
-            if (strncmp(entry->d_name, "CHESS_", 6) == 0) {
-                // Format CHESS_mmddyy_HHMMSS.fen as readable date/time
-                char date_str[20];
-                char time_str[20];
-
-                if (sscanf(entry->d_name, "CHESS_%6s_%6s.fen", date_str, time_str) == 2) {
-                    snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
-                             "%.2s/%.2s/%.2s %.2s:%.2s:%.2s - %d moves",
-                             date_str, date_str + 2, date_str + 4,
-                             time_str, time_str + 2, time_str + 4,
-                             (*games)[count].move_count);
-                    count++;
-                    continue;
-                }
-            }
-            
-            // Use filename as-is (for non-CHESS files or malformed CHESS_ files)
-            snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
-                     "%s - %d moves", entry->d_name, (*games)[count].move_count);
+            // Count moves and create display name
+            (*games)[count].move_count = count_fen_moves(full_path);
+            format_fen_display_name((*games)[count].display_name,
+                                   sizeof((*games)[count].display_name),
+                                   entry->d_name,
+                                   (*games)[count].move_count);
 
             count++;
         }
@@ -1045,53 +1105,12 @@ int scan_single_directory_pgn(const char* directory_path, PGNGameInfo **games, i
                 (*games)[count].timestamp = 0;
             }
 
-            // Count moves in PGN file (count moves, not just lines)
-            FILE *file = fopen(full_path, "r");
-            if (file) {
-                int moves = 0;
-                char line[512];
-                bool in_header = true;
-
-                while (fgets(line, sizeof(line), file)) {
-                    // Skip empty lines and header lines (lines starting with [)
-                    if (line[0] == '\n' || line[0] == '\r') continue;
-                    if (line[0] == '[') {
-                        in_header = true;
-                        continue;
-                    }
-
-                    if (in_header && line[0] != '[') {
-                        in_header = false;  // Now in move section
-                    }
-
-                    if (!in_header) {
-                        // Count move numbers (like "1.", "2.", etc.)
-                        char *ptr = line;
-                        while (*ptr) {
-                            if (isdigit(*ptr)) {
-                                char *end_ptr = ptr;
-                                while (isdigit(*end_ptr)) end_ptr++;
-                                if (*end_ptr == '.') {
-                                    moves++;
-                                    ptr = end_ptr + 1;
-                                } else {
-                                    ptr++;
-                                }
-                            } else {
-                                ptr++;
-                            }
-                        }
-                    }
-                }
-                fclose(file);
-                (*games)[count].move_count = moves;
-            } else {
-                (*games)[count].move_count = 0;
-            }
-
-            // Create display name - PGN files typically have descriptive names
-            snprintf((*games)[count].display_name, sizeof((*games)[count].display_name),
-                     "%s - %d moves", entry->d_name, (*games)[count].move_count);
+            // Count moves and create display name
+            (*games)[count].move_count = count_pgn_moves(full_path);
+            format_pgn_display_name((*games)[count].display_name,
+                                   sizeof((*games)[count].display_name),
+                                   entry->d_name,
+                                   (*games)[count].move_count);
 
             count++;
         }
