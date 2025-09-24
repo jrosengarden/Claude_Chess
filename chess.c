@@ -856,29 +856,18 @@ void calculate_captured_pieces(ChessGame *game) {
  * @param fen Valid FEN string
  * @return true if successful, false if parsing failed
  */
-bool setup_board_from_fen(ChessGame *game, const char* fen) {
-    if (!validate_fen_string(fen)) {
-        return false;
-    }
-    
-    // Initialize king positions to invalid values
-    game->white_king_pos.row = -1;
-    game->white_king_pos.col = -1;
-    game->black_king_pos.row = -1;
-    game->black_king_pos.col = -1;
-    
-    // Clear the board
-    for (int row = 0; row < BOARD_SIZE; row++) {
-        for (int col = 0; col < BOARD_SIZE; col++) {
-            game->board[row][col].type = EMPTY;
-            game->board[row][col].color = WHITE;
-        }
-    }
-    
-    // Parse board position
+/**
+ * Parse FEN board position (piece placement field)
+ * Parses the first field of FEN notation and updates board state with piece positions
+ *
+ * @param game Game state to update with parsed pieces
+ * @param fen_ptr Pointer to start of FEN string
+ * @return Pointer to the character after board position field (typically a space)
+ */
+static const char* parse_fen_board_position(ChessGame *game, const char* fen_ptr) {
     int row = 0, col = 0;
-    const char* ptr = fen;
-    
+    const char* ptr = fen_ptr;
+
     while (*ptr && *ptr != ' ' && row < BOARD_SIZE) {
         if (*ptr == '/') {
             row++;
@@ -888,12 +877,11 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
         } else {
             PieceType piece_type = char_to_piece_type(tolower(*ptr));
             Color piece_color = isupper(*ptr) ? WHITE : BLACK;
-            
+
             if (row < BOARD_SIZE && col < BOARD_SIZE) {
                 game->board[row][col].type = piece_type;
                 game->board[row][col].color = piece_color;
-                
-                // Track king positions for efficient check detection
+
                 if (piece_type == KING) {
                     if (piece_color == WHITE) {
                         game->white_king_pos.row = row;
@@ -908,32 +896,45 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
         }
         ptr++;
     }
-    
-    // Parse active color (whose turn it is)
+
+    return ptr;
+}
+
+/**
+ * Parse FEN metadata fields (active color, castling, en passant, counters)
+ * Parses all fields after board position and updates game state
+ *
+ * @param game Game state to update with parsed metadata
+ * @param fen_ptr Pointer to start of metadata fields (after board position)
+ */
+static void parse_fen_metadata(ChessGame *game, const char* fen_ptr) {
+    const char* ptr = fen_ptr;
+
+    // Parse active color
     if (*ptr == ' ') ptr++;
     if (*ptr == 'w' || *ptr == 'W') {
         game->current_player = WHITE;
     } else if (*ptr == 'b' || *ptr == 'B') {
         game->current_player = BLACK;
     } else {
-        game->current_player = WHITE; // Default to white
+        game->current_player = WHITE;
     }
-    
+
     // Skip to castling rights
     while (*ptr && *ptr != ' ') ptr++;
     if (*ptr == ' ') ptr++;
-    
-    // Parse castling rights and set movement flags accordingly
-    game->white_king_moved = true;   // Assume moved unless castling available
-    game->black_king_moved = true;   // Assume moved unless castling available
+
+    // Parse castling rights
+    game->white_king_moved = true;
+    game->black_king_moved = true;
     game->white_rook_a_moved = true;
     game->white_rook_h_moved = true;
     game->black_rook_a_moved = true;
     game->black_rook_h_moved = true;
-    
+
     while (*ptr && *ptr != ' ') {
         switch (*ptr) {
-            case 'K': 
+            case 'K':
                 game->white_king_moved = false;
                 game->white_rook_h_moved = false;
                 break;
@@ -952,15 +953,14 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
         }
         ptr++;
     }
-    
+
     // Parse en passant target square
-    while (*ptr && *ptr == ' ') ptr++;  // Skip spaces
+    while (*ptr && *ptr == ' ') ptr++;
     game->en_passant_available = false;
     game->en_passant_target.row = -1;
     game->en_passant_target.col = -1;
-    
+
     if (*ptr && *ptr != '-' && *ptr != ' ') {
-        // Parse en passant square (e.g., "e3" or "d6")
         if (*ptr >= 'a' && *ptr <= 'h') {
             char file = *ptr;
             ptr++;
@@ -973,40 +973,64 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
             }
         }
     }
-    // Skip any remaining characters in the en passant field
     while (*ptr && *ptr != ' ') ptr++;
-    
+
     // Parse halfmove clock
-    while (*ptr && *ptr == ' ') ptr++;  // Skip spaces
+    while (*ptr && *ptr == ' ') ptr++;
     if (*ptr && isdigit(*ptr)) {
         game->halfmove_clock = atoi(ptr);
-        while (*ptr && isdigit(*ptr)) ptr++;  // Skip past the number
+        while (*ptr && isdigit(*ptr)) ptr++;
     } else {
-        game->halfmove_clock = 0;  // Default value
+        game->halfmove_clock = 0;
     }
-    
+
     // Parse fullmove number
-    while (*ptr && *ptr == ' ') ptr++;  // Skip spaces
+    while (*ptr && *ptr == ' ') ptr++;
     if (*ptr && isdigit(*ptr)) {
         game->fullmove_number = atoi(ptr);
-        while (*ptr && isdigit(*ptr)) ptr++;  // Skip past the number
+        while (*ptr && isdigit(*ptr)) ptr++;
     } else {
-        game->fullmove_number = 1;  // Default value
+        game->fullmove_number = 1;
     }
-    
+}
+
+bool setup_board_from_fen(ChessGame *game, const char* fen) {
+    if (!validate_fen_string(fen)) {
+        return false;
+    }
+
+    // Initialize king positions to invalid values
+    game->white_king_pos.row = -1;
+    game->white_king_pos.col = -1;
+    game->black_king_pos.row = -1;
+    game->black_king_pos.col = -1;
+
+    // Clear the board
+    for (int row = 0; row < BOARD_SIZE; row++) {
+        for (int col = 0; col < BOARD_SIZE; col++) {
+            game->board[row][col].type = EMPTY;
+            game->board[row][col].color = WHITE;
+        }
+    }
+
+    // Parse board position (piece placement)
+    const char* ptr = parse_fen_board_position(game, fen);
+
+    // Parse metadata fields (active color, castling, en passant, counters)
+    parse_fen_metadata(game, ptr);
+
     // Calculate captured pieces based on current board position
     calculate_captured_pieces(game);
-    
+
     // Verify both kings were found during parsing
     if (game->white_king_pos.row == -1 || game->black_king_pos.row == -1) {
-        return false;  // Invalid FEN - missing king(s)
+        return false;
     }
-    
-    // Update check status  
+
+    // Update check status
     game->in_check[WHITE] = is_in_check(game, WHITE);
     game->in_check[BLACK] = is_in_check(game, BLACK);
-    
-    
+
     return true;
 }
 
