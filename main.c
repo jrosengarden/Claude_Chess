@@ -2109,12 +2109,390 @@ bool is_stalemate(ChessGame *game, Color color) {
 }
 
 /**
+ * Handle game commands during White's turn
+ * Processes all non-move commands (help, hint, fen, quit, etc.)
+ *
+ * @param input User input string to process
+ * @param game Current game state
+ * @param engine Stockfish engine for command processing
+ * @return true if command was handled, false if input should be treated as a move
+ */
+bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *engine) {
+    if (strcmp(input, "quit") == 0) {
+        cleanup_persistent_pgn_file();
+
+        if (!suppress_pgn_creation) {
+            convert_fen_to_pgn();
+        }
+
+        if (delete_fen_on_exit) {
+            unlink(fen_log_filename);
+        }
+
+        show_game_files();
+        exit(0);
+    }
+
+    if (strcmp(input, "help") == 0) {
+        clear_screen();
+        print_help();
+        printf("Press Enter to continue...");
+        getchar();
+        return true;
+    }
+
+    if (strcmp(input, "hint") == 0) {
+        printf("\nGetting hint from Stockfish...");
+        fflush(stdout);
+
+        char hint_move[10];
+        if (get_best_move(engine, game, hint_move, debug_mode)) {
+            if (debug_mode) {
+                printf("\nDebug: Stockfish returned hint: '%s'\n", hint_move);
+            }
+            Move suggested_move = parse_move_string(hint_move);
+            if (debug_mode) {
+                printf("Debug: Parsed hint from (%d,%d) to (%d,%d)\n",
+                       suggested_move.from.row, suggested_move.from.col,
+                       suggested_move.to.row, suggested_move.to.col);
+            }
+            char from_str[4], to_str[4];
+            strcpy(from_str, position_to_string(suggested_move.from));
+            strcpy(to_str, position_to_string(suggested_move.to));
+            printf("\nStockfish suggests: %s to %s\n", from_str, to_str);
+        } else {
+            printf("\nSorry, couldn't get a hint from Stockfish.\n");
+        }
+
+        printf("Press Enter to continue...");
+        getchar();
+        return true;
+    }
+
+    if (strcmp(input, "scale") == 0 || strcmp(input, "SCALE") == 0) {
+        clear_screen();
+        print_scale_chart();
+        printf("\nPress Enter to continue...");
+        getchar();
+        return true;
+    }
+
+    if (strncmp(input, "skill ", 6) == 0 || strncmp(input, "SKILL ", 6) == 0) {
+        if (game_started) {
+            printf("\nSkill level cannot be changed after the game has started!\n");
+            printf("Use this command only before making your first move.\n");
+        } else {
+            const char *level_str = input + 6;
+            int skill_level = atoi(level_str);
+
+            if (skill_level >= 0 && skill_level <= 20) {
+                if (set_skill_level(engine, skill_level)) {
+                    current_skill_level = skill_level;
+                    printf("\nStockfish skill level set to %d (0=easiest, 20=strongest)\n", skill_level);
+                } else {
+                    printf("\nFailed to set skill level. Make sure Stockfish is ready.\n");
+                }
+            } else {
+                printf("\nInvalid skill level. Please enter a number from 0 to 20.\n");
+                printf("0 = easiest, 20 = strongest (default)\n");
+            }
+        }
+        printf("Press Enter to continue...");
+        getchar();
+        return true;
+    }
+
+    if (strncmp(input, "time ", 5) == 0 || strncmp(input, "TIME ", 5) == 0) {
+        if (game_started) {
+            printf("\nTime controls cannot be changed after the game has started!\n");
+            printf("Use this command only before making your first move.\n");
+        } else {
+            const char *time_str = input + 5;
+            TimeControl new_time_control;
+
+            if (parse_time_control(time_str, &new_time_control)) {
+            game->time_control = new_time_control;
+
+            if (new_time_control.enabled) {
+                if (new_time_control.white_minutes == new_time_control.black_minutes &&
+                    new_time_control.white_increment == new_time_control.black_increment) {
+                    printf("\nTime controls set: %d minutes + %d second increment (both players)\n",
+                           new_time_control.white_minutes, new_time_control.white_increment);
+                } else {
+                    printf("\nTime controls set:\n");
+                    printf("  White: %d minutes + %d second increment\n",
+                           new_time_control.white_minutes, new_time_control.white_increment);
+                    printf("  Black: %d minutes + %d second increment\n",
+                           new_time_control.black_minutes, new_time_control.black_increment);
+                }
+                init_game_timer(game, &new_time_control);
+            } else {
+                printf("\nTime controls disabled\n");
+            }
+        } else {
+            printf("\nInvalid time control format. Use:\n");
+            printf("  TIME xx/yy (same for both players)\n");
+            printf("  TIME xx/yy/zz/ww (White: xx/yy, Black: zz/ww)\n");
+            printf("Examples:\n");
+            printf("  TIME 15/5 (both get 15 min + 5 sec increment)\n");
+            printf("  TIME 30/10/5/0 (White: 30/10, Black: 5/0)\n");
+            printf("  TIME 0/0 (disable time controls)\n");
+            }
+        }
+        printf("Press Enter to continue...");
+        getchar();
+        return true;
+    }
+
+    if (strcmp(input, "fen") == 0 || strcmp(input, "FEN") == 0) {
+        char *fen = board_to_fen(game);
+        printf("\nCurrent FEN: %s\n", fen);
+        printf("Press Enter to continue...");
+        getchar();
+        return true;
+    }
+
+    if (strcmp(input, "pgn") == 0 || strcmp(input, "PGN") == 0) {
+        printf("\nGenerating current game PGN notation...");
+        fflush(stdout);
+
+        char* pgn_content = convert_fen_to_pgn_string(fen_log_filename);
+        if (pgn_content) {
+            if (display_pgn_in_new_window(pgn_content)) {
+                printf("Close the PGN window when you're done viewing.\n");
+            } else {
+                printf("\nCould not open new window, displaying full-screen instead.\n");
+                clear_screen();
+                printf("Current Game in PGN Format:\n");
+                printf("==================================================\n");
+                printf("%s\n", pgn_content);
+                printf("==================================================\n");
+                printf("\nPress Enter to continue...");
+                getchar();
+            }
+            free(pgn_content);
+        } else {
+            printf("\nError: Could not generate PGN notation from current game.\n");
+            printf("Press Enter to continue...");
+            getchar();
+        }
+        return true;
+    }
+
+    if (strcmp(input, "score") == 0 || strcmp(input, "SCORE") == 0) {
+        printf("\nGetting evaluation from Stockfish...");
+        fflush(stdout);
+
+        int centipawn_score;
+        if (get_position_evaluation(engine, game, &centipawn_score)) {
+            int scale_score = centipawns_to_scale(centipawn_score);
+            printf("\nCurrent Game Evaluation (Stockfish depth 15):\n");
+            if (debug_mode) {
+                printf("DEBUG: Raw centipawn score: %+d\n", centipawn_score);
+            }
+            print_evaluation_line(scale_score);
+        } else {
+            printf("\nSorry, couldn't get evaluation from Stockfish.\n");
+            printf("Showing neutral position:\n");
+            print_evaluation_line(0);
+        }
+        printf("Press Enter to continue...");
+        getchar();
+        return true;
+    }
+
+    if (strcmp(input, "title") == 0 || strcmp(input, "TITLE") == 0) {
+        clear_screen();
+
+        printf("=== Claude Chess (%s) with Stockfish AI ===\n",version_string);
+        printf("You play as White, AI plays as Black\n");
+        printf("Stockfish engine is running successfully!\n");
+
+        if (debug_mode) {
+            printf("*** DEBUG MODE ENABLED ***\n");
+        }
+
+        printf("\nPress Enter to continue...");
+        getchar();
+        return true;
+    }
+
+    if (strcmp(input, "credits") == 0 || strcmp(input, "CREDITS") == 0) {
+        clear_screen();
+
+        printf("=== Claude Chess Credits===\n\n\n");
+        printf("Version:                %s\n",version_string);
+        printf("Designed by:            Jeff Rosengarden\n");
+        printf("Programming:            Jeff Rosengarden\n");
+        printf("Programming assistance: Claude-Code AI\n");
+        printf("Chess Engine:           Stockfish (v17.1)\n");
+        printf("                            (special thanks to the Stockfish team for their incredible open-source engine!)\n");
+
+
+        if (debug_mode) {
+            printf("*** DEBUG MODE ENABLED ***\n");
+        }
+
+        printf("\nPress Enter to continue...");
+        getchar();
+        return true;
+    }
+
+    if (strcmp(input, "load") == 0 || strcmp(input, "LOAD") == 0) {
+        handle_load_help_command();
+        return true;
+    }
+
+    if (strcmp(input, "load fen") == 0 || strcmp(input, "LOAD FEN") == 0) {
+        handle_load_fen_command(game);
+        return true;
+    }
+
+    if (strcmp(input, "load pgn") == 0 || strcmp(input, "LOAD PGN") == 0) {
+        handle_load_pgn_command(game);
+        return true;
+    }
+
+    if (strcmp(input, "undo") == 0 || strcmp(input, "UNDO") == 0) {
+        int available_undos = count_available_undos();
+
+        if (available_undos > 0) {
+            if (available_undos > 1) {
+                printf("\nYou can undo up to %d move pairs. How many would you like to undo? (1-%d): ",
+                       available_undos, available_undos);
+                fflush(stdout);
+
+                char undo_input[10];
+                if (fgets(undo_input, sizeof(undo_input), stdin)) {
+                    int undo_count = atoi(undo_input);
+                    if (undo_count >= 1 && undo_count <= available_undos) {
+                        truncate_fen_log_by_moves(undo_count);
+                        if (restore_from_fen_log(game)) {
+                            if (is_time_control_enabled(game)) {
+                                game->time_control.enabled = false;
+                                game->timer.timing_active = false;
+                                printf("\n%d move pair%s undone! Restored to previous position.\n",
+                                       undo_count, undo_count > 1 ? "s" : "");
+                                printf("Time controls have been disabled for the remainder of this game.\n");
+                            } else {
+                                printf("\n%d move pair%s undone! Restored to previous position.\n",
+                                       undo_count, undo_count > 1 ? "s" : "");
+                            }
+                        } else {
+                            printf("\nError restoring game state from FEN log.\n");
+                        }
+                    } else {
+                        printf("\nInvalid undo count. Must be between 1 and %d.\n", available_undos);
+                    }
+                } else {
+                    printf("\nFailed to read undo count.\n");
+                }
+            } else {
+                truncate_fen_log_by_moves(1);
+                if (restore_from_fen_log(game)) {
+                    if (is_time_control_enabled(game)) {
+                        game->time_control.enabled = false;
+                        game->timer.timing_active = false;
+                        printf("\nMove pair undone! Restored to previous position.\n");
+                        printf("Time controls have been disabled for the remainder of this game.\n");
+                    } else {
+                        printf("\nMove pair undone! Restored to previous position.\n");
+                    }
+                } else {
+                    printf("\nError restoring game state from FEN log.\n");
+                }
+            }
+        } else {
+            printf("\nNo moves to undo!\n");
+        }
+        printf("Press Enter to continue...");
+        getchar();
+        return true;
+    }
+
+    if (strcmp(input, "resign") == 0 || strcmp(input, "RESIGN") == 0) {
+        printf("\nYou are indicating that you are resigning the game. Are you sure?\n");
+        printf("Type 'YES' to resign or 'NO' to cancel: ");
+        fflush(stdout);
+
+        char confirmation[10];
+        if (!fgets(confirmation, sizeof(confirmation), stdin)) {
+            printf("Failed to read confirmation.\n");
+            printf("Press Enter to continue...");
+            getchar();
+            return true;
+        }
+
+        confirmation[strcspn(confirmation, "\n")] = '\0';
+
+        if (strcmp(confirmation, "YES") == 0 || strcmp(confirmation, "yes") == 0) {
+            printf("\n*** WHITE RESIGNS! BLACK WINS! ***\n");
+            printf("Game ended by resignation.\n");
+
+            cleanup_persistent_pgn_file();
+
+            if (!suppress_pgn_creation) {
+                convert_fen_to_pgn();
+            }
+
+            if (delete_fen_on_exit) {
+                unlink(fen_log_filename);
+            }
+
+            show_game_files();
+
+            printf("Press Enter to exit...");
+            getchar();
+            exit(0);
+        } else {
+            printf("\nResignation cancelled. Game continues.\n");
+            printf("Press Enter to continue...");
+            getchar();
+            return true;
+        }
+    }
+
+    if (strcmp(input, "setup") == 0 || strcmp(input, "SETUP") == 0) {
+        char fen_input[256];
+        printf("\nEnter FEN string for board setup: ");
+        fflush(stdout);
+
+        if (!fgets(fen_input, sizeof(fen_input), stdin)) {
+            printf("Failed to read FEN string.\n");
+            printf("Press Enter to continue...");
+            getchar();
+            return true;
+        }
+
+        fen_input[strcspn(fen_input, "\n")] = '\0';
+
+        if (setup_board_from_fen(game, fen_input)) {
+            printf("\nBoard setup successful from FEN: %s\n", fen_input);
+
+            reset_fen_log_for_setup(game);
+            printf("New FEN log file created: %s\n", fen_log_filename);
+
+            printf("\nGame will continue from this custom position.\n");
+        } else {
+            printf("\nInvalid FEN string! Board setup failed.\n");
+            printf("Please check FEN format and try again.\n");
+        }
+
+        printf("Press Enter to continue...");
+        getchar();
+        return true;
+    }
+
+    return false;
+}
+
+/**
  * Handle human player's turn (White pieces)
  * Processes user input for moves and commands including:
  * - Standard chess moves (e.g., "e2 e4")
  * - Interactive commands (help, hint, fen, undo, title, quit)
  * - Piece position queries (e.g., "e2" to show possible moves)
- * 
+ *
  * @param game Current game state
  * @param engine Stockfish engine for hint generation
  */
@@ -2136,392 +2514,12 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     if (strlen(input) == 0) {
         return;
     }
-    
-    if (strcmp(input, "quit") == 0) {
-        // Clean up persistent PGN file and handle file creation/deletion based on flags
-        cleanup_persistent_pgn_file();
 
-        // Create PGN file unless suppressed by PGNOFF
-        if (!suppress_pgn_creation) {
-            convert_fen_to_pgn();
-        }
-
-        // Delete FEN file if requested by FENOFF (after PGN creation)
-        if (delete_fen_on_exit) {
-            unlink(fen_log_filename);
-        }
-
-        show_game_files();
-        exit(0);
-    }
-    
-    if (strcmp(input, "help") == 0) {
-        clear_screen();
-        print_help();
-        printf("Press Enter to continue...");
-        getchar();
+    // Handle all game commands (quit, help, hint, etc.)
+    if (handle_game_commands(input, game, engine)) {
         return;
     }
 
-    if (strcmp(input, "hint") == 0) {
-        printf("\nGetting hint from Stockfish...");
-        fflush(stdout);
-        
-        char hint_move[10];
-        if (get_best_move(engine, game, hint_move, debug_mode)) {
-            if (debug_mode) {
-                printf("\nDebug: Stockfish returned hint: '%s'\n", hint_move);
-            }
-            Move suggested_move = parse_move_string(hint_move);
-            if (debug_mode) {
-                printf("Debug: Parsed hint from (%d,%d) to (%d,%d)\n", 
-                       suggested_move.from.row, suggested_move.from.col, 
-                       suggested_move.to.row, suggested_move.to.col);
-            }
-            char from_str[4], to_str[4];
-            strcpy(from_str, position_to_string(suggested_move.from));
-            strcpy(to_str, position_to_string(suggested_move.to));
-            printf("\nStockfish suggests: %s to %s\n", from_str, to_str);
-        } else {
-            printf("\nSorry, couldn't get a hint from Stockfish.\n");
-        }
-        
-        printf("Press Enter to continue...");
-        getchar();
-        return;
-    }
-    
-    if (strcmp(input, "scale") == 0 || strcmp(input, "SCALE") == 0) {
-        clear_screen();
-        print_scale_chart();
-        printf("\nPress Enter to continue...");
-        getchar();
-        return;
-    }
-    
-    if (strncmp(input, "skill ", 6) == 0 || strncmp(input, "SKILL ", 6) == 0) {
-        if (game_started) {
-            printf("\nSkill level cannot be changed after the game has started!\n");
-            printf("Use this command only before making your first move.\n");
-        } else {
-            char *level_str = input + 6;  // Skip "skill "
-            int skill_level = atoi(level_str);
-            
-            if (skill_level >= 0 && skill_level <= 20) {
-                if (set_skill_level(engine, skill_level)) {
-                    current_skill_level = skill_level;  // Update global tracking
-                    printf("\nStockfish skill level set to %d (0=easiest, 20=strongest)\n", skill_level);
-                } else {
-                    printf("\nFailed to set skill level. Make sure Stockfish is ready.\n");
-                }
-            } else {
-                printf("\nInvalid skill level. Please enter a number from 0 to 20.\n");
-                printf("0 = easiest, 20 = strongest (default)\n");
-            }
-        }
-        printf("Press Enter to continue...");
-        getchar();
-        return;
-    }
-
-    if (strncmp(input, "time ", 5) == 0 || strncmp(input, "TIME ", 5) == 0) {
-        if (game_started) {
-            printf("\nTime controls cannot be changed after the game has started!\n");
-            printf("Use this command only before making your first move.\n");
-        } else {
-            char *time_str = input + 5;  // Skip "time "
-            TimeControl new_time_control;
-
-            if (parse_time_control(time_str, &new_time_control)) {
-            // Update game time control settings
-            game->time_control = new_time_control;
-
-            if (new_time_control.enabled) {
-                if (new_time_control.white_minutes == new_time_control.black_minutes &&
-                    new_time_control.white_increment == new_time_control.black_increment) {
-                    printf("\nTime controls set: %d minutes + %d second increment (both players)\n",
-                           new_time_control.white_minutes, new_time_control.white_increment);
-                } else {
-                    printf("\nTime controls set:\n");
-                    printf("  White: %d minutes + %d second increment\n",
-                           new_time_control.white_minutes, new_time_control.white_increment);
-                    printf("  Black: %d minutes + %d second increment\n",
-                           new_time_control.black_minutes, new_time_control.black_increment);
-                }
-                // Initialize timer with new settings
-                init_game_timer(game, &new_time_control);
-            } else {
-                printf("\nTime controls disabled\n");
-            }
-        } else {
-            printf("\nInvalid time control format. Use:\n");
-            printf("  TIME xx/yy (same for both players)\n");
-            printf("  TIME xx/yy/zz/ww (White: xx/yy, Black: zz/ww)\n");
-            printf("Examples:\n");
-            printf("  TIME 15/5 (both get 15 min + 5 sec increment)\n");
-            printf("  TIME 30/10/5/0 (White: 30/10, Black: 5/0)\n");
-            printf("  TIME 0/0 (disable time controls)\n");
-            }
-        }
-        printf("Press Enter to continue...");
-        getchar();
-        return;
-    }
-
-    if (strcmp(input, "fen") == 0 || strcmp(input, "FEN") == 0) {
-        char *fen = board_to_fen(game);
-        printf("\nCurrent FEN: %s\n", fen);
-        printf("Press Enter to continue...");
-        getchar();
-        return;
-    }
-
-    if (strcmp(input, "pgn") == 0 || strcmp(input, "PGN") == 0) {
-        printf("\nGenerating current game PGN notation...");
-        fflush(stdout);
-
-        char* pgn_content = convert_fen_to_pgn_string(fen_log_filename);
-        if (pgn_content) {
-            // Try to display in new terminal window first
-            if (display_pgn_in_new_window(pgn_content)) {
-                // Success - new window opened
-                // Chess board remains visible, automatically return when PGN window closes
-                printf("Close the PGN window when you're done viewing.\n");
-            } else {
-                // Fallback to full-screen display (original method)
-                printf("\nCould not open new window, displaying full-screen instead.\n");
-                clear_screen();
-                printf("Current Game in PGN Format:\n");
-                printf("==================================================\n");
-                printf("%s\n", pgn_content);
-                printf("==================================================\n");
-                printf("\nPress Enter to continue...");
-                getchar();
-            }
-            free(pgn_content);
-        } else {
-            printf("\nError: Could not generate PGN notation from current game.\n");
-            printf("Press Enter to continue...");
-            getchar();
-        }
-        return;
-    }
-    
-    if (strcmp(input, "score") == 0 || strcmp(input, "SCORE") == 0) {
-        printf("\nGetting evaluation from Stockfish...");
-        fflush(stdout);
-        
-        int centipawn_score;
-        if (get_position_evaluation(engine, game, &centipawn_score)) {
-            int scale_score = centipawns_to_scale(centipawn_score);
-            printf("\nCurrent Game Evaluation (Stockfish depth 15):\n");
-            if (debug_mode) {
-                printf("DEBUG: Raw centipawn score: %+d\n", centipawn_score);
-            }
-            print_evaluation_line(scale_score);
-        } else {
-            printf("\nSorry, couldn't get evaluation from Stockfish.\n");
-            printf("Showing neutral position:\n");
-            print_evaluation_line(0);
-        }
-        printf("Press Enter to continue...");
-        getchar();
-        return;
-    }
-    
-    if (strcmp(input, "title") == 0 || strcmp(input, "TITLE") == 0) {
-        clear_screen();
-        
-        printf("=== Claude Chess (%s) with Stockfish AI ===\n",version_string);
-        printf("You play as White, AI plays as Black\n");
-        printf("Stockfish engine is running successfully!\n");
-        
-        if (debug_mode) {
-            printf("*** DEBUG MODE ENABLED ***\n");
-        }
-        
-        printf("\nPress Enter to continue...");
-        getchar();
-        return;
-    }
-
-        if (strcmp(input, "credits") == 0 || strcmp(input, "CREDITS") == 0) {
-        clear_screen();
-        
-        printf("=== Claude Chess Credits===\n\n\n");
-        printf("Version:                %s\n",version_string);
-        printf("Designed by:            Jeff Rosengarden\n");
-        printf("Programming:            Jeff Rosengarden\n");
-        printf("Programming assistance: Claude-Code AI\n");
-        printf("Chess Engine:           Stockfish (v17.1)\n");
-        printf("                            (special thanks to the Stockfish team for their incredible open-source engine!)\n");
-
-        
-        if (debug_mode) {
-            printf("*** DEBUG MODE ENABLED ***\n");
-        }
-        
-        printf("\nPress Enter to continue...");
-        getchar();
-        return;
-    }
-
-    if (strcmp(input, "load") == 0 || strcmp(input, "LOAD") == 0) {
-        handle_load_help_command();
-        return;
-    }
-
-    if (strcmp(input, "load fen") == 0 || strcmp(input, "LOAD FEN") == 0) {
-        handle_load_fen_command(game);
-        return;
-    }
-
-    if (strcmp(input, "load pgn") == 0 || strcmp(input, "LOAD PGN") == 0) {
-        handle_load_pgn_command(game);
-        return;
-    }
-
-    if (strcmp(input, "undo") == 0 || strcmp(input, "UNDO") == 0) {
-        int available_undos = count_available_undos();
-        
-        if (available_undos > 0) {
-            // Ask how many move pairs to undo for unlimited undo
-            if (available_undos > 1) {
-                printf("\nYou can undo up to %d move pairs. How many would you like to undo? (1-%d): ", 
-                       available_undos, available_undos);
-                fflush(stdout);
-                
-                char undo_input[10];
-                if (fgets(undo_input, sizeof(undo_input), stdin)) {
-                    int undo_count = atoi(undo_input);
-                    if (undo_count >= 1 && undo_count <= available_undos) {
-                        truncate_fen_log_by_moves(undo_count);
-                        if (restore_from_fen_log(game)) {
-                            // Disable time controls for remainder of game after undo
-                            if (is_time_control_enabled(game)) {
-                                game->time_control.enabled = false;
-                                game->timer.timing_active = false;
-                                printf("\n%d move pair%s undone! Restored to previous position.\n",
-                                       undo_count, undo_count > 1 ? "s" : "");
-                                printf("Time controls have been disabled for the remainder of this game.\n");
-                            } else {
-                                printf("\n%d move pair%s undone! Restored to previous position.\n",
-                                       undo_count, undo_count > 1 ? "s" : "");
-                            }
-                        } else {
-                            printf("\nError restoring game state from FEN log.\n");
-                        }
-                    } else {
-                        printf("\nInvalid undo count. Must be between 1 and %d.\n", available_undos);
-                    }
-                } else {
-                    printf("\nFailed to read undo count.\n");
-                }
-            } else {
-                // Single undo available
-                truncate_fen_log_by_moves(1);
-                if (restore_from_fen_log(game)) {
-                    // Disable time controls for remainder of game after undo
-                    if (is_time_control_enabled(game)) {
-                        game->time_control.enabled = false;
-                        game->timer.timing_active = false;
-                        printf("\nMove pair undone! Restored to previous position.\n");
-                        printf("Time controls have been disabled for the remainder of this game.\n");
-                    } else {
-                        printf("\nMove pair undone! Restored to previous position.\n");
-                    }
-                } else {
-                    printf("\nError restoring game state from FEN log.\n");
-                }
-            }
-        } else {
-            printf("\nNo moves to undo!\n");
-        }
-        printf("Press Enter to continue...");
-        getchar();
-        return;
-    }
-    
-    if (strcmp(input, "resign") == 0 || strcmp(input, "RESIGN") == 0) {
-        printf("\nYou are indicating that you are resigning the game. Are you sure?\n");
-        printf("Type 'YES' to resign or 'NO' to cancel: ");
-        fflush(stdout);
-        
-        char confirmation[10];
-        if (!fgets(confirmation, sizeof(confirmation), stdin)) {
-            printf("Failed to read confirmation.\n");
-            printf("Press Enter to continue...");
-            getchar();
-            return;
-        }
-        
-        // Remove newline character
-        confirmation[strcspn(confirmation, "\n")] = '\0';
-        
-        if (strcmp(confirmation, "YES") == 0 || strcmp(confirmation, "yes") == 0) {
-            printf("\n*** WHITE RESIGNS! BLACK WINS! ***\n");
-            printf("Game ended by resignation.\n");
-
-            // Clean up persistent PGN file and handle file creation/deletion based on flags
-            cleanup_persistent_pgn_file();
-
-            // Create PGN file unless suppressed by PGNOFF
-            if (!suppress_pgn_creation) {
-                convert_fen_to_pgn();
-            }
-
-            // Delete FEN file if requested by FENOFF (after PGN creation)
-            if (delete_fen_on_exit) {
-                unlink(fen_log_filename);
-            }
-
-            show_game_files();
-
-            printf("Press Enter to exit...");
-            getchar();
-            exit(0);
-        } else {
-            printf("\nResignation cancelled. Game continues.\n");
-            printf("Press Enter to continue...");
-            getchar();
-            return;
-        }
-    }
-    
-    if (strcmp(input, "setup") == 0 || strcmp(input, "SETUP") == 0) {
-        char fen_input[256];
-        printf("\nEnter FEN string for board setup: ");
-        fflush(stdout);
-        
-        if (!fgets(fen_input, sizeof(fen_input), stdin)) {
-            printf("Failed to read FEN string.\n");
-            printf("Press Enter to continue...");
-            getchar();
-            return;
-        }
-        
-        // Remove newline character
-        fen_input[strcspn(fen_input, "\n")] = '\0';
-        
-        // Validate and setup board from FEN
-        if (setup_board_from_fen(game, fen_input)) {
-            printf("\nBoard setup successful from FEN: %s\n", fen_input);
-            
-            // Reset FEN logging with new position
-            reset_fen_log_for_setup(game);
-            printf("New FEN log file created: %s\n", fen_log_filename);
-            
-            printf("\nGame will continue from this custom position.\n");
-        } else {
-            printf("\nInvalid FEN string! Board setup failed.\n");
-            printf("Please check FEN format and try again.\n");
-        }
-        
-        printf("Press Enter to continue...");
-        getchar();
-        return;
-    }
-    
     if (strlen(input) == 2) {
         Position from = char_to_position(input);
         if (is_valid_position(from.row, from.col) && is_piece_at(game, from.row, from.col)) {
