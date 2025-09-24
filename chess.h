@@ -199,7 +199,7 @@ int get_king_moves_no_castling(ChessGame *game, Position from, Position moves[])
 // Display and formatting utilities
 void print_captured_pieces(CapturedPieces *captured, const char* color_code, const char* player_name, ChessGame* game);  // Display captured pieces for UI
 char piece_to_char(Piece piece);  // Convert piece to display character
-Position char_to_position(char *input);  // Convert algebraic notation (e.g. "e4") to Position
+Position char_to_position(const char *input);  // Convert algebraic notation (e.g. "e4") to Position
 char *position_to_string(Position pos);  // Convert Position to algebraic notation string
 
 

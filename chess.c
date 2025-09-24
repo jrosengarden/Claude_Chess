@@ -703,9 +703,9 @@ void print_captured_pieces(CapturedPieces *captured, const char* color_code, con
     printf("\n");
 }
 
-Position char_to_position(char *input) {
+Position char_to_position(const char *input) {
     Position pos = {-1, -1};
-    
+
     if (strlen(input) != 2) return pos;
     
     char col_char = input[0];

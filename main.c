@@ -2487,6 +2487,99 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
 }
 
 /**
+ * Display possible moves for a given square
+ * Shows the board with highlighted legal moves from the specified position
+ *
+ * @param input Single square position (e.g., "e2")
+ * @param game Current game state
+ * @return true if successfully displayed moves, false otherwise
+ */
+bool handle_show_possible_moves(const char *input, ChessGame *game) {
+    Position from = char_to_position(input);
+    if (is_valid_position(from.row, from.col) && is_piece_at(game, from.row, from.col)) {
+        Piece piece = get_piece_at(game, from.row, from.col);
+        if (piece.color == WHITE) {
+            Position possible_moves[64];
+            int move_count = 0;
+
+            Position all_moves[64];
+            int all_count = get_possible_moves(game, from, all_moves);
+
+            for (int i = 0; i < all_count; i++) {
+                if (!would_be_in_check_after_move(game, from, all_moves[i])) {
+                    possible_moves[move_count++] = all_moves[i];
+                }
+            }
+
+            clear_screen();
+            printf("\n=== Claude Chess ===\n");
+            printf("Current player: %s\n", game->current_player == WHITE ? "WHITE" : "BLACK");
+
+            printf("\n");
+            print_captured_pieces(&game->black_captured, "\033[1;96m", "Black", game);
+            print_captured_pieces(&game->white_captured, "\033[1;95m", "White", game);
+
+            if (game->in_check[WHITE]) {
+                printf("\nYour king is in check! You can only make moves that get out of check.\n");
+            }
+
+            print_board(game, possible_moves, move_count);
+
+            if (move_count > 0) {
+                printf("\nPossible moves from %s:\n", position_to_string(from));
+                for (int i = 0; i < move_count; i++) {
+                    printf("%s ", position_to_string(possible_moves[i]));
+                }
+                printf("\n");
+            } else {
+                printf("\nNo legal moves available from %s\n", position_to_string(from));
+            }
+
+            printf("Press Enter to continue...");
+            getchar();
+            return true;
+        }
+    }
+    printf("Invalid position or no piece at %s\n", input);
+    return false;
+}
+
+/**
+ * Execute a chess move from user input
+ * Parses move notation (e.g., "e2 e4"), validates, and executes the move
+ *
+ * @param input Move string in format "from to" (e.g., "e2 e4")
+ * @param game Current game state
+ */
+void handle_move_execution(const char *input, ChessGame *game) {
+    char from_str[3], to_str[3];
+    if (sscanf(input, "%2s %2s", from_str, to_str) != 2) {
+        printf("Invalid input format. Use: e2 e4\n");
+        return;
+    }
+
+    Position from = char_to_position(from_str);
+    Position to = char_to_position(to_str);
+
+    if (!is_valid_position(from.row, from.col) || !is_valid_position(to.row, to.col)) {
+        printf("Invalid positions\n");
+        return;
+    }
+
+    if (make_move(game, from, to)) {
+        game_started = true;
+        stop_move_timer(game);
+        printf("Move made: %s to %s                             \n", from_str, to_str);
+        save_fen_log(game);
+        printf("Press Enter to continue...");
+        getchar();
+        clear_screen();
+    } else {
+        printf("Invalid move\n");
+    }
+}
+
+/**
  * Handle human player's turn (White pieces)
  * Processes user input for moves and commands including:
  * - Standard chess moves (e.g., "e2 e4")
@@ -2520,82 +2613,14 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
         return;
     }
 
+    // Handle showing possible moves for a single square (e.g., "e2")
     if (strlen(input) == 2) {
-        Position from = char_to_position(input);
-        if (is_valid_position(from.row, from.col) && is_piece_at(game, from.row, from.col)) {
-            Piece piece = get_piece_at(game, from.row, from.col);
-            if (piece.color == WHITE) {
-                Position possible_moves[64];
-                int move_count = 0;
-                
-                Position all_moves[64];
-                int all_count = get_possible_moves(game, from, all_moves);
-                
-                for (int i = 0; i < all_count; i++) {
-                    if (!would_be_in_check_after_move(game, from, all_moves[i])) {
-                        possible_moves[move_count++] = all_moves[i];
-                    }
-                }
-                
-                clear_screen();
-                printf("\n=== Claude Chess ===\n");
-                printf("Current player: %s\n", game->current_player == WHITE ? "WHITE" : "BLACK");
-                
-                printf("\n");
-                print_captured_pieces(&game->black_captured, "\033[1;96m", "Black", game);
-                print_captured_pieces(&game->white_captured, "\033[1;95m", "White", game);
-                
-                if (game->in_check[WHITE]) {
-                    printf("\nYour king is in check! You can only make moves that get out of check.\n");
-                }
-                
-                print_board(game, possible_moves, move_count);
-                
-                if (move_count > 0) {
-                    printf("\nPossible moves from %s:\n", position_to_string(from));
-                    for (int i = 0; i < move_count; i++) {
-                        printf("%s ", position_to_string(possible_moves[i]));
-                    }
-                    printf("\n");
-                } else {
-                    printf("\nNo legal moves available from %s\n", position_to_string(from));
-                }
-                
-                printf("Press Enter to continue...");
-                getchar();
-                return;
-            }
-        }
-        printf("Invalid position or no piece at %s\n", input);
+        handle_show_possible_moves(input, game);
         return;
     }
-    
-    char from_str[3], to_str[3];
-    if (sscanf(input, "%2s %2s", from_str, to_str) != 2) {
-        printf("Invalid input format. Use: e2 e4\n");
-        return;
-    }
-    
-    Position from = char_to_position(from_str);
-    Position to = char_to_position(to_str);
-    
-    if (!is_valid_position(from.row, from.col) || !is_valid_position(to.row, to.col)) {
-        printf("Invalid positions\n");
-        return;
-    }
-    
-    
-    if (make_move(game, from, to)) {
-        game_started = true;  // Mark game as started after first move
-        stop_move_timer(game);  // Stop timer after successful move
-        printf("Move made: %s to %s                             \n", from_str, to_str);
-        save_fen_log(game);  // Save FEN after White's move
-        printf("Press Enter to continue...");
-        getchar();
-        clear_screen();
-    } else {
-        printf("Invalid move\n");
-    }
+
+    // Handle move execution (e.g., "e2 e4")
+    handle_move_execution(input, game);
 }
 
 void handle_black_turn(ChessGame *game, StockfishEngine *engine) {
