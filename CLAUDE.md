@@ -785,7 +785,9 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
      - Evaluation: `EVAL_WINNING_THRESHOLD`, `EVAL_SIGNIFICANT_THRESHOLD`, `EVAL_MODERATE_THRESHOLD`
    - **Impact**: Replaced 15+ magic numbers across chess.c, main.c, and stockfish.c
    - **Benefits**: Better code maintainability, self-documenting values, easier to adjust thresholds
-   - **Testing**: All 19 micro-tests pass, zero warnings
+   - **Bonus Fix**: Fixed Stockfish evaluation bug - now uses only deepest depth score (depth 15)
+   - **Documentation**: Added comment explaining expected ±10-30 cp variation in stockfish.c
+   - **Testing**: All 19 micro-tests pass, zero warnings, fully tested on macOS & Ubuntu
    - **Commit**: Sep 24, 2025
 
 #### 🔲 **REMAINING** (Priority 2)
@@ -838,20 +840,65 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
 
 ### Next Session Plan
 
-**Priority 1 Complete!** All critical maintainability issues resolved.
+**Current Status: 7 of 12 items complete - Great stopping point!**
 
-**Remaining work (Priority 2 & 3 - Optional improvements):**
-1. **Priority 2, Item 6**: Refactor `setup_board_from_fen()` (171 lines)
-   - Split into: `parse_fen_fields()`, `validate_fen_structure()`, `apply_fen_to_board()`
-   - Medium complexity, well-isolated function
+**✅ COMPLETED:**
+- Priority 1: ALL 5 items complete (critical maintainability)
+- Priority 2: 2 of 3 items complete
+  - Item 6: `setup_board_from_fen()` refactored ✅
+  - Item 7: Named constants defined ✅
+  - Item 8: Documentation (tabled for later)
 
-2. **Priority 2, Item 7**: Add documentation to undocumented functions
-   - Target: 14 functions in chess.c, 6 in main.c
+**🔲 REMAINING WORK (Priority 3 - Optional improvements):**
+1. **Item 9**: Reorganize chess.c by Logical Subsystem (2 hours)
+   - Group functions: Board mgmt → Move generation → Validation → Execution → Display
 
-3. **Priority 2, Item 8**: Define named constants for magic numbers
-   - Examples: `FIFTY_MOVE_HALFMOVES`, `MAX_GAME_MOVES`, `MAX_PGN_OUTPUT_SIZE`
+2. **Item 10**: Encapsulate Global Variables in Context Structs (4-6 hours)
+   - Create `GameSession` and `RuntimeConfig` structures
+   - Reduce global state footprint
 
-4. **Priority 3 items**: Code organization improvements (lower priority)
+3. **Item 11**: Standardize Naming Conventions (3-4 hours)
+   - Enforce: snake_case (functions), PascalCase (types), SCREAMING_SNAKE_CASE (constants)
+
+4. **Item 12**: Clean Up Header Includes (1 hour) ⭐ **QUICKEST WIN**
+   - Remove duplicates, organize dependencies
+   - Good starting point for next session
+
+**🚨 CRITICAL FIRST TASK FOR NEXT SESSION:**
+- **Fix CLAUDE.md line lengths** - Many lines exceed 80 char limit
+- Must be completed BEFORE any new refactoring work
+- Use same approach as README.md (indent continuations 2-4 spaces)
+- Verify with: `awk 'length > 80' CLAUDE.md`
+
+**Recommendation for Next Session (after line length fix):**
+- Start with Item 12 (headers cleanup) - quick 1-hour win
+- Then tackle Item 9 (reorganize chess.c) - medium complexity
+- Save Items 10 & 11 for when you have longer blocks
+
+**Alternative: Circle back to Priority 2, Item 8 (Documentation)**
+- Add docs to 16 undocumented functions in chess.c, ~6 in main.c
+- Good for a methodical session
+
+### Session Summary (Sep 23-24, 2025)
+
+**Major Accomplishments:**
+- Completed ALL Priority 1 critical items (5/5)
+- Completed 2 of 3 Priority 2 important items
+- Total: 7 of 12 refactoring items complete
+- ~961 lines of code reduced/reorganized
+- 5 new focused functions created
+- 12 named constants defined
+- Fixed Stockfish evaluation depth bug
+- Zero compilation warnings, all tests passing
+
+**Code Quality Improvement:**
+- Long functions broken down (480→25 lines, 152→38 lines)
+- Eliminated code duplication (~200 lines)
+- Self-documenting constants replace magic numbers
+- Clear separation of concerns
+- Better maintainability for future development
+
+**Status:** Solid stopping point. Project in excellent shape. Ready to continue when you have a fresh 5-hour block.
 
 ### Notes for Future Sessions
 
@@ -859,6 +906,7 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
 - Zero compilation warnings maintained throughout
 - All 19 micro-tests passing
 - Incremental commits after each major change (safe approach)
+- **USER handles all git/repo operations** (clearly documented)
 
 ---
 *Developer reference for Claude Chess - Focused technical documentation*
