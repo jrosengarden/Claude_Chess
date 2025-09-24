@@ -27,6 +27,25 @@
 
 #define BOARD_SIZE 8  // Standard 8x8 chess board
 
+// Game constants
+#define MAX_POSSIBLE_MOVES 64           // Maximum moves a piece can make
+#define FIFTY_MOVE_HALFMOVES 100        // Halfmove count for 50-move rule draw (50 full moves)
+#define MAX_SKILL_LEVEL 20              // Maximum Stockfish skill level
+#define MIN_SKILL_LEVEL 0               // Minimum Stockfish skill level
+#define MAX_PGN_DISPLAY_MOVES 1000      // Maximum moves to display in PGN
+#define PAGINATION_LINES 20             // Lines per page for help/load commands
+
+// Engine timing constants (milliseconds)
+#define DEFAULT_SEARCH_DEPTH 10         // Default depth when time controls disabled
+#define MOVE_TIME_DIVISOR 20            // Divide remaining time by this for move time
+#define MIN_MOVE_TIME_MS 500            // Minimum time per move
+#define MAX_MOVE_TIME_MS 10000          // Maximum time per move (10 seconds)
+
+// Position evaluation thresholds (centipawns)
+#define EVAL_WINNING_THRESHOLD 900      // Decisive advantage
+#define EVAL_SIGNIFICANT_THRESHOLD 500  // Significant advantage
+#define EVAL_MODERATE_THRESHOLD 300     // Moderate advantage
+
 /**
  * PieceType - All possible chess piece types
  * EMPTY is used for vacant squares on the board

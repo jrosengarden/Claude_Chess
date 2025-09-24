@@ -53,8 +53,8 @@ bool pgn_window_active = false;
 // Global flag to track if gameplay has started (prevents skill level changes)
 bool game_started = false;
 
-// Global skill level tracking (default 20 = full strength)
-int current_skill_level = 20;
+// Global skill level tracking (default MAX_SKILL_LEVEL = full strength)
+int current_skill_level = MAX_SKILL_LEVEL;
 
 // Configuration structure for chess game settings
 typedef struct {
@@ -302,8 +302,8 @@ void load_config() {
             } else if (strcmp(section, "Settings") == 0) {
                 if (strcmp(key, "DefaultSkillLevel") == 0) {
                     int skill = atoi(value);
-                    // Validate skill level range (0-20)
-                    if (skill >= 0 && skill <= 20) {
+                    // Validate skill level range
+                    if (skill >= MIN_SKILL_LEVEL && skill <= MAX_SKILL_LEVEL) {
                         config.default_skill_level = skill;
                     } else {
                         // Invalid skill level - use default and mark for debug message
@@ -480,10 +480,10 @@ void truncate_fen_log_by_moves(int move_pairs_to_undo) {
     if (!file) return;
     
     // Read all lines into memory
-    char lines[1000][256];  // Support up to 1000 moves (500 move pairs)
+    char lines[MAX_PGN_DISPLAY_MOVES][256];  // Support up to MAX_PGN_DISPLAY_MOVES moves
     int line_count = 0;
     
-    while (fgets(lines[line_count], sizeof(lines[line_count]), file) && line_count < 1000) {
+    while (fgets(lines[line_count], sizeof(lines[line_count]), file) && line_count < MAX_PGN_DISPLAY_MOVES) {
         // Remove newline character for easier handling
         lines[line_count][strcspn(lines[line_count], "\n")] = '\0';
         line_count++;
@@ -1478,7 +1478,7 @@ void handle_load_fen_command(ChessGame *game) {
         for (int i = 0; i < game_count; i++) {
             if (games[i].from_current_dir) {
                 // Check if we need to paginate
-                if (line_count >= 20) {
+                if (line_count >= PAGINATION_LINES) {
                     printf("\nPress Enter to continue...");
                     getchar();
                     clear_screen();
@@ -1517,7 +1517,7 @@ void handle_load_fen_command(ChessGame *game) {
         for (int i = 0; i < game_count; i++) {
             if (!games[i].from_current_dir) {
                 // Check if we need to paginate
-                if (line_count >= 20) {
+                if (line_count >= PAGINATION_LINES) {
                     printf("\nPress Enter to continue...");
                     getchar();
                     clear_screen();
@@ -1706,7 +1706,7 @@ void handle_load_pgn_command(ChessGame *game) {
         for (int i = 0; i < game_count; i++) {
             if (games[i].from_current_dir) {
                 // Check if we need to paginate
-                if (line_count >= 20) {
+                if (line_count >= PAGINATION_LINES) {
                     printf("\nPress Enter to continue...");
                     getchar();
                     clear_screen();
@@ -1745,7 +1745,7 @@ void handle_load_pgn_command(ChessGame *game) {
         for (int i = 0; i < game_count; i++) {
             if (!games[i].from_current_dir) {
                 // Check if we need to paginate
-                if (line_count >= 20) {
+                if (line_count >= PAGINATION_LINES) {
                     printf("\nPress Enter to continue...");
                     getchar();
                     clear_screen();
@@ -1876,13 +1876,13 @@ int centipawns_to_scale(int centipawns) {
     // Typical centipawn ranges:
     // 0-50: roughly equal
     // 50-150: slight advantage
-    // 150-300: moderate advantage  
+    // 150-300: moderate advantage
     // 300-500: significant advantage
     // 500+: winning advantage
-    
-    if (centipawns <= -900) return -9;        // Black crushing
-    else if (centipawns <= -500) return -8;   // Black winning big
-    else if (centipawns <= -300) return -7;   // Black significant advantage
+
+    if (centipawns <= -EVAL_WINNING_THRESHOLD) return -9;        // Black crushing
+    else if (centipawns <= -EVAL_SIGNIFICANT_THRESHOLD) return -8;   // Black winning big
+    else if (centipawns <= -EVAL_MODERATE_THRESHOLD) return -7;   // Black significant advantage
     else if (centipawns <= -200) return -6;   // Black moderate advantage
     else if (centipawns <= -100) return -5;   // Black small advantage
     else if (centipawns <= -50) return -4;    // Black slight advantage
@@ -1895,9 +1895,9 @@ int centipawns_to_scale(int centipawns) {
     else if (centipawns <= 50) return 3;      // White tiny advantage
     else if (centipawns <= 100) return 4;     // White slight advantage
     else if (centipawns <= 200) return 5;     // White small advantage
-    else if (centipawns <= 300) return 6;     // White moderate advantage
-    else if (centipawns <= 500) return 7;     // White significant advantage
-    else if (centipawns <= 900) return 8;     // White winning big
+    else if (centipawns <= EVAL_MODERATE_THRESHOLD) return 6;     // White moderate advantage
+    else if (centipawns <= EVAL_SIGNIFICANT_THRESHOLD) return 7;     // White significant advantage
+    else if (centipawns <= EVAL_WINNING_THRESHOLD) return 8;     // White winning big
     else return 9;                           // White crushing
 }
 
@@ -2185,16 +2185,19 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
             const char *level_str = input + 6;
             int skill_level = atoi(level_str);
 
-            if (skill_level >= 0 && skill_level <= 20) {
+            if (skill_level >= MIN_SKILL_LEVEL && skill_level <= MAX_SKILL_LEVEL) {
                 if (set_skill_level(engine, skill_level)) {
                     current_skill_level = skill_level;
-                    printf("\nStockfish skill level set to %d (0=easiest, 20=strongest)\n", skill_level);
+                    printf("\nStockfish skill level set to %d (%d=easiest, %d=strongest)\n",
+                           skill_level, MIN_SKILL_LEVEL, MAX_SKILL_LEVEL);
                 } else {
                     printf("\nFailed to set skill level. Make sure Stockfish is ready.\n");
                 }
             } else {
-                printf("\nInvalid skill level. Please enter a number from 0 to 20.\n");
-                printf("0 = easiest, 20 = strongest (default)\n");
+                printf("\nInvalid skill level. Please enter a number from %d to %d.\n",
+                       MIN_SKILL_LEVEL, MAX_SKILL_LEVEL);
+                printf("%d = easiest, %d = strongest (default)\n",
+                       MIN_SKILL_LEVEL, MAX_SKILL_LEVEL);
             }
         }
         printf("Press Enter to continue...");

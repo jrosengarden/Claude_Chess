@@ -1052,7 +1052,7 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
  * - 50 full moves without pawn move/capture = 100 halfmoves
  */
 bool is_fifty_move_rule_draw(ChessGame *game) {
-    return game->halfmove_clock >= 100;
+    return game->halfmove_clock >= FIFTY_MOVE_HALFMOVES;
 }
 
 

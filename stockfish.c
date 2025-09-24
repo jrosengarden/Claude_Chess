@@ -246,10 +246,10 @@ bool get_best_move(StockfishEngine *engine, ChessGame *game, char *move_str, boo
                            game->timer.white_time_seconds :
                            game->timer.black_time_seconds;
 
-        // Use a fraction of remaining time (roughly 1/20th with minimum 500ms)
-        int move_time = (time_remaining * 1000) / 20;  // Convert to milliseconds
-        if (move_time < 500) move_time = 500;  // Minimum 500ms
-        if (move_time > 10000) move_time = 10000;  // Maximum 10 seconds
+        // Use a fraction of remaining time with minimum/maximum bounds
+        int move_time = (time_remaining * 1000) / MOVE_TIME_DIVISOR;
+        if (move_time < MIN_MOVE_TIME_MS) move_time = MIN_MOVE_TIME_MS;
+        if (move_time > MAX_MOVE_TIME_MS) move_time = MAX_MOVE_TIME_MS;
 
         char go_command[64];
         sprintf(go_command, "go movetime %d", move_time);
@@ -263,7 +263,9 @@ bool get_best_move(StockfishEngine *engine, ChessGame *game, char *move_str, boo
         send_command(engine, go_command);
     } else {
         // Use depth-based search when time controls are disabled
-        send_command(engine, "go depth 10");
+        char depth_command[32];
+        sprintf(depth_command, "go depth %d", DEFAULT_SEARCH_DEPTH);
+        send_command(engine, depth_command);
     }
     
     char buffer[1024];
@@ -334,14 +336,30 @@ bool get_position_evaluation(StockfishEngine *engine, ChessGame *game, int *cent
     
     char buffer[1024];
     *centipawn_score = 0;  // Default to even position
-    
+    int max_depth_seen = 0;
+
+    // NOTE: Stockfish's evaluation can vary by ±10-30 centipawns for the same position
+    // due to hash table state, transposition tables, and search ordering variations.
+    // This is normal engine behavior. The scale conversion (centipawns_to_scale)
+    // filters this noise by mapping ranges to discrete scale values (-9 to +9).
+
     while (read_response(engine, buffer, sizeof(buffer))) {
         // Look for evaluation info lines like "info depth 15 score cp 142"
-        if (strncmp(buffer, "info", 4) == 0 && strstr(buffer, "score cp")) {
-            char *score_pos = strstr(buffer, "score cp");
-            if (score_pos) {
-                score_pos += 9;  // Skip "score cp "
-                *centipawn_score = atoi(score_pos);
+        if (strncmp(buffer, "info", 4) == 0 && strstr(buffer, "depth") && strstr(buffer, "score cp")) {
+            // Extract depth value
+            char *depth_pos = strstr(buffer, "depth");
+            if (depth_pos) {
+                int current_depth = atoi(depth_pos + 6);  // Skip "depth "
+
+                // Only use score from the deepest depth to ensure most accurate evaluation
+                if (current_depth >= max_depth_seen) {
+                    max_depth_seen = current_depth;
+                    char *score_pos = strstr(buffer, "score cp");
+                    if (score_pos) {
+                        score_pos += 9;  // Skip "score cp "
+                        *centipawn_score = atoi(score_pos);
+                    }
+                }
             }
         }
         // Stop when we get the best move (analysis complete)
@@ -362,7 +380,7 @@ bool get_position_evaluation(StockfishEngine *engine, ChessGame *game, int *cent
  * @return true if command sent successfully, false on failure
  */
 bool set_skill_level(StockfishEngine *engine, int skill_level) {
-    if (!engine->is_ready || skill_level < 0 || skill_level > 20) {
+    if (!engine->is_ready || skill_level < MIN_SKILL_LEVEL || skill_level > MAX_SKILL_LEVEL) {
         return false;
     }
     

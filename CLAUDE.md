@@ -706,7 +706,7 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
 
 ## Code Cleanup & Refactoring (In Progress)
 
-**Status:** 🚧 Active refactoring session - 6 of 12 items complete
+**Status:** 🚧 Active refactoring session - 7 of 12 items complete
 
 ### Forensic Analysis Summary
 
@@ -777,15 +777,23 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
    - **Testing**: All 19 micro-tests pass (including FEN parsing tests), zero warnings
    - **Commit**: Sep 24, 2025
 
+7. **Define Named Constants for Magic Numbers** ✅
+   - **Issue**: Magic numbers scattered throughout code (100, 20, 500, 10000, etc.)
+   - **Fix**: Added 12 named constants to chess.h:
+     - Game constants: `MAX_POSSIBLE_MOVES`, `FIFTY_MOVE_HALFMOVES`, `MAX_SKILL_LEVEL`, `MIN_SKILL_LEVEL`, `MAX_PGN_DISPLAY_MOVES`, `PAGINATION_LINES`
+     - Engine timing: `DEFAULT_SEARCH_DEPTH`, `MOVE_TIME_DIVISOR`, `MIN_MOVE_TIME_MS`, `MAX_MOVE_TIME_MS`
+     - Evaluation: `EVAL_WINNING_THRESHOLD`, `EVAL_SIGNIFICANT_THRESHOLD`, `EVAL_MODERATE_THRESHOLD`
+   - **Impact**: Replaced 15+ magic numbers across chess.c, main.c, and stockfish.c
+   - **Benefits**: Better code maintainability, self-documenting values, easier to adjust thresholds
+   - **Testing**: All 19 micro-tests pass, zero warnings
+   - **Commit**: Sep 24, 2025
+
 #### 🔲 **REMAINING** (Priority 2)
 
-7. **Add Documentation to Undocumented Functions** 🔲
-   - Target: 14 functions in chess.c, 6 in main.c
+8. **Add Documentation to Undocumented Functions** 🔲
+   - Target: 16 functions in chess.c, ~6 in main.c
    - Effort: 2-3 hours
-
-8. **Define Named Constants for Magic Numbers** 🔲
-   - Examples: `FIFTY_MOVE_HALFMOVES`, `MAX_GAME_MOVES`, `MAX_PGN_OUTPUT_SIZE`
-   - Effort: 1 hour
+   - Status: Tabled for later
 
 ### Priority 3 - NICE TO HAVE (Minor Improvements)
 
