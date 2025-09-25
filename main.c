@@ -22,16 +22,19 @@
  */
 
 #define _GNU_SOURCE  // Enable GNU/Linux extensions like strdup
+
+// Project headers
 #include "chess.h"
 #include "stockfish.h"
 #include "pgn_utils.h"
-#include <time.h>
-#include <unistd.h>  // For getpid() and unlink()
-#include <sys/types.h>  // For process ID types
-#include <dirent.h>  // For directory scanning
-#include <termios.h>  // For terminal control (arrow keys)
-#include <sys/stat.h>  // For file statistics
-#include <strings.h>  // For strcasecmp() case-insensitive string comparison
+
+// System headers
+#include <dirent.h>      // For directory scanning
+#include <strings.h>     // For strcasecmp() case-insensitive string comparison
+#include <sys/stat.h>    // For file statistics
+#include <sys/types.h>   // For process ID types
+#include <termios.h>     // For terminal control (arrow keys)
+#include <unistd.h>      // For getpid() and unlink()
 
 // Global version string
 char* version_string = "v0.9 Sep-22-2025";

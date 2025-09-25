@@ -15,7 +15,8 @@ make install-deps      # Install Stockfish dependency
 ## Project Architecture
 
 ### Core Files
-- `main.c` - Game loop, UI, command handling (contains configuration system and command line parsing)
+- `main.c` - Game loop, UI, command handling (contains configuration
+    system and command line parsing)
 - `chess.h/chess.c` - Chess logic, move validation (2050+ lines)
 - `stockfish.h/stockfish.c` - AI engine integration via UCI protocol
 - `fen_to_pgn.c` - Standalone FEN-to-PGN conversion utility
@@ -26,17 +27,23 @@ make install-deps      # Install Stockfish dependency
 ### Opening Validation Tools
 - `validate_openings` - Comprehensive FEN file validator using chess engine
 - `verify_openings` - Chess opening authenticity verification script
-- `regenerate_openings` - Authentic opening sequence and tactical position generator
+- `regenerate_openings` - Authentic opening sequence and tactical
+    position generator
 
 ### Key Entry Points
 - `get_possible_moves()` - Main move generation (chess.c)
 - `is_valid_move()` - Move validation with check prevention (chess.c)
-- `make_move()` - Execute move, update state, handle FEN counters and human promotion (chess.c)
-- `execute_move()` - Execute move from Move structure, handles AI promotion (chess.c)
-- `make_promotion_move()` - Execute pawn promotion with piece selection (chess.c)
+- `make_move()` - Execute move, update state, handle FEN counters and
+    human promotion (chess.c)
+- `execute_move()` - Execute move from Move structure, handles AI
+    promotion (chess.c)
+- `make_promotion_move()` - Execute pawn promotion with piece
+    selection (chess.c)
 - `is_promotion_move()` - Detect pawn promotion moves (chess.c)
-- `get_promotion_choice()` - Interactive UI for promotion piece selection (chess.c)
-- `parse_move_string()` - Parse UCI moves including promotion notation (stockfish.c)
+- `get_promotion_choice()` - Interactive UI for promotion piece
+    selection (chess.c)
+- `parse_move_string()` - Parse UCI moves including promotion
+    notation (stockfish.c)
 - `is_in_check()` - Check detection (chess.c)
 - `get_best_move()` - AI move request via Stockfish (stockfish.c)
 - `board_to_fen()` - Convert board to FEN with accurate counters (stockfish.c)
@@ -49,8 +56,10 @@ typedef struct {
     char fen_directory[512];    // Path to directory containing FEN files
     char pgn_directory[512];    // Path to directory containing PGN files
     int default_skill_level;
-    bool auto_create_pgn;       // Create PGN files on exit (true=PGNON, false=PGNOFF)
-    bool auto_delete_fen;       // Delete FEN files on exit (true=FENOFF, false=FENON)
+    bool auto_create_pgn;       // Create PGN files on exit
+                                 // (true=PGNON, false=PGNOFF)
+    bool auto_delete_fen;       // Delete FEN files on exit
+                                 // (true=FENOFF, false=FENON)
     char default_time_control[16]; // Default time control (e.g., "30/10")
 } ChessConfig;
 
@@ -60,7 +69,8 @@ bool skill_level_overridden = false;
 ```
 
 **Functions:**
-- `load_config()` - Parse CHESS.ini, validate paths/values, parse boolean settings
+- `load_config()` - Parse CHESS.ini, validate paths/values, parse
+    boolean settings
 - `create_default_config()` - Auto-create config with defaults (PGNON/FENON)
 - `is_valid_directory()` - Path validation using stat() and opendir()
 - `expand_path()` - Tilde expansion for paths
@@ -68,7 +78,8 @@ bool skill_level_overridden = false;
 **Configuration Integration with Command Line:**
 - Config file settings used as defaults on startup
 - Command line options (PGNOFF/FENOFF) override config settings
-- Global flags initialized from config: `suppress_pgn_creation = !config.auto_create_pgn`
+- Global flags initialized from config:
+    `suppress_pgn_creation = !config.auto_create_pgn`
 
 **Boolean Value Parsing:**
 - Flexible case-insensitive parsing: `true/false`, `yes/no`, `on/off`, `1/0`
@@ -78,7 +89,8 @@ bool skill_level_overridden = false;
 **Debug Output:**
 - Invalid FENDirectory → WARNING + fallback to current directory
 - Invalid DefaultSkillLevel → WARNING + fallback to level 5
-- Configuration loaded successfully → shows all values including new boolean settings in DEBUG mode
+- Configuration loaded successfully → shows all values including new
+    boolean settings in DEBUG mode
 - Active flags displayed: `suppress_pgn_creation`, `delete_fen_on_exit`
 
 ### LOAD System Architecture
@@ -89,22 +101,27 @@ bool skill_level_overridden = false;
 
 **FEN Loading Functions:**
 - `scan_fen_files()` - Master function coordinating dual FEN scan
-- `scan_single_directory()` - Helper for scanning individual directories for .fen files
+- `scan_single_directory()` - Helper for scanning individual
+    directories for .fen files
 - `handle_load_fen_command()` - FEN pagination and display logic
 - **Smart filtering**: Excludes current game's FEN file from display
 
 **PGN Loading Functions:**
 - `scan_pgn_files()` - Master function coordinating dual PGN scan
-- `scan_single_directory_pgn()` - Helper for scanning individual directories for .pgn files
+- `scan_single_directory_pgn()` - Helper for scanning individual
+    directories for .pgn files
 - `handle_load_pgn_command()` - PGN pagination and display logic
-- `load_pgn_positions()` - Converts PGN to FEN positions using `pgn_to_fen` utility
+- `load_pgn_positions()` - Converts PGN to FEN positions using
+    `pgn_to_fen` utility
 
 **Shared Features:**
 - Dual directory scanning (current directory + configured directory)
 - Duplicate detection (current dir takes precedence)
-- Section headers: "Chess Program Directory" / "FEN Files Directory" or "PGN Files Directory"
+- Section headers: "Chess Program Directory" / "FEN Files Directory"
+    or "PGN Files Directory"
 - 20-line pagination with screen clearing
-- **Save current game prompt**: User chooses whether to save current game before loading
+- **Save current game prompt**: User chooses whether to save current
+    game before loading
 
 ### Command Line Options System
 **Implementation Architecture:**
@@ -133,11 +150,13 @@ bool delete_fen_on_exit = false;     // FENOFF flag
    - `suppress_pgn_creation = !config.auto_create_pgn`
    - `delete_fen_on_exit = config.auto_delete_fen`
 3. Command line options parsed and override config settings
-4. User can set preferences in config file and occasionally override via command line
+4. User can set preferences in config file and occasionally override
+    via command line
 
 **Key Functions:**
 - `show_command_line_help()` - Display comprehensive help with examples
-- Command line parsing in `main()` - Validates and sets option flags (after config loading)
+- Command line parsing in `main()` - Validates and sets option flags
+    (after config loading)
 - Enhanced exit logic - Respects PGNOFF/FENOFF flags at all exit points
 
 **Exit Point Modifications:**
@@ -176,18 +195,22 @@ typedef struct {
 ```c
 typedef struct {
     char filename[256];
-    char display_name[300];  // Larger buffer to accommodate filename + formatting
+    char display_name[300];  // Larger buffer to accommodate filename +
+                             // formatting
     int move_count;
     time_t timestamp;
-    bool from_current_dir;  // true if from current directory, false if from FENDirectory
+    bool from_current_dir;  // true if from current directory, false if
+                            // from FENDirectory
 } FENGameInfo;
 
 typedef struct {
     char filename[256];
-    char display_name[300];  // Larger buffer to accommodate filename + formatting
+    char display_name[300];  // Larger buffer to accommodate filename +
+                             // formatting
     int move_count;
     time_t timestamp;
-    bool from_current_dir;  // true if from current directory, false if from PGNDirectory
+    bool from_current_dir;  // true if from current directory, false if
+                            // from PGNDirectory
 } PGNGameInfo;
 ```
 
@@ -201,11 +224,14 @@ typedef struct {
 ```
 
 **Key Features:**
-- **FENGameInfo**: Used by `scan_fen_files()` and `scan_single_directory()` for FEN file metadata
+- **FENGameInfo**: Used by `scan_fen_files()` and
+    `scan_single_directory()` for FEN file metadata
 - **PGNGameInfo**: Mirror structure for PGN files with identical functionality
 - **FENNavigator**: Shared by both FEN and PGN systems for position navigation
-- **Smart filtering**: FEN scanner excludes current game's file using `fen_log_filename`
-- **Dual directory support**: Both structures track source directory for proper section headers
+- **Smart filtering**: FEN scanner excludes current game's file using
+    `fen_log_filename`
+- **Dual directory support**: Both structures track source directory
+    for proper section headers
 
 ## Testing Framework
 
@@ -222,7 +248,8 @@ make test                  # Safe micro-tests
 ./test_compile_only.sh    # Cross-platform compilation
 ./validate_openings        # Validate all FEN files in FEN_FILES/
 ./validate_openings file   # Validate specific FEN file
-./verify_openings          # Verify authenticity of opening sequences and tactical positions
+./verify_openings          # Verify authenticity of opening sequences
+                            # and tactical positions
 ./verify_openings file     # Verify specific FEN file against expected patterns
 ```
 
@@ -300,27 +327,34 @@ is_fifty_move_rule_draw()  // Automatic draw detection
 
 ### Complete Promotion System
 **Architecture:** Seamlessly integrated with existing move system
-- `is_promotion_move()` - Detects when pawn reaches opposite end (row 0 for WHITE, 
-      row 7 for BLACK)
-- `get_promotion_choice()` - Interactive UI prompting for Q/R/B/N selection with 
-      validation
-- `make_promotion_move()` - Executes promotion including captures and game state updates
-- `is_valid_promotion_piece()` - Validates piece selection (QUEEN, ROOK, BISHOP, 
-      KNIGHT only)
+- `is_promotion_move()` - Detects when pawn reaches opposite end
+    (row 0 for WHITE, row 7 for BLACK)
+- `get_promotion_choice()` - Interactive UI prompting for Q/R/B/N
+    selection with validation
+- `make_promotion_move()` - Executes promotion including captures and
+    game state updates
+- `is_valid_promotion_piece()` - Validates piece selection (QUEEN,
+    ROOK, BISHOP, KNIGHT only)
 
 **Integration Points:**
 - `make_move()` handles human promotion moves with interactive piece selection
 - `execute_move()` handles AI promotion moves without user prompts
 - Move structure extended with `is_promotion` flag and `promotion_piece` field
-- UCI protocol parsing enhanced to handle 5-character promotion moves (e.g., "e7e8q")
-- FEN notation system fully compatible (uses existing `set_piece_at()` mechanism)
-- Comprehensive micro-tests covering all promotion scenarios including UCI parsing
+- UCI protocol parsing enhanced to handle 5-character promotion moves
+    (e.g., "e7e8q")
+- FEN notation system fully compatible (uses existing `set_piece_at()`
+    mechanism)
+- Comprehensive micro-tests covering all promotion scenarios including
+    UCI parsing
 
 **AI vs Human Promotion Logic:**
 - **Human moves**: Interactive menu prompts for piece selection (Q/R/B/N)
-- **AI moves**: Stockfish selects promotion piece via UCI notation, no user prompts
-- **UCI Enhancement**: `parse_move_string()` extracts promotion piece from 5-char moves
-- **Smart Routing**: `execute_move()` distinguishes between AI and human promotion contexts
+- **AI moves**: Stockfish selects promotion piece via UCI notation, no
+    user prompts
+- **UCI Enhancement**: `parse_move_string()` extracts promotion piece
+    from 5-char moves
+- **Smart Routing**: `execute_move()` distinguishes between AI and
+    human promotion contexts
 
 **Game State Management:**
 - Proper capture tracking when promotion involves capturing opponent piece
@@ -332,8 +366,9 @@ is_fifty_move_rule_draw()  // Automatic draw detection
 ## Critical Bug Fixes Implemented
 
 ### Infinite Recursion Fix (Complex FEN Strings)
-**Problem:** `is_in_check()` → `is_square_attacked()` → `get_possible_moves()`
-→ `get_king_moves()` → `is_square_attacked()` (infinite loop)
+**Problem:** `is_in_check()` → `is_square_attacked()` →
+`get_possible_moves()` → `get_king_moves()` → `is_square_attacked()`
+(infinite loop)
 
 **Solution:** Created `get_king_moves_no_castling()` for attack checking
 - Modified `is_square_attacked()` to use non-castling king moves
@@ -346,8 +381,9 @@ is_fifty_move_rule_draw()  // Automatic draw detection
 2. **Clean Compilation** - Zero warnings on both platforms
 3. **Testing Verification** - All changes tested on both OS
 4. **Comprehensive Comments** - All new code fully documented
-5. **Claude development rule**: If debugging approaches fail 2-3 times, especially for
-     platform-specific issues, use web search to find documented solutions
+5. **Claude development rule**: If debugging approaches fail 2-3 times,
+     especially for platform-specific issues, use web search to find
+     documented solutions
 
 ### Development Workflow (CRITICAL)
 **After ANY code changes, ALWAYS:**
@@ -372,26 +408,43 @@ All core chess rules now fully implemented:
 - ✅ **Pawn promotion** - Complete with interactive piece selection
 
 ### Recently Completed Major Features
-- **Enhanced Configuration System** - CHESS.ini support for PGNOFF/FENOFF settings with config/command-line integration, DefaultSkillLevel + path validation
-- **Command Line Options System** - PGNOFF, FENOFF, /HELP with case-insensitive parsing and config override
-- **Enhanced File Management** - User control over PGN creation and FEN retention via config file or command line
-- **Comprehensive Help System** - Built-in command line help with examples and usage
-- **Help Pagination System** - Generic 11-lines-per-page display with continuation headers
-- **Pawn Promotion System** - Complete implementation with interactive UI and validation
-- **AI Promotion Bug Fix** - AI now selects promotion pieces automatically without user prompts
-- **Feature Demonstration Library** - Educational FEN files with comprehensive documentation
-- **Dual Command LOAD System** - Separate `load fen` and `load pgn` commands with shared navigation
-- **PGN File Loading System** - Complete PGN parsing and conversion to FEN positions for navigation
-- **Smart FEN Filtering** - Current game's FEN file excluded from LOAD FEN display
-- **Save Current Game Prompt** - User choice to save/discard current game when loading new position
+- **Enhanced Configuration System** - CHESS.ini support for
+    PGNOFF/FENOFF settings with config/command-line integration,
+    DefaultSkillLevel + path validation
+- **Command Line Options System** - PGNOFF, FENOFF, /HELP with
+    case-insensitive parsing and config override
+- **Enhanced File Management** - User control over PGN creation and FEN
+    retention via config file or command line
+- **Comprehensive Help System** - Built-in command line help with
+    examples and usage
+- **Help Pagination System** - Generic 11-lines-per-page display with
+    continuation headers
+- **Pawn Promotion System** - Complete implementation with interactive
+    UI and validation
+- **AI Promotion Bug Fix** - AI now selects promotion pieces
+    automatically without user prompts
+- **Feature Demonstration Library** - Educational FEN files with
+    comprehensive documentation
+- **Dual Command LOAD System** - Separate `load fen` and `load pgn`
+    commands with shared navigation
+- **PGN File Loading System** - Complete PGN parsing and conversion to
+    FEN positions for navigation
+- **Smart FEN Filtering** - Current game's FEN file excluded from LOAD
+    FEN display
+- **Save Current Game Prompt** - User choice to save/discard current
+    game when loading new position
 - **Interactive Game Browser** - Arrow key navigation
-- **Live PGN Display with Auto-Updates** - Side-by-side terminal with real-time move updates
+- **Live PGN Display with Auto-Updates** - Side-by-side terminal with
+    real-time move updates
 - **Starting Position File Cleanup** - Auto-removal of meaningless games
 - **Complete FEN Counter System** - Standards-compliant tracking
-- **Captured Pieces Calculation** - FEN/LOAD positions show previously captured pieces
-- **Opening Library Validation System** - Engine-validated authentic classical openings
+- **Captured Pieces Calculation** - FEN/LOAD positions show previously
+    captured pieces
+- **Opening Library Validation System** - Engine-validated authentic
+    classical openings
 - **PGN-to-FEN Conversion Tools** - Create verified opening sequences
-- **TIME Command Lock** - Prevents changing time controls after game starts (like SKILL command)
+- **TIME Command Lock** - Prevents changing time controls after game
+    starts (like SKILL command)
 
 ## Opening Library Management
 
@@ -399,7 +452,8 @@ All core chess rules now fully implemented:
 **Engine-Based Validation:**
 - All FEN positions validated using actual chess engine
 - Detects illegal moves, impossible positions, malformed FEN
-- Batch validation of entire opening library (24 files: 12 openings + 12 demonstrations)
+- Batch validation of entire opening library (24 files: 12 openings +
+    12 demonstrations)
 - Position-by-position error reporting
 - Cross-platform compatible (macOS bash 3.2 + Linux bash 4+)
 
@@ -414,13 +468,16 @@ All core chess rules now fully implemented:
 - Verifies opening sequences match expected classical opening theory
 - Verifies demonstration positions match expected tactical scenarios
 - Two verification modes:
-  - **Opening sequence files** (UPPERCASE): Generated sequences vs expected move patterns
-  - **Demonstration files** (mixed case): Exact position matching for tactical scenarios
+  - **Opening sequence files** (UPPERCASE): Generated sequences vs
+      expected move patterns
+  - **Demonstration files** (mixed case): Exact position matching for
+      tactical scenarios
 - Comprehensive reporting with detailed diff output for mismatches
 
 **Tools:**
 ```bash
-./verify_openings                      # Verify all FEN files against expected patterns
+./verify_openings                      # Verify all FEN files against
+                                        # expected patterns
 ./verify_openings FEN_FILES/RUY_LOPEZ.fen  # Verify specific file authenticity
 ```
 
@@ -445,17 +502,21 @@ All core chess rules now fully implemented:
 - Each opening generated from historically accurate move sequences
 - All positions legal and reachable through proper gameplay
 - Suitable for study, testing, and competitive play
-- Contents: Ruy Lopez, Italian Game, Queen's Gambit, King's Gambit, French Defense, Caro-Kann, Sicilian Four Knights, Alekhine's Defense, Scandinavian, Nimzo-Indian, English Opening, King's Indian Defense
+- Contents: Ruy Lopez, Italian Game, Queen's Gambit, King's Gambit,
+    French Defense, Caro-Kann, Sicilian Four Knights, Alekhine's Defense,
+    Scandinavian, Nimzo-Indian, English Opening, King's Indian Defense
 
 **Tactical Demonstration Positions (12 files - mixed case names):**
 - Single-position scenarios showcasing specific chess tactics
 - Educational value for tactical training and study
 - Each position demonstrates a specific chess concept
-- Contents: BackRank, Castling, Check, Checkmate, Discovery, EnPassant, FiftyMoveRule, Fork, Pin, Promotion, Sacrifice, Stalemate
+- Contents: BackRank, Castling, Check, Checkmate, Discovery, EnPassant,
+    FiftyMoveRule, Fork, Pin, Promotion, Sacrifice, Stalemate
 
 **Regeneration:**
 ```bash
-./regenerate_openings  # Regenerate all 24 files: opening sequences + tactical positions
+./regenerate_openings  # Regenerate all 24 files: opening sequences +
+                        # tactical positions
 ```
 
 ### Memory Management for Opening Tools
@@ -467,7 +528,8 @@ All core chess rules now fully implemented:
 ## Time Controls System (Complete Implementation)
 
 ### Overview
-Complete time control system with separate White/Black time allocations and intelligent Stockfish search mode selection.
+Complete time control system with separate White/Black time allocations
+and intelligent Stockfish search mode selection.
 
 ### Format Support
 ```
@@ -533,7 +595,8 @@ if (is_time_control_enabled(game)) {
 
 **Benefits:**
 - **0/0 (disabled)**: Fast depth-10 search, instant moves, consistent difficulty
-- **Any other setting**: Time-based search, realistic time consumption, dynamic difficulty
+- **Any other setting**: Time-based search, realistic time consumption,
+    dynamic difficulty
 
 #### 2. Separate White/Black Time Allocations
 **Purpose:** Address Stockfish's minimal time usage vs human thinking time
@@ -546,13 +609,20 @@ if (is_time_control_enabled(game)) {
 #### 3. Timer Management System
 **Core Functions:**
 ```c
-bool parse_time_control(const char* time_str, TimeControl* tc);     // Parse 2 or 4-value format
-void init_game_timer(ChessGame* game, TimeControl* time_control);   // Initialize timers
-void start_move_timer(ChessGame* game);                            // Start timing (with player tracking)
-void stop_move_timer(ChessGame* game);                             // Stop and apply increment
-char* get_remaining_time_string(int seconds);                     // Format MM:SS display
-bool check_time_forfeit(ChessGame* game);                         // Time expiration detection
-bool is_time_control_enabled(ChessGame* game);                    // Check if active
+bool parse_time_control(const char* time_str, TimeControl* tc);
+    // Parse 2 or 4-value format
+void init_game_timer(ChessGame* game, TimeControl* time_control);
+    // Initialize timers
+void start_move_timer(ChessGame* game);
+    // Start timing (with player tracking)
+void stop_move_timer(ChessGame* game);
+    // Stop and apply increment
+char* get_remaining_time_string(int seconds);
+    // Format MM:SS display
+bool check_time_forfeit(ChessGame* game);
+    // Time expiration detection
+bool is_time_control_enabled(ChessGame* game);
+    // Check if active
 ```
 
 #### 4. Display Integration
@@ -566,7 +636,8 @@ White: 29:45 | Captured: [pieces] | Black: 28:30 | Captured: [pieces]
 White Captured: [pieces] | Black Captured: [pieces]
 ```
 
-**Real-time Updates:** Timer display shows live countdown during active player's turn
+**Real-time Updates:** Timer display shows live countdown during active
+player's turn
 
 #### 5. Undo System Integration
 **Simple Solution:** Disable time controls for remainder of game after any undo
@@ -575,11 +646,13 @@ White Captured: [pieces] | Black Captured: [pieces]
 if (is_time_control_enabled(game)) {
     game->time_control.enabled = false;
     game->timer.timing_active = false;
-    printf("Time controls have been disabled for the remainder of this game.\n");
+    printf("Time controls have been disabled for the remainder of "
+           "this game.\n");
 }
 ```
 
-**Rationale:** Avoids complex timer state restoration while maintaining game integrity
+**Rationale:** Avoids complex timer state restoration while maintaining
+game integrity
 
 #### 6. Time Forfeit Detection
 **Integration with game loop:**
@@ -587,7 +660,8 @@ if (is_time_control_enabled(game)) {
 // Check before other game-ending conditions
 if (check_time_forfeit(&game)) {
     Color winner = (game.current_player == WHITE) ? BLACK : WHITE;
-    printf("\n*** TIME FORFEIT! %s WINS! ***\n", winner == WHITE ? "WHITE" : "BLACK");
+    printf("\n*** TIME FORFEIT! %s WINS! ***\n",
+           winner == WHITE ? "WHITE" : "BLACK");
     // Handle game termination
 }
 ```
@@ -623,7 +697,8 @@ TIME 0/0            # Disable time controls (depth-10 search)
 #### Files Modified
 - `chess.h` - Data structures, function declarations
 - `chess.c` - Core timer functions, time parsing, display integration
-- `main.c` - Configuration parsing, TIME command, display updates, undo integration
+- `main.c` - Configuration parsing, TIME command, display updates, undo
+    integration
 - `stockfish.h/stockfish.c` - Search mode selection, time-based thinking
 
 #### Cross-Platform Compatibility
@@ -667,15 +742,18 @@ DefaultTimeControl=30/10/5/0
 
 ### ✅ TIME Command Lock (IMPLEMENTED)
 
-**Status:** ✅ **COMPLETED** - Simple flag-based protection successfully implemented
-**Implementation:** Uses existing `game_started` flag pattern identical to SKILL command
+**Status:** ✅ **COMPLETED** - Simple flag-based protection successfully
+implemented
+**Implementation:** Uses existing `game_started` flag pattern identical
+to SKILL command
 
 #### Implementation Details:
 ```c
 // In main.c, line 1656-1660:
 if (strncmp(input, "time ", 5) == 0 || strncmp(input, "TIME ", 5) == 0) {
     if (game_started) {
-        printf("\nTime controls cannot be changed after the game has started!\n");
+        printf("\nTime controls cannot be changed after the game has "
+               "started!\n");
         printf("Use this command only before making your first move.\n");
     } else {
         // Existing TIME parsing code...
@@ -683,16 +761,21 @@ if (strncmp(input, "time ", 5) == 0 || strncmp(input, "TIME ", 5) == 0) {
 }
 ```
 
-**Result:** TIME command now locked after first move, preventing mid-game time control changes
+**Result:** TIME command now locked after first move, preventing
+mid-game time control changes
 **Files modified:** `main.c` only (6 lines added)
 **Testing:** ✅ All micro-tests pass, zero compilation warnings
 
 ### ❌ Live Timer Display Updates (ABANDONED)
 
-**Status:** ❌ **ABANDONED** - Incompatible with current terminal-based architecture
+**Status:** ❌ **ABANDONED** - Incompatible with current terminal-based
+architecture
 
 **Analysis Summary:**
-Multiple implementation approaches were attempted (signal-based, ANSI cursor positioning, select() with timeouts), but all resulted in terminal display issues including screen scrolling, input interference, and cursor positioning problems.
+Multiple implementation approaches were attempted (signal-based, ANSI
+cursor positioning, select() with timeouts), but all resulted in terminal
+display issues including screen scrolling, input interference, and cursor
+positioning problems.
 
 **Technical Challenges Encountered:**
 - Terminal display corruption during real-time updates
@@ -700,9 +783,14 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
 - Input blocking (`fgets()`) incompatible with live display updates
 - Screen scrolling and line interference issues
 
-**Decision:** The existing timer display (which shows real-time values on screen refreshes between turns) is adequate for chess gameplay. The complexity and display issues introduced by live updates during input are not justified for this use case.
+**Decision:** The existing timer display (which shows real-time values on
+screen refreshes between turns) is adequate for chess gameplay. The
+complexity and display issues introduced by live updates during input are
+not justified for this use case.
 
-**Current Timer Behavior:** Timer values are dynamically calculated and displayed whenever the screen refreshes (after moves, commands, etc.), providing sufficient timing information for chess games.
+**Current Timer Behavior:** Timer values are dynamically calculated and
+displayed whenever the screen refreshes (after moves, commands, etc.),
+providing sufficient timing information for chess games.
 
 ## Code Cleanup & Refactoring (In Progress)
 
@@ -716,7 +804,8 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
 
 **Key Findings:**
 - ✅ **Strengths**: 70% documented, consistent style, comprehensive features
-- ❌ **Weaknesses**: Long functions (>200 lines), code duplication (~200 lines), organizational issues
+- ❌ **Weaknesses**: Long functions (>200 lines), code duplication
+    (~200 lines), organizational issues
 
 **Technical Debt Identified:** ~25-35 hours of refactoring work
 
@@ -725,14 +814,16 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
 #### ✅ **COMPLETED**
 
 1. **Removed Unused Function Declaration** ✅
-   - **Issue**: `can_block_or_capture_threat()` declared in chess.h but never implemented
+   - **Issue**: `can_block_or_capture_threat()` declared in chess.h but
+       never implemented
    - **Fix**: Removed orphaned declaration from chess.h:196
    - **Impact**: Fixed broken API contract
    - **Commit**: Sep 23, 2025
 
 2. **Organized Debug Files** ✅
    - **Issue**: 6 debug_*.c files cluttering main directory (11KB)
-   - **Fix**: Created debug/ subdirectory, moved all debug files, updated Makefile
+   - **Fix**: Created debug/ subdirectory, moved all debug files, updated
+       Makefile
    - **Impact**: Cleaner project structure, separated debug from production code
    - **Commit**: Sep 23, 2025
 
@@ -745,19 +836,28 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
 
 4. **Eliminated Duplicate Directory Scanning Code** ✅
    - **Issue**: ~90% duplicate code between FEN/PGN scanning (200+ lines)
-   - **Fix**: Extracted 4 helper functions (`count_fen_moves()`, `count_pgn_moves()`, `format_fen_display_name()`, `format_pgn_display_name()`)
+   - **Fix**: Extracted 4 helper functions (`count_fen_moves()`,
+       `count_pgn_moves()`, `format_fen_display_name()`,
+       `format_pgn_display_name()`)
    - **Impact**: Removed ~100 lines of duplication, cleaner maintenance
    - **Commit**: Sep 23, 2025
 
 5. **Refactored handle_white_turn() Function** ✅
-   - **Issue**: Massive 480-line function doing input, commands, moves, and display
+   - **Issue**: Massive 480-line function doing input, commands, moves,
+       and display
    - **Fix**: Extracted into 3 focused functions:
-     - `handle_game_commands()` (376 lines) - All command processing (quit, help, hint, skill, time, fen, pgn, score, title, credits, load, undo, resign, setup)
-     - `handle_show_possible_moves()` (48 lines) - Display legal moves for a square
+     - `handle_game_commands()` (376 lines) - All command processing
+         (quit, help, hint, skill, time, fen, pgn, score, title, credits,
+         load, undo, resign, setup)
+     - `handle_show_possible_moves()` (48 lines) - Display legal moves
+         for a square
      - `handle_move_execution()` (26 lines) - Parse and execute chess moves
-   - **Impact**: `handle_white_turn()` reduced 480 → 25 lines (455 lines extracted)
-   - **Bonus Fix**: Updated `char_to_position()` signature to accept `const char*` (chess.h & chess.c)
-   - **Testing**: Fully tested on macOS 15.6.1 and Ubuntu 22.04, zero warnings, all 19 micro-tests pass
+   - **Impact**: `handle_white_turn()` reduced 480 → 25 lines (455 lines
+       extracted)
+   - **Bonus Fix**: Updated `char_to_position()` signature to accept
+       `const char*` (chess.h & chess.c)
+   - **Testing**: Fully tested on macOS 15.6.1 and Ubuntu 22.04, zero
+       warnings, all 19 micro-tests pass
    - **Commit**: Sep 24, 2025
 
 #### 🔲 **REMAINING** (Priority 1)
@@ -771,23 +871,37 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
    - **Issue**: 152-line function doing validation, parsing, and initialization
    - **Fix**: Extracted into 2 focused helper functions:
      - `parse_fen_board_position()` (34 lines) - Parse piece placement field
-     - `parse_fen_metadata()` (85 lines) - Parse active color, castling, en passant, move counters
-   - **Impact**: `setup_board_from_fen()` reduced 152 → 38 lines (114 lines extracted)
-   - **Benefits**: Clear separation of board parsing vs metadata parsing, easier to maintain
-   - **Testing**: All 19 micro-tests pass (including FEN parsing tests), zero warnings
+     - `parse_fen_metadata()` (85 lines) - Parse active color, castling,
+         en passant, move counters
+   - **Impact**: `setup_board_from_fen()` reduced 152 → 38 lines (114
+       lines extracted)
+   - **Benefits**: Clear separation of board parsing vs metadata parsing,
+       easier to maintain
+   - **Testing**: All 19 micro-tests pass (including FEN parsing tests),
+       zero warnings
    - **Commit**: Sep 24, 2025
 
 7. **Define Named Constants for Magic Numbers** ✅
-   - **Issue**: Magic numbers scattered throughout code (100, 20, 500, 10000, etc.)
+   - **Issue**: Magic numbers scattered throughout code (100, 20, 500,
+       10000, etc.)
    - **Fix**: Added 12 named constants to chess.h:
-     - Game constants: `MAX_POSSIBLE_MOVES`, `FIFTY_MOVE_HALFMOVES`, `MAX_SKILL_LEVEL`, `MIN_SKILL_LEVEL`, `MAX_PGN_DISPLAY_MOVES`, `PAGINATION_LINES`
-     - Engine timing: `DEFAULT_SEARCH_DEPTH`, `MOVE_TIME_DIVISOR`, `MIN_MOVE_TIME_MS`, `MAX_MOVE_TIME_MS`
-     - Evaluation: `EVAL_WINNING_THRESHOLD`, `EVAL_SIGNIFICANT_THRESHOLD`, `EVAL_MODERATE_THRESHOLD`
-   - **Impact**: Replaced 15+ magic numbers across chess.c, main.c, and stockfish.c
-   - **Benefits**: Better code maintainability, self-documenting values, easier to adjust thresholds
-   - **Bonus Fix**: Fixed Stockfish evaluation bug - now uses only deepest depth score (depth 15)
-   - **Documentation**: Added comment explaining expected ±10-30 cp variation in stockfish.c
-   - **Testing**: All 19 micro-tests pass, zero warnings, fully tested on macOS & Ubuntu
+     - Game constants: `MAX_POSSIBLE_MOVES`, `FIFTY_MOVE_HALFMOVES`,
+         `MAX_SKILL_LEVEL`, `MIN_SKILL_LEVEL`, `MAX_PGN_DISPLAY_MOVES`,
+         `PAGINATION_LINES`
+     - Engine timing: `DEFAULT_SEARCH_DEPTH`, `MOVE_TIME_DIVISOR`,
+         `MIN_MOVE_TIME_MS`, `MAX_MOVE_TIME_MS`
+     - Evaluation: `EVAL_WINNING_THRESHOLD`, `EVAL_SIGNIFICANT_THRESHOLD`,
+         `EVAL_MODERATE_THRESHOLD`
+   - **Impact**: Replaced 15+ magic numbers across chess.c, main.c, and
+       stockfish.c
+   - **Benefits**: Better code maintainability, self-documenting values,
+       easier to adjust thresholds
+   - **Bonus Fix**: Fixed Stockfish evaluation bug - now uses only
+       deepest depth score (depth 15)
+   - **Documentation**: Added comment explaining expected ±10-30 cp
+       variation in stockfish.c
+   - **Testing**: All 19 micro-tests pass, zero warnings, fully tested
+       on macOS & Ubuntu
    - **Commit**: Sep 24, 2025
 
 #### 🔲 **REMAINING** (Priority 2)
@@ -800,7 +914,8 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
 ### Priority 3 - NICE TO HAVE (Minor Improvements)
 
 9. **Reorganize chess.c by Logical Subsystem** 🔲
-   - Group: Board mgmt → Move generation → Validation → Execution → Display
+   - Group: Board mgmt → Move generation → Validation → Execution →
+     Display
    - Effort: 2 hours
 
 10. **Encapsulate Global Variables in Context Structs** 🔲
@@ -808,12 +923,18 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
     - Effort: 4-6 hours
 
 11. **Standardize Naming Conventions** 🔲
-    - Enforce: snake_case (functions), PascalCase (types), SCREAMING_SNAKE_CASE (constants)
+    - Enforce: snake_case (functions), PascalCase (types),
+      SCREAMING_SNAKE_CASE (constants)
     - Effort: 3-4 hours
 
-12. **Clean Up Header Includes** 🔲
-    - Remove duplicates, organize dependencies
-    - Effort: 1 hour
+12. **Clean Up Header Includes** ✅
+    - **Issue**: Redundant includes, inconsistent organization
+    - **Fix**: Removed 3 redundant `#include <time.h>` statements, organized
+      headers consistently (project headers first, system headers alphabetized)
+    - **Impact**: Cleaner compilation dependencies, improved maintainability
+    - **Files modified**: chess.c, main.c, pgn_utils.c
+    - **Testing**: All 19 micro-tests pass, zero compilation warnings
+    - **Commit**: Sep 25, 2025
 
 ### Progress Metrics
 
@@ -840,7 +961,7 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
 
 ### Next Session Plan
 
-**Current Status: 7 of 12 items complete - Great stopping point!**
+**Current Status: 8 of 12 items complete - Excellent progress!**
 
 **✅ COMPLETED:**
 - Priority 1: ALL 5 items complete (critical maintainability)
@@ -848,29 +969,33 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
   - Item 6: `setup_board_from_fen()` refactored ✅
   - Item 7: Named constants defined ✅
   - Item 8: Documentation (tabled for later)
+- Priority 3: 1 of 4 items complete
+  - Item 12: Header includes cleanup ✅
 
 **🔲 REMAINING WORK (Priority 3 - Optional improvements):**
 1. **Item 9**: Reorganize chess.c by Logical Subsystem (2 hours)
-   - Group functions: Board mgmt → Move generation → Validation → Execution → Display
+   - Group functions: Board mgmt → Move generation → Validation →
+     Execution → Display
 
 2. **Item 10**: Encapsulate Global Variables in Context Structs (4-6 hours)
    - Create `GameSession` and `RuntimeConfig` structures
    - Reduce global state footprint
 
 3. **Item 11**: Standardize Naming Conventions (3-4 hours)
-   - Enforce: snake_case (functions), PascalCase (types), SCREAMING_SNAKE_CASE (constants)
+   - Enforce: snake_case (functions), PascalCase (types),
+     SCREAMING_SNAKE_CASE (constants)
 
 4. **Item 12**: Clean Up Header Includes (1 hour) ⭐ **QUICKEST WIN**
    - Remove duplicates, organize dependencies
    - Good starting point for next session
 
-**🚨 CRITICAL FIRST TASK FOR NEXT SESSION:**
-- **Fix CLAUDE.md line lengths** - Many lines exceed 80 char limit
-- Must be completed BEFORE any new refactoring work
-- Use same approach as README.md (indent continuations 2-4 spaces)
-- Verify with: `awk 'length > 80' CLAUDE.md`
+**✅ CRITICAL FIRST TASK COMPLETED:**
+- **Fixed CLAUDE.md line lengths** ✅ - All lines now under 80 characters
+- **Fixed README.md line lengths** ✅ - All lines properly formatted
+- **Fixed awkward line breaks** ✅ - Combined orphaned short continuations
+- **Professional documentation formatting** ✅ - Both project docs complete
 
-**Recommendation for Next Session (after line length fix):**
+**Recommendation for Next Session:**
 - Start with Item 12 (headers cleanup) - quick 1-hour win
 - Then tackle Item 9 (reorganize chess.c) - medium complexity
 - Save Items 10 & 11 for when you have longer blocks
@@ -898,7 +1023,8 @@ Multiple implementation approaches were attempted (signal-based, ANSI cursor pos
 - Clear separation of concerns
 - Better maintainability for future development
 
-**Status:** Solid stopping point. Project in excellent shape. Ready to continue when you have a fresh 5-hour block.
+**Status:** Solid stopping point. Project in excellent shape. Ready to
+continue when you have a fresh 5-hour block.
 
 ### Notes for Future Sessions
 

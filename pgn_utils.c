@@ -17,11 +17,11 @@
  */
 
 #include "pgn_utils.h"
+
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <time.h>
 
 /**
  * convert_fen_to_pgn_string() - Convert FEN log file to PGN format string

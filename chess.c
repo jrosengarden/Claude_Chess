@@ -24,7 +24,6 @@
  */
 
 #include "chess.h"
-#include <time.h>
 
 /**
  * Initialize a new chess game with standard starting positions
