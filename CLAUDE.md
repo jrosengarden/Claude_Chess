@@ -19,6 +19,7 @@ make install-deps      # Install Stockfish dependency
     system and command line parsing)
 - `chess.h/chess.c` - Chess logic, move validation (2050+ lines)
 - `stockfish.h/stockfish.c` - AI engine integration via UCI protocol
+- `pgn_utils.h/pgn_utils.c` - PGN conversion utilities (extracted from chess.c)
 - `fen_to_pgn.c` - Standalone FEN-to-PGN conversion utility
 - `pgn_to_fen.c` - PGN-to-FEN converter with chess engine validation
 - `micro_test.c` - Safe testing framework (prevents Claude session crashes)
@@ -46,6 +47,7 @@ make install-deps      # Install Stockfish dependency
     notation (stockfish.c)
 - `is_in_check()` - Check detection (chess.c)
 - `get_best_move()` - AI move request via Stockfish (stockfish.c)
+- `get_hint_move()` - Fast hint request using depth-based search (stockfish.c)
 - `board_to_fen()` - Convert board to FEN with accurate counters (stockfish.c)
 - `setup_board_from_fen()` - Parse FEN, configure game state (chess.c)
 - `get_king_moves_no_castling()` - King moves without castling (chess.c)
@@ -445,6 +447,8 @@ All core chess rules now fully implemented:
 - **PGN-to-FEN Conversion Tools** - Create verified opening sequences
 - **TIME Command Lock** - Prevents changing time controls after game
     starts (like SKILL command)
+- **HINT System Optimization** - Separated fast hint requests from
+    time-controlled AI moves to prevent burning user's time during hints
 
 ## Opening Library Management
 
@@ -985,10 +989,6 @@ providing sufficient timing information for chess games.
    - Enforce: snake_case (functions), PascalCase (types),
      SCREAMING_SNAKE_CASE (constants)
 
-4. **Item 12**: Clean Up Header Includes (1 hour) ⭐ **QUICKEST WIN**
-   - Remove duplicates, organize dependencies
-   - Good starting point for next session
-
 **✅ CRITICAL FIRST TASK COMPLETED:**
 - **Fixed CLAUDE.md line lengths** ✅ - All lines now under 80 characters
 - **Fixed README.md line lengths** ✅ - All lines properly formatted
@@ -996,13 +996,9 @@ providing sufficient timing information for chess games.
 - **Professional documentation formatting** ✅ - Both project docs complete
 
 **Recommendation for Next Session:**
-- Start with Item 12 (headers cleanup) - quick 1-hour win
-- Then tackle Item 9 (reorganize chess.c) - medium complexity
+- Start with Item 9 (reorganize chess.c) - 2-hour medium complexity task
+- Alternative: Item 8 (documentation) - methodical work
 - Save Items 10 & 11 for when you have longer blocks
-
-**Alternative: Circle back to Priority 2, Item 8 (Documentation)**
-- Add docs to 16 undocumented functions in chess.c, ~6 in main.c
-- Good for a methodical session
 
 ### Session Summary (Sep 23-24, 2025)
 
