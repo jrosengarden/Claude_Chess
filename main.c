@@ -2149,7 +2149,7 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
         fflush(stdout);
 
         char hint_move[10];
-        if (get_best_move(engine, game, hint_move, debug_mode)) {
+        if (get_hint_move(engine, game, hint_move, debug_mode)) {
             if (debug_mode) {
                 printf("\nDebug: Stockfish returned hint: '%s'\n", hint_move);
             }

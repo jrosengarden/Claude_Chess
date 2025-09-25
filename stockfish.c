@@ -286,6 +286,59 @@ bool get_best_move(StockfishEngine *engine, ChessGame *game, char *move_str, boo
     return false;
 }
 
+/**
+ * Get hint move from Stockfish using fast depth-based search
+ * Always uses depth-based search regardless of time control settings
+ * to prevent burning user's time during hint requests.
+ *
+ * @param engine Pointer to StockfishEngine
+ * @param game Current game state
+ * @param move_str Buffer to store the returned move (e.g., "e2e4")
+ * @param debug Enable debug output
+ * @return true if hint obtained successfully, false on error
+ */
+bool get_hint_move(StockfishEngine *engine, ChessGame *game, char *move_str, bool debug) {
+    if (!engine->is_ready) return false;
+
+    char *fen = board_to_fen(game);
+    char position_command[512];
+    sprintf(position_command, "position fen %s", fen);
+
+    send_command(engine, position_command);
+
+    // Always use fast depth-based search for hints
+    char go_command[32];
+    sprintf(go_command, "go depth %d", DEFAULT_SEARCH_DEPTH);
+
+    if (debug) {
+        printf("\nDEBUG: Getting hint using depth-%d search (fast mode)\n", DEFAULT_SEARCH_DEPTH);
+    }
+
+    send_command(engine, go_command);
+
+    char buffer[1024];
+    while (read_response(engine, buffer, sizeof(buffer))) {
+        if (strncmp(buffer, "bestmove", 8) == 0) {
+            char *move_start = buffer + 9;
+            char *space_pos = strchr(move_start, ' ');
+
+            if (space_pos) {
+                *space_pos = '\0';
+            }
+
+            strcpy(move_str, move_start);
+
+            if (debug) {
+                printf("DEBUG: Hint move extracted: '%s'\n", move_str);
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
 Move parse_move_string(const char *move_str) {
     Move move = {{-1, -1}, {-1, -1}, {EMPTY, WHITE}, false, false, false, false, EMPTY};
 
