@@ -46,6 +46,23 @@
 #define EVAL_SIGNIFICANT_THRESHOLD 500  // Significant advantage
 #define EVAL_MODERATE_THRESHOLD 300     // Moderate advantage
 
+// ANSI terminal control codes
+#define SCREEN_RESET "\033[0m"           // Reset to default color
+#define CLEAR_SCREEN "\033[2J\033[H"  // Clear screen and move cursor to top-left
+#define CURSOR_LINEUP_TOEND "\033[A\033[12C"  // Move cursor up one line and forward to end of prompt
+
+// Chess piece colors (normal display)
+#define COLOR_WHITE_PIECE "\033[1;96m"  // Bold cyan for White pieces
+#define COLOR_BLACK_PIECE "\033[1;95m"  // Bold magenta for Black pieces
+
+// Chess piece colors (captured/inverted display)
+#define COLOR_WHITE_PIECE_INVERTED "\033[7;1;96m"  // Inverted bold cyan for captured White pieces
+#define COLOR_BLACK_PIECE_INVERTED "\033[7;1;95m"  // Inverted bold magenta for captured Black pieces
+
+// Player status colors for captured pieces display
+#define COLOR_WHITE_PLAYER "\033[1;96m"  // Bold cyan for White player status
+#define COLOR_BLACK_PLAYER "\033[1;95m"  // Bold magenta for Black player status
+
 /**
  * PieceType - All possible chess piece types
  * EMPTY is used for vacant squares on the board

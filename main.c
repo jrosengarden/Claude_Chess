@@ -783,7 +783,7 @@ bool display_pgn_in_new_window(const char* pgn_content) {
  * Used throughout the UI to maintain clean single-board display
  */
 void clear_screen() {
-    printf("\033[2J\033[H");  // Clear screen and move cursor to top-left
+    printf("%s", CLEAR_SCREEN);  // Clear screen and move cursor to top-left
     fflush(stdout);           // Ensure immediate display
 }
 
@@ -1964,8 +1964,8 @@ void print_game_info(ChessGame *game) {
     
     // Display captured pieces for both players
     printf("\n");
-    print_captured_pieces(&game->black_captured, "\033[1;96m", "Black", game);
-    print_captured_pieces(&game->white_captured, "\033[1;95m", "White", game);
+    print_captured_pieces(&game->black_captured, COLOR_BLACK_PLAYER, "Black", game);
+    print_captured_pieces(&game->white_captured, COLOR_WHITE_PLAYER, "White", game);
 }
 
 /**
@@ -2311,7 +2311,7 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
         clear_screen();
 
         printf("=== Claude Chess (%s) with Stockfish AI ===\n",version_string);
-        printf("You play as White, AI plays as Black\n");
+        printf("You play as %sWhite%s, AI plays as %sBlack%s\n", COLOR_WHITE_PIECE, SCREEN_RESET, COLOR_BLACK_PIECE, SCREEN_RESET);
         printf("Stockfish engine is running successfully!\n");
 
         if (debug_mode) {
@@ -2522,8 +2522,8 @@ bool handle_show_possible_moves(const char *input, ChessGame *game) {
             printf("Current player: %s\n", game->current_player == WHITE ? "WHITE" : "BLACK");
 
             printf("\n");
-            print_captured_pieces(&game->black_captured, "\033[1;96m", "Black", game);
-            print_captured_pieces(&game->white_captured, "\033[1;95m", "White", game);
+            print_captured_pieces(&game->black_captured, COLOR_BLACK_PLAYER, "Black", game);
+            print_captured_pieces(&game->white_captured, COLOR_WHITE_PLAYER, "White", game);
 
             if (game->in_check[WHITE]) {
                 printf("\nYour king is in check! You can only make moves that get out of check.\n");
@@ -2600,7 +2600,7 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     printf("\nWhite's turn. Enter move (e.g., 'e2 e4') or 'help': ");
     if (is_time_control_enabled(game)) {
         printf("\n(Press RETURN to update remaining time)");
-        printf("\033[A\033[12C");  // Move cursor up one line and forward to end of prompt
+        printf("%s", CURSOR_LINEUP_TOEND);  // Move cursor up one line and forward to end of prompt
     }
 
     if (!fgets(input, sizeof(input), stdin)) {
@@ -2737,7 +2737,7 @@ int main(int argc, char *argv[]) {
     clear_screen();
     
     printf("=== Claude Chess with Stockfish AI ===\n");
-    printf("You play as White, AI plays as Black\n");
+    printf("You play as %sWhite%s, AI plays as %sBlack%s\n", COLOR_WHITE_PIECE, SCREEN_RESET, COLOR_BLACK_PIECE, SCREEN_RESET);
     if (debug_mode) {
         printf("*** DEBUG MODE ENABLED ***\n");
     }
@@ -2760,7 +2760,7 @@ int main(int argc, char *argv[]) {
     if (get_stockfish_version(&engine, version_str, sizeof(version_str))) {
         clear_screen();
         printf("=== Claude Chess with %s AI ===\n", version_str);
-        printf("You play as White, AI plays as Black\n");
+        printf("You play as %sWhite%s, AI plays as %sBlack%s\n", COLOR_WHITE_PIECE, SCREEN_RESET, COLOR_BLACK_PIECE, SCREEN_RESET);
         if (debug_mode) {
             printf("*** DEBUG MODE ENABLED ***\n");
             printf("Configuration loaded: FENDirectory='%s'\n", config.fen_directory);

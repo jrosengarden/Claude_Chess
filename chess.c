@@ -145,16 +145,24 @@ void print_board(ChessGame *game, Position possible_moves[], int move_count) {
             } else if (is_possible_move || is_en_passant_capture) {
                 // Capturable piece - use reverse/inverted colors for highlighting
                 if (piece_char >= 'A' && piece_char <= 'Z') {
-                    printf("\033[7;1;95m%c\033[0m ", piece_char); // Inverted bold magenta for white pieces
+                    // **JR** Swapped colors here: White is now Cyan and Black is Magenta
+                    //printf("\033[7;1;95m%c\033[0m ", piece_char); // Inverted bold magenta for white pieces
+                    printf("%s%c%s ", COLOR_WHITE_PIECE_INVERTED, piece_char, SCREEN_RESET); // Inverted bold cyan for white pieces
                 } else {
-                    printf("\033[7;1;96m%c\033[0m ", piece_char); // Inverted bold cyan for black pieces
+                    // **JR** Swapped colors here: White is now Cyan and Black is Magenta
+                    //printf("\033[7;1;96m%c\033[0m ", piece_char); // Inverted bold cyan for black pieces
+                    printf("%s%c%s ", COLOR_BLACK_PIECE_INVERTED, piece_char, SCREEN_RESET); // Inverted bold magenta for black pieces
                 }
             } else {
                 if (piece_char != '.') {
                     if (piece_char >= 'A' && piece_char <= 'Z') {
-                        printf("\033[1;95m%c\033[0m ", piece_char); // White pieces in bold magenta
+                        // **JR** Swapped colors here: White is now Cyan and Black is Magenta
+                        //printf("\033[1;95m%c\033[0m ", piece_char); // White pieces in bold magenta
+                        printf("%s%c%s ", COLOR_WHITE_PIECE, piece_char, SCREEN_RESET); // White pieces in bold cyan
                     } else {
-                        printf("\033[1;96m%c\033[0m ", piece_char); // Black pieces in bold cyan
+                        // **JR** Swapped colors here: White is now Cyan and Black is Magenta
+                        //printf("\033[1;96m%c\033[0m ", piece_char); // Black pieces in bold cyan
+                        printf("%s%c%s ", COLOR_BLACK_PIECE, piece_char, SCREEN_RESET); // Black pieces in bold magenta
                     }
                 } else {
                     printf("%c ", piece_char);
@@ -687,13 +695,13 @@ void print_captured_pieces(CapturedPieces *captured, const char* color_code, con
         }
 
         printf("%s%s: %s%s | Captured: ", color_code, player_name,
-               get_remaining_time_string(current_time), "\033[0m");
+               get_remaining_time_string(current_time), SCREEN_RESET);
     } else {
-        printf("%s%s Captured:%s ", color_code, player_name, "\033[0m");
+        printf("%s%s Captured:%s ", color_code, player_name, SCREEN_RESET);
     }
 
     if (captured->count == 0) {
-        printf("%sNone%s", color_code, "\033[0m");
+        printf("%sNone%s", color_code, SCREEN_RESET);
     } else {
         for (int i = 0; i < captured->count; i++) {
             printf("%c ", piece_to_char(captured->captured_pieces[i]));  // All captured pieces in normal black text
