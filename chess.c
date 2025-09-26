@@ -1,6 +1,6 @@
 /**
  * CHESS.C - Core Chess Game Implementation
- * 
+ *
  * This file implements all the core chess game logic including:
  * - Board initialization and management
  * - Complete piece movement rules and validation
@@ -8,7 +8,7 @@
  * - Move generation for all piece types
  * - Game state management with unlimited undo system
  * - Utility functions for position handling and FEN notation
- * 
+ *
  * The chess engine supports:
  * - All standard piece movements (pawn, rook, knight, bishop, queen, king)
  * - Castling (kingside and queenside) with full rule validation
@@ -18,31 +18,97 @@
  * - 50-move rule automatic draw detection
  * - Unlimited undo functionality using FEN log restoration
  * - Custom board setup via FEN notation parsing
- * 
- * Remaining enhancements to implement:
- * - Pawn promotion
+ * - Complete pawn promotion system
+ * - Time control system with separate White/Black allocations
+ *
+ * TABLE OF CONTENTS:
+ * ==================
+ *
+ * 1. BOARD MANAGEMENT & INITIALIZATION
+ *    - init_board() - Initialize new chess game with standard starting positions
+ *    - piece_to_char() - Convert piece to character representation
+ *    - print_board() - Display board with color highlighting and move indicators
+ *    - print_captured_pieces() - Display captured pieces with time controls
+ *
+ * 2. POSITION & UTILITY FUNCTIONS
+ *    - is_valid_position() - Check if row/col coordinates are within board
+ *    - is_piece_at() - Check if piece exists at position
+ *    - get_piece_at() - Get piece at position
+ *    - set_piece_at() - Place piece at position
+ *    - clear_position() - Remove piece from position
+ *    - char_to_position() - Convert algebraic notation to Position struct
+ *    - position_to_string() - Convert Position struct to algebraic notation
+ *    - char_to_piece_type() - Convert character to PieceType (for FEN parsing)
+ *
+ * 3. MOVE GENERATION (BY PIECE TYPE)
+ *    - get_pawn_moves() - Generate pawn moves including en passant
+ *    - get_rook_moves() - Generate rook moves (horizontal/vertical)
+ *    - get_bishop_moves() - Generate bishop moves (diagonal)
+ *    - get_knight_moves() - Generate knight moves (L-shaped)
+ *    - get_queen_moves() - Generate queen moves (rook + bishop)
+ *    - get_king_moves_no_castling() - Generate basic king moves
+ *    - get_king_moves() - Generate king moves including castling
+ *    - get_possible_moves() - Main move generation dispatcher
+ *
+ * 4. MOVE VALIDATION & GAME RULES
+ *    - is_square_attacked() - Check if square is under attack by color
+ *    - is_in_check() - Check if king is in check
+ *    - would_be_in_check_after_move() - Simulate move to check for check
+ *    - is_valid_move() - Validate move legality and check prevention
+ *    - is_fifty_move_rule_draw() - Check 50-move rule draw condition
+ *
+ * 5. PAWN PROMOTION SYSTEM
+ *    - is_promotion_move() - Check if move requires pawn promotion
+ *    - is_valid_promotion_piece() - Validate promotion piece choice
+ *    - get_promotion_choice() - Interactive UI for promotion selection
+ *    - make_promotion_move() - Execute pawn promotion move
+ *
+ * 6. MOVE EXECUTION
+ *    - make_move() - Execute validated move with full game state updates
+ *    - execute_move() - Execute move from Move structure (AI/human)
+ *
+ * 7. FEN SYSTEM & BOARD SETUP
+ *    - validate_fen_string() - Validate FEN format and structure
+ *    - calculate_captured_pieces() - Calculate missing pieces vs starting position
+ *    - parse_fen_board_position() - Parse piece placement field of FEN
+ *    - parse_fen_metadata() - Parse active color, castling, en passant, counters
+ *    - setup_board_from_fen() - Complete FEN parsing and game state setup
+ *
+ * 8. TIME CONTROL SYSTEM
+ *    - parse_time_control() - Parse time control string (xx/yy or xx/yy/zz/ww)
+ *    - init_game_timer() - Initialize timer with time control settings
+ *    - start_move_timer() - Start timing current player's move
+ *    - stop_move_timer() - Stop timer and apply increment
+ *    - get_remaining_time_string() - Format time as MM:SS string
+ *    - check_time_forfeit() - Check for time forfeit condition
+ *    - is_time_control_enabled() - Check if time controls are active
  */
 
 #include "chess.h"
+
+/******************************************************************************
+ *                       BOARD MANAGEMENT & INITIALIZATION
+ ******************************************************************************/
+
 
 /**
  * Initialize a new chess game with standard starting positions
  * Sets up the board, initializes game state variables, and places pieces
  * in their starting positions according to chess rules.
- * 
+ *
  * @param game Pointer to ChessGame structure to initialize
  */
 void init_board(ChessGame *game) {
     // Clear the entire board to empty squares
     memset(game->board, 0, sizeof(game->board));
-    
+
     // Initialize game state - White always moves first
     game->current_player = WHITE;
-    
+
     // Initialize capture tracking
     game->white_captured.count = 0;
     game->black_captured.count = 0;
-    
+
     // Initialize castling eligibility flags (castling fully implemented)
     game->white_king_moved = false;
     game->black_king_moved = false;
@@ -50,36 +116,36 @@ void init_board(ChessGame *game) {
     game->white_rook_h_moved = false;  // Kingside rook
     game->black_rook_a_moved = false;  // Queenside rook
     game->black_rook_h_moved = false;  // Kingside rook
-    
+
     // Set initial king positions for efficient check detection
     game->white_king_pos = (Position){7, 4};  // e1 in chess notation
     game->black_king_pos = (Position){0, 4};  // e8 in chess notation
-    
+
     // Initialize check status and undo system
     game->in_check[0] = false;  // White not in check
     game->in_check[1] = false;  // Black not in check
-    
+
     // Initialize FEN move counters to standard starting values
     game->halfmove_clock = 0;    // No halfmoves since start
-    game->fullmove_number = 1;   // First move pair  
-    
+    game->fullmove_number = 1;   // First move pair
+
     // Initialize en passant state
     game->en_passant_available = false;
     game->en_passant_target.row = -1;
     game->en_passant_target.col = -1;
-    
+
     // Define starting piece arrangements for back ranks
     // Standard chess setup: Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook
     Piece white_pieces[] = {
         {ROOK, WHITE}, {KNIGHT, WHITE}, {BISHOP, WHITE}, {QUEEN, WHITE},
         {KING, WHITE}, {BISHOP, WHITE}, {KNIGHT, WHITE}, {ROOK, WHITE}
     };
-    
+
     Piece black_pieces[] = {
         {ROOK, BLACK}, {KNIGHT, BLACK}, {BISHOP, BLACK}, {QUEEN, BLACK},
         {KING, BLACK}, {BISHOP, BLACK}, {KNIGHT, BLACK}, {ROOK, BLACK}
     };
-    
+
     // Place pieces in standard chess starting positions
     for (int i = 0; i < 8; i++) {
         game->board[0][i] = black_pieces[i];        // Black back rank (8th rank)
@@ -91,23 +157,23 @@ void init_board(ChessGame *game) {
 
 char piece_to_char(Piece piece) {
     if (piece.type == EMPTY) return '.';
-    
+
     // Bounds check to prevent segfault
     if (piece.type < 0 || piece.type > KING) return '?';
-    
+
     char symbols[] = {' ', 'P', 'R', 'N', 'B', 'Q', 'K'};
     char c = symbols[piece.type];
-    
+
     return piece.color == WHITE ? c : c + 32;
 }
 
 void print_board(ChessGame *game, Position possible_moves[], int move_count) {
     printf("\n    a b c d e f g h\n");
     printf("  +----------------+\n");
-    
+
     for (int row = 0; row < BOARD_SIZE; row++) {
         printf("%d | ", 8 - row);
-        
+
         for (int col = 0; col < BOARD_SIZE; col++) {
             bool is_possible_move = false;
             bool is_en_passant_capture = false;
@@ -145,23 +211,15 @@ void print_board(ChessGame *game, Position possible_moves[], int move_count) {
             } else if (is_possible_move || is_en_passant_capture) {
                 // Capturable piece - use reverse/inverted colors for highlighting
                 if (piece_char >= 'A' && piece_char <= 'Z') {
-                    // **JR** Swapped colors here: White is now Cyan and Black is Magenta
-                    //printf("\033[7;1;95m%c\033[0m ", piece_char); // Inverted bold magenta for white pieces
                     printf("%s%c%s ", COLOR_WHITE_PIECE_INVERTED, piece_char, SCREEN_RESET); // Inverted bold cyan for white pieces
                 } else {
-                    // **JR** Swapped colors here: White is now Cyan and Black is Magenta
-                    //printf("\033[7;1;96m%c\033[0m ", piece_char); // Inverted bold cyan for black pieces
                     printf("%s%c%s ", COLOR_BLACK_PIECE_INVERTED, piece_char, SCREEN_RESET); // Inverted bold magenta for black pieces
                 }
             } else {
                 if (piece_char != '.') {
                     if (piece_char >= 'A' && piece_char <= 'Z') {
-                        // **JR** Swapped colors here: White is now Cyan and Black is Magenta
-                        //printf("\033[1;95m%c\033[0m ", piece_char); // White pieces in bold magenta
                         printf("%s%c%s ", COLOR_WHITE_PIECE, piece_char, SCREEN_RESET); // White pieces in bold cyan
                     } else {
-                        // **JR** Swapped colors here: White is now Cyan and Black is Magenta
-                        //printf("\033[1;96m%c\033[0m ", piece_char); // Black pieces in bold cyan
                         printf("%s%c%s ", COLOR_BLACK_PIECE, piece_char, SCREEN_RESET); // Black pieces in bold magenta
                     }
                 } else {
@@ -169,502 +227,17 @@ void print_board(ChessGame *game, Position possible_moves[], int move_count) {
                 }
             }
         }
-        
+
         printf("| %d\n", 8 - row);
     }
-    
+
     printf("  +----------------+\n");
     printf("    a b c d e f g h\n");
-    
+
     if (game->in_check[game->current_player]) {
-        printf("\n*** %s KING IS IN CHECK! ***\n", 
+        printf("\n*** %s KING IS IN CHECK! ***\n",
                game->current_player == WHITE ? "WHITE" : "BLACK");
     }
-}
-
-bool is_valid_position(int row, int col) {
-    return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
-}
-
-bool is_piece_at(ChessGame *game, int row, int col) {
-    return game->board[row][col].type != EMPTY;
-}
-
-Piece get_piece_at(ChessGame *game, int row, int col) {
-    return game->board[row][col];
-}
-
-void set_piece_at(ChessGame *game, int row, int col, Piece piece) {
-    game->board[row][col] = piece;
-}
-
-void clear_position(ChessGame *game, int row, int col) {
-    game->board[row][col] = (Piece){EMPTY, WHITE};
-}
-
-int get_pawn_moves(ChessGame *game, Position from, Position moves[]) {
-    int count = 0;
-    Piece piece = get_piece_at(game, from.row, from.col);
-    int direction = (piece.color == WHITE) ? -1 : 1;
-    int start_row = (piece.color == WHITE) ? 6 : 1;
-    
-    int new_row = from.row + direction;
-    if (is_valid_position(new_row, from.col) && !is_piece_at(game, new_row, from.col)) {
-        moves[count++] = (Position){new_row, from.col};
-        
-        if (from.row == start_row) {
-            new_row = from.row + 2 * direction;
-            if (is_valid_position(new_row, from.col) && !is_piece_at(game, new_row, from.col)) {
-                moves[count++] = (Position){new_row, from.col};
-            }
-        }
-    }
-    
-    int capture_cols[] = {from.col - 1, from.col + 1};
-    for (int i = 0; i < 2; i++) {
-        int new_col = capture_cols[i];
-        new_row = from.row + direction;
-        
-        if (is_valid_position(new_row, new_col) && is_piece_at(game, new_row, new_col)) {
-            Piece target = get_piece_at(game, new_row, new_col);
-            if (target.color != piece.color) {
-                moves[count++] = (Position){new_row, new_col};
-            }
-        }
-    }
-    
-    // Check for en passant capture
-    if (game->en_passant_available) {
-        // En passant is possible if:
-        // 1. Pawn is on the correct rank (5th rank for White, 4th rank for Black)
-        // 2. Pawn is adjacent to the en passant target square
-        int en_passant_rank = (piece.color == WHITE) ? 3 : 4;  // 5th rank for White (row 3), 4th rank for Black (row 4)
-        
-        if (from.row == en_passant_rank) {
-            // Check if pawn is adjacent to en passant target square
-            if (abs(from.col - game->en_passant_target.col) == 1 && 
-                game->en_passant_target.row == from.row + direction) {
-                moves[count++] = game->en_passant_target;
-            }
-        }
-    }
-    
-    return count;
-}
-
-int get_rook_moves(ChessGame *game, Position from, Position moves[]) {
-    int count = 0;
-    Piece piece = get_piece_at(game, from.row, from.col);
-    
-    int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-    
-    for (int d = 0; d < 4; d++) {
-        for (int i = 1; i < BOARD_SIZE; i++) {
-            int new_row = from.row + directions[d][0] * i;
-            int new_col = from.col + directions[d][1] * i;
-            
-            if (!is_valid_position(new_row, new_col)) break;
-            
-            if (is_piece_at(game, new_row, new_col)) {
-                Piece target = get_piece_at(game, new_row, new_col);
-                if (target.color != piece.color) {
-                    moves[count++] = (Position){new_row, new_col};
-                }
-                break;
-            }
-            
-            moves[count++] = (Position){new_row, new_col};
-        }
-    }
-    
-    return count;
-}
-
-int get_bishop_moves(ChessGame *game, Position from, Position moves[]) {
-    int count = 0;
-    Piece piece = get_piece_at(game, from.row, from.col);
-    
-    int directions[4][2] = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
-    
-    for (int d = 0; d < 4; d++) {
-        for (int i = 1; i < BOARD_SIZE; i++) {
-            int new_row = from.row + directions[d][0] * i;
-            int new_col = from.col + directions[d][1] * i;
-            
-            if (!is_valid_position(new_row, new_col)) break;
-            
-            if (is_piece_at(game, new_row, new_col)) {
-                Piece target = get_piece_at(game, new_row, new_col);
-                if (target.color != piece.color) {
-                    moves[count++] = (Position){new_row, new_col};
-                }
-                break;
-            }
-            
-            moves[count++] = (Position){new_row, new_col};
-        }
-    }
-    
-    return count;
-}
-
-int get_knight_moves(ChessGame *game, Position from, Position moves[]) {
-    int count = 0;
-    Piece piece = get_piece_at(game, from.row, from.col);
-    
-    int knight_moves[8][2] = {
-        {-2, -1}, {-2, 1}, {-1, -2}, {-1, 2},
-        {1, -2}, {1, 2}, {2, -1}, {2, 1}
-    };
-    
-    for (int i = 0; i < 8; i++) {
-        int new_row = from.row + knight_moves[i][0];
-        int new_col = from.col + knight_moves[i][1];
-        
-        if (is_valid_position(new_row, new_col)) {
-            if (!is_piece_at(game, new_row, new_col) || 
-                get_piece_at(game, new_row, new_col).color != piece.color) {
-                moves[count++] = (Position){new_row, new_col};
-            }
-        }
-    }
-    
-    return count;
-}
-
-int get_queen_moves(ChessGame *game, Position from, Position moves[]) {
-    int count = 0;
-    count += get_rook_moves(game, from, moves);
-    count += get_bishop_moves(game, from, moves + count);
-    return count;
-}
-
-int get_king_moves_no_castling(ChessGame *game, Position from, Position moves[]) {
-    int count = 0;
-    Piece piece = get_piece_at(game, from.row, from.col);
-    
-    // Standard king moves (one square in any direction)
-    int directions[8][2] = {
-        {-1, -1}, {-1, 0}, {-1, 1},
-        {0, -1},           {0, 1},
-        {1, -1},  {1, 0},  {1, 1}
-    };
-    
-    for (int i = 0; i < 8; i++) {
-        int new_row = from.row + directions[i][0];
-        int new_col = from.col + directions[i][1];
-        
-        if (is_valid_position(new_row, new_col)) {
-            if (!is_piece_at(game, new_row, new_col) || 
-                get_piece_at(game, new_row, new_col).color != piece.color) {
-                moves[count++] = (Position){new_row, new_col};
-            }
-        }
-    }
-    
-    return count;
-}
-
-int get_king_moves(ChessGame *game, Position from, Position moves[]) {
-    // Get standard moves first
-    int count = get_king_moves_no_castling(game, from, moves);
-    Piece piece = get_piece_at(game, from.row, from.col);
-    
-    // Castling moves
-    if (!game->in_check[piece.color]) { // Cannot castle while in check
-        if (piece.color == WHITE) {
-            // White kingside castling (king moves to g1)
-            if (!game->white_king_moved && !game->white_rook_h_moved &&
-                from.row == 7 && from.col == 4 && // King is on e1
-                !is_piece_at(game, 7, 5) && !is_piece_at(game, 7, 6) && // f1 and g1 are empty
-                !is_square_attacked(game, (Position){7, 5}, BLACK) && // f1 not attacked
-                !is_square_attacked(game, (Position){7, 6}, BLACK)) { // g1 not attacked
-                moves[count++] = (Position){7, 6}; // g1
-            }
-            
-            // White queenside castling (king moves to c1)
-            if (!game->white_king_moved && !game->white_rook_a_moved &&
-                from.row == 7 && from.col == 4 && // King is on e1
-                !is_piece_at(game, 7, 1) && !is_piece_at(game, 7, 2) && !is_piece_at(game, 7, 3) && // b1, c1, d1 are empty
-                !is_square_attacked(game, (Position){7, 2}, BLACK) && // c1 not attacked
-                !is_square_attacked(game, (Position){7, 3}, BLACK)) { // d1 not attacked
-                moves[count++] = (Position){7, 2}; // c1
-            }
-        } else { // BLACK
-            // Black kingside castling (king moves to g8)
-            if (!game->black_king_moved && !game->black_rook_h_moved &&
-                from.row == 0 && from.col == 4 && // King is on e8
-                !is_piece_at(game, 0, 5) && !is_piece_at(game, 0, 6) && // f8 and g8 are empty
-                !is_square_attacked(game, (Position){0, 5}, WHITE) && // f8 not attacked
-                !is_square_attacked(game, (Position){0, 6}, WHITE)) { // g8 not attacked
-                moves[count++] = (Position){0, 6}; // g8
-            }
-            
-            // Black queenside castling (king moves to c8)
-            if (!game->black_king_moved && !game->black_rook_a_moved &&
-                from.row == 0 && from.col == 4 && // King is on e8
-                !is_piece_at(game, 0, 1) && !is_piece_at(game, 0, 2) && !is_piece_at(game, 0, 3) && // b8, c8, d8 are empty
-                !is_square_attacked(game, (Position){0, 2}, WHITE) && // c8 not attacked
-                !is_square_attacked(game, (Position){0, 3}, WHITE)) { // d8 not attacked
-                moves[count++] = (Position){0, 2}; // c8
-            }
-        }
-    }
-    
-    return count;
-}
-
-/**
- * Generate all possible moves for a piece at the specified position
- * This is the main move generation function that delegates to piece-specific
- * movement functions. It validates the piece exists and belongs to the current player.
- * 
- * @param game Current game state
- * @param from Position of piece to generate moves for
- * @param moves Array to store generated moves (caller must provide sufficient space)
- * @return Number of possible moves found (0 if piece invalid or no moves available)
- */
-int get_possible_moves(ChessGame *game, Position from, Position moves[]) {
-    if (!is_valid_position(from.row, from.col) || !is_piece_at(game, from.row, from.col)) {
-        return 0;
-    }
-    
-    Piece piece = get_piece_at(game, from.row, from.col);
-    
-    if (piece.color != game->current_player) {
-        return 0;
-    }
-    
-    switch (piece.type) {
-        case PAWN:   return get_pawn_moves(game, from, moves);
-        case ROOK:   return get_rook_moves(game, from, moves);
-        case KNIGHT: return get_knight_moves(game, from, moves);
-        case BISHOP: return get_bishop_moves(game, from, moves);
-        case QUEEN:  return get_queen_moves(game, from, moves);
-        case KING:   return get_king_moves(game, from, moves);
-        default:     return 0;
-    }
-}
-
-bool is_square_attacked(ChessGame *game, Position pos, Color by_color) {
-    for (int row = 0; row < BOARD_SIZE; row++) {
-        for (int col = 0; col < BOARD_SIZE; col++) {
-            if (is_piece_at(game, row, col)) {
-                Piece piece = get_piece_at(game, row, col);
-                if (piece.color == by_color) {
-                    Position moves[64];
-                    Color original_player = game->current_player;
-                    game->current_player = by_color;
-                    
-                    int move_count;
-                    // Use special king function to avoid infinite recursion
-                    if (piece.type == KING) {
-                        move_count = get_king_moves_no_castling(game, (Position){row, col}, moves);
-                    } else {
-                        move_count = get_possible_moves(game, (Position){row, col}, moves);
-                    }
-                    
-                    game->current_player = original_player;
-                    
-                    for (int i = 0; i < move_count; i++) {
-                        if (moves[i].row == pos.row && moves[i].col == pos.col) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return false;
-}
-
-bool is_in_check(ChessGame *game, Color color) {
-    Position king_pos = (color == WHITE) ? game->white_king_pos : game->black_king_pos;
-    return is_square_attacked(game, king_pos, (color == WHITE) ? BLACK : WHITE);
-}
-
-bool would_be_in_check_after_move(ChessGame *game, Position from, Position to) {
-    Piece moving_piece = get_piece_at(game, from.row, from.col);
-    Piece captured_piece = get_piece_at(game, to.row, to.col);
-    
-    set_piece_at(game, to.row, to.col, moving_piece);
-    clear_position(game, from.row, from.col);
-    
-    if (moving_piece.type == KING) {
-        if (moving_piece.color == WHITE) {
-            game->white_king_pos = to;
-        } else {
-            game->black_king_pos = to;
-        }
-    }
-    
-    bool in_check = is_in_check(game, moving_piece.color);
-    
-    set_piece_at(game, from.row, from.col, moving_piece);
-    set_piece_at(game, to.row, to.col, captured_piece);
-    
-    if (moving_piece.type == KING) {
-        if (moving_piece.color == WHITE) {
-            game->white_king_pos = from;
-        } else {
-            game->black_king_pos = from;
-        }
-    }
-    
-    return in_check;
-}
-
-bool is_valid_move(ChessGame *game, Position from, Position to) {
-    Position possible_moves[64];
-    int move_count = get_possible_moves(game, from, possible_moves);
-    
-    for (int i = 0; i < move_count; i++) {
-        if (possible_moves[i].row == to.row && possible_moves[i].col == to.col) {
-            return !would_be_in_check_after_move(game, from, to);
-        }
-    }
-    
-    return false;
-}
-
-/**
- * Execute a chess move after validation
- * Handles piece movement, capture tracking, king position updates,
- * turn switching, and check status updates. This is the main function
- * for actually executing moves on the board.
- * 
- * @param game Current game state (will be modified)
- * @param from Starting position of the move
- * @param to Destination position of the move
- * @return true if move was executed successfully, false if move is invalid
- */
-bool make_move(ChessGame *game, Position from, Position to) {
-    if (!is_valid_move(game, from, to)) {
-        return false;
-    }
-
-    // Check if this is a pawn promotion move
-    if (is_promotion_move(game, from, to)) {
-        PieceType promotion_choice = get_promotion_choice();
-        return make_promotion_move(game, from, to, promotion_choice);
-    }
-
-    Piece moving_piece = get_piece_at(game, from.row, from.col);
-    Piece captured_piece = get_piece_at(game, to.row, to.col);
-    bool is_en_passant_capture = false;
-    
-    // Check if this is an en passant capture
-    if (moving_piece.type == PAWN && game->en_passant_available &&
-        to.row == game->en_passant_target.row && to.col == game->en_passant_target.col &&
-        captured_piece.type == EMPTY) {
-        // This is an en passant capture - remove the captured pawn
-        int captured_pawn_row = (moving_piece.color == WHITE) ? to.row + 1 : to.row - 1;
-        captured_piece = get_piece_at(game, captured_pawn_row, to.col);
-        clear_position(game, captured_pawn_row, to.col);
-        is_en_passant_capture = true;
-    }
-    
-    if (captured_piece.type != EMPTY) {
-        if (captured_piece.color == WHITE) {
-            game->black_captured.captured_pieces[game->black_captured.count++] = captured_piece;
-        } else {
-            game->white_captured.captured_pieces[game->white_captured.count++] = captured_piece;
-        }
-    }
-    
-    set_piece_at(game, to.row, to.col, moving_piece);
-    clear_position(game, from.row, from.col);
-    
-    if (moving_piece.type == KING) {
-        // Check if this is a castling move (king moves 2 squares horizontally)
-        if (abs(to.col - from.col) == 2) {
-            // This is castling - also move the rook
-            if (moving_piece.color == WHITE) {
-                if (to.col == 6) {
-                    // White kingside castling: move rook from h1 to f1
-                    Piece rook = get_piece_at(game, 7, 7);
-                    set_piece_at(game, 7, 5, rook);
-                    clear_position(game, 7, 7);
-                    game->white_rook_h_moved = true;
-                } else if (to.col == 2) {
-                    // White queenside castling: move rook from a1 to d1
-                    Piece rook = get_piece_at(game, 7, 0);
-                    set_piece_at(game, 7, 3, rook);
-                    clear_position(game, 7, 0);
-                    game->white_rook_a_moved = true;
-                }
-            } else { // BLACK
-                if (to.col == 6) {
-                    // Black kingside castling: move rook from h8 to f8
-                    Piece rook = get_piece_at(game, 0, 7);
-                    set_piece_at(game, 0, 5, rook);
-                    clear_position(game, 0, 7);
-                    game->black_rook_h_moved = true;
-                } else if (to.col == 2) {
-                    // Black queenside castling: move rook from a8 to d8
-                    Piece rook = get_piece_at(game, 0, 0);
-                    set_piece_at(game, 0, 3, rook);
-                    clear_position(game, 0, 0);
-                    game->black_rook_a_moved = true;
-                }
-            }
-        }
-        
-        if (moving_piece.color == WHITE) {
-            game->white_king_pos = to;
-            game->white_king_moved = true;
-        } else {
-            game->black_king_pos = to;
-            game->black_king_moved = true;
-        }
-    }
-    
-    if (moving_piece.type == ROOK) {
-        if (moving_piece.color == WHITE) {
-            if (from.row == 7 && from.col == 0) game->white_rook_a_moved = true;
-            if (from.row == 7 && from.col == 7) game->white_rook_h_moved = true;
-        } else {
-            if (from.row == 0 && from.col == 0) game->black_rook_a_moved = true;
-            if (from.row == 0 && from.col == 7) game->black_rook_h_moved = true;
-        }
-    }
-    
-    // Update FEN move counters according to chess rules
-    bool was_capture = (captured_piece.type != EMPTY || is_en_passant_capture);
-    bool was_pawn_move = (moving_piece.type == PAWN);
-    
-    if (was_pawn_move || was_capture) {
-        // Halfmove clock resets to 0 on pawn moves or captures
-        game->halfmove_clock = 0;
-    } else {
-        // Otherwise increment halfmove clock
-        game->halfmove_clock++;
-    }
-    
-    // Fullmove number increments after Black's move (when switching from BLACK to WHITE)
-    if (game->current_player == BLACK) {
-        game->fullmove_number++;
-    }
-    
-    // Update en passant state
-    game->en_passant_available = false;
-    game->en_passant_target.row = -1;
-    game->en_passant_target.col = -1;
-    
-    // Check if this pawn move creates an en passant opportunity
-    if (moving_piece.type == PAWN && abs(to.row - from.row) == 2) {
-        // Pawn moved two squares, set en passant target square
-        game->en_passant_available = true;
-        game->en_passant_target.row = (from.row + to.row) / 2;  // Square between from and to
-        game->en_passant_target.col = to.col;
-    }
-    
-    game->current_player = (game->current_player == WHITE) ? BLACK : WHITE;
-    
-    game->in_check[WHITE] = is_in_check(game, WHITE);
-    game->in_check[BLACK] = is_in_check(game, BLACK);
-    
-    return true;
 }
 
 void print_captured_pieces(CapturedPieces *captured, const char* color_code, const char* player_name, ChessGame* game) {
@@ -710,19 +283,45 @@ void print_captured_pieces(CapturedPieces *captured, const char* color_code, con
     printf("\n");
 }
 
+
+/******************************************************************************
+ *                          POSITION & UTILITY FUNCTIONS
+ ******************************************************************************/
+
+
+bool is_valid_position(int row, int col) {
+    return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+}
+
+bool is_piece_at(ChessGame *game, int row, int col) {
+    return game->board[row][col].type != EMPTY;
+}
+
+Piece get_piece_at(ChessGame *game, int row, int col) {
+    return game->board[row][col];
+}
+
+void set_piece_at(ChessGame *game, int row, int col, Piece piece) {
+    game->board[row][col] = piece;
+}
+
+void clear_position(ChessGame *game, int row, int col) {
+    game->board[row][col] = (Piece){EMPTY, WHITE};
+}
+
 Position char_to_position(const char *input) {
     Position pos = {-1, -1};
 
     if (strlen(input) != 2) return pos;
-    
+
     char col_char = input[0];
     char row_char = input[1];
-    
+
     if (col_char >= 'a' && col_char <= 'h' && row_char >= '1' && row_char <= '8') {
         pos.col = col_char - 'a';
         pos.row = '8' - row_char;
     }
-    
+
     return pos;
 }
 
@@ -734,18 +333,9 @@ char *position_to_string(Position pos) {
     return str;
 }
 
-
-
-
-/* ========================================================================
- * FEN PARSING AND BOARD SETUP FUNCTIONS
- * Functions for parsing FEN (Forsyth-Edwards Notation) strings and
- * setting up custom board positions for the SETUP command
- * ======================================================================== */
-
 /**
  * Convert character to piece type (helper function for FEN parsing)
- * 
+ *
  * @param c Character representing piece (lowercase)
  * @return PieceType corresponding to character
  */
@@ -761,284 +351,341 @@ PieceType char_to_piece_type(char c) {
     }
 }
 
-/**
- * Validate FEN string format
- * Performs basic validation of FEN string structure and content
- * 
- * @param fen FEN string to validate
- * @return true if FEN appears valid, false otherwise
- */
-bool validate_fen_string(const char* fen) {
-    if (!fen || strlen(fen) == 0) return false;
-    
-    // Count slashes (should be 7 for 8 ranks)
-    int slash_count = 0;
-    int board_chars = 0;
-    const char* ptr = fen;
-    
-    // Parse board section (until first space)
-    while (*ptr && *ptr != ' ') {
-        if (*ptr == '/') {
-            slash_count++;
-        } else if (isdigit(*ptr)) {
-            int empty_squares = *ptr - '0';
-            if (empty_squares < 1 || empty_squares > 8) return false;
-            board_chars += empty_squares;
-        } else if (strchr("rnbqkpRNBQKP", *ptr)) {
-            board_chars++;
-        } else {
-            return false; // Invalid character
+
+/******************************************************************************
+ *                         MOVE GENERATION (BY PIECE TYPE)
+ ******************************************************************************/
+
+
+int get_pawn_moves(ChessGame *game, Position from, Position moves[]) {
+    int count = 0;
+    Piece piece = get_piece_at(game, from.row, from.col);
+    int direction = (piece.color == WHITE) ? -1 : 1;
+    int start_row = (piece.color == WHITE) ? 6 : 1;
+
+    int new_row = from.row + direction;
+    if (is_valid_position(new_row, from.col) && !is_piece_at(game, new_row, from.col)) {
+        moves[count++] = (Position){new_row, from.col};
+
+        if (from.row == start_row) {
+            new_row = from.row + 2 * direction;
+            if (is_valid_position(new_row, from.col) && !is_piece_at(game, new_row, from.col)) {
+                moves[count++] = (Position){new_row, from.col};
+            }
         }
-        ptr++;
     }
-    
-    // Should have exactly 7 slashes and 64 board positions
-    if (slash_count != 7 || board_chars != 64) return false;
-    
-    // Should have at least one space (separating board from other FEN components)
-    if (*ptr != ' ') return false;
-    
-    return true;
+
+    int capture_cols[] = {from.col - 1, from.col + 1};
+    for (int i = 0; i < 2; i++) {
+        int new_col = capture_cols[i];
+        new_row = from.row + direction;
+
+        if (is_valid_position(new_row, new_col) && is_piece_at(game, new_row, new_col)) {
+            Piece target = get_piece_at(game, new_row, new_col);
+            if (target.color != piece.color) {
+                moves[count++] = (Position){new_row, new_col};
+            }
+        }
+    }
+
+    // Check for en passant capture
+    if (game->en_passant_available) {
+        // En passant is possible if:
+        // 1. Pawn is on the correct rank (5th rank for White, 4th rank for Black)
+        // 2. Pawn is adjacent to the en passant target square
+        int en_passant_rank = (piece.color == WHITE) ? 3 : 4;  // 5th rank for White (row 3), 4th rank for Black (row 4)
+
+        if (from.row == en_passant_rank) {
+            // Check if pawn is adjacent to en passant target square
+            if (abs(from.col - game->en_passant_target.col) == 1 &&
+                game->en_passant_target.row == from.row + direction) {
+                moves[count++] = game->en_passant_target;
+            }
+        }
+    }
+
+    return count;
 }
 
-/**
- * Calculate captured pieces by comparing current board to starting position
- * Determines which pieces are missing from their starting positions
- * and populates the captured pieces arrays accordingly
- *
- * @param game Game state with current board position
- */
-void calculate_captured_pieces(ChessGame *game) {
-    // Standard starting pieces count for each type and color
-    int starting_counts[2][7] = {
-        // WHITE: EMPTY, PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING
-        {0, 8, 2, 2, 2, 1, 1},
-        // BLACK: EMPTY, PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING
-        {0, 8, 2, 2, 2, 1, 1}
+int get_rook_moves(ChessGame *game, Position from, Position moves[]) {
+    int count = 0;
+    Piece piece = get_piece_at(game, from.row, from.col);
+
+    int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+    for (int d = 0; d < 4; d++) {
+        for (int i = 1; i < BOARD_SIZE; i++) {
+            int new_row = from.row + directions[d][0] * i;
+            int new_col = from.col + directions[d][1] * i;
+
+            if (!is_valid_position(new_row, new_col)) break;
+
+            if (is_piece_at(game, new_row, new_col)) {
+                Piece target = get_piece_at(game, new_row, new_col);
+                if (target.color != piece.color) {
+                    moves[count++] = (Position){new_row, new_col};
+                }
+                break;
+            }
+
+            moves[count++] = (Position){new_row, new_col};
+        }
+    }
+
+    return count;
+}
+
+int get_bishop_moves(ChessGame *game, Position from, Position moves[]) {
+    int count = 0;
+    Piece piece = get_piece_at(game, from.row, from.col);
+
+    int directions[4][2] = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
+
+    for (int d = 0; d < 4; d++) {
+        for (int i = 1; i < BOARD_SIZE; i++) {
+            int new_row = from.row + directions[d][0] * i;
+            int new_col = from.col + directions[d][1] * i;
+
+            if (!is_valid_position(new_row, new_col)) break;
+
+            if (is_piece_at(game, new_row, new_col)) {
+                Piece target = get_piece_at(game, new_row, new_col);
+                if (target.color != piece.color) {
+                    moves[count++] = (Position){new_row, new_col};
+                }
+                break;
+            }
+
+            moves[count++] = (Position){new_row, new_col};
+        }
+    }
+
+    return count;
+}
+
+int get_knight_moves(ChessGame *game, Position from, Position moves[]) {
+    int count = 0;
+    Piece piece = get_piece_at(game, from.row, from.col);
+
+    int knight_moves[8][2] = {
+        {-2, -1}, {-2, 1}, {-1, -2}, {-1, 2},
+        {1, -2}, {1, 2}, {2, -1}, {2, 1}
     };
 
-    // Count current pieces on board
-    int current_counts[2][7] = {{0}};
+    for (int i = 0; i < 8; i++) {
+        int new_row = from.row + knight_moves[i][0];
+        int new_col = from.col + knight_moves[i][1];
 
-    for (int row = 0; row < BOARD_SIZE; row++) {
-        for (int col = 0; col < BOARD_SIZE; col++) {
-            Piece piece = game->board[row][col];
-            if (piece.type != EMPTY) {
-                current_counts[piece.color][piece.type]++;
+        if (is_valid_position(new_row, new_col)) {
+            if (!is_piece_at(game, new_row, new_col) ||
+                get_piece_at(game, new_row, new_col).color != piece.color) {
+                moves[count++] = (Position){new_row, new_col};
             }
         }
     }
 
-    // Clear captured pieces arrays
-    game->white_captured.count = 0;
-    game->black_captured.count = 0;
+    return count;
+}
 
-    // Calculate captured pieces for each color
-    for (int color = 0; color < 2; color++) {
-        for (int piece_type = PAWN; piece_type <= KING; piece_type++) {
-            int captured = starting_counts[color][piece_type] - current_counts[color][piece_type];
+int get_queen_moves(ChessGame *game, Position from, Position moves[]) {
+    int count = 0;
+    count += get_rook_moves(game, from, moves);
+    count += get_bishop_moves(game, from, moves + count);
+    return count;
+}
 
-            // Add captured pieces to the appropriate array
-            for (int i = 0; i < captured; i++) {
-                Piece captured_piece = {piece_type, color};
+int get_king_moves_no_castling(ChessGame *game, Position from, Position moves[]) {
+    int count = 0;
+    Piece piece = get_piece_at(game, from.row, from.col);
 
-                if (color == WHITE) {
-                    // White piece was captured by Black
-                    game->black_captured.captured_pieces[game->black_captured.count++] = captured_piece;
-                } else {
-                    // Black piece was captured by White
-                    game->white_captured.captured_pieces[game->white_captured.count++] = captured_piece;
-                }
+    // Standard king moves (one square in any direction)
+    int directions[8][2] = {
+        {-1, -1}, {-1, 0}, {-1, 1},
+        {0, -1},           {0, 1},
+        {1, -1},  {1, 0},  {1, 1}
+    };
+
+    for (int i = 0; i < 8; i++) {
+        int new_row = from.row + directions[i][0];
+        int new_col = from.col + directions[i][1];
+
+        if (is_valid_position(new_row, new_col)) {
+            if (!is_piece_at(game, new_row, new_col) ||
+                get_piece_at(game, new_row, new_col).color != piece.color) {
+                moves[count++] = (Position){new_row, new_col};
             }
         }
     }
+
+    return count;
+}
+
+int get_king_moves(ChessGame *game, Position from, Position moves[]) {
+    // Get standard moves first
+    int count = get_king_moves_no_castling(game, from, moves);
+    Piece piece = get_piece_at(game, from.row, from.col);
+
+    // Castling moves
+    if (!game->in_check[piece.color]) { // Cannot castle while in check
+        if (piece.color == WHITE) {
+            // White kingside castling (king moves to g1)
+            if (!game->white_king_moved && !game->white_rook_h_moved &&
+                from.row == 7 && from.col == 4 && // King is on e1
+                !is_piece_at(game, 7, 5) && !is_piece_at(game, 7, 6) && // f1 and g1 are empty
+                !is_square_attacked(game, (Position){7, 5}, BLACK) && // f1 not attacked
+                !is_square_attacked(game, (Position){7, 6}, BLACK)) { // g1 not attacked
+                moves[count++] = (Position){7, 6}; // g1
+            }
+
+            // White queenside castling (king moves to c1)
+            if (!game->white_king_moved && !game->white_rook_a_moved &&
+                from.row == 7 && from.col == 4 && // King is on e1
+                !is_piece_at(game, 7, 1) && !is_piece_at(game, 7, 2) && !is_piece_at(game, 7, 3) && // b1, c1, d1 are empty
+                !is_square_attacked(game, (Position){7, 2}, BLACK) && // c1 not attacked
+                !is_square_attacked(game, (Position){7, 3}, BLACK)) { // d1 not attacked
+                moves[count++] = (Position){7, 2}; // c1
+            }
+        } else { // BLACK
+            // Black kingside castling (king moves to g8)
+            if (!game->black_king_moved && !game->black_rook_h_moved &&
+                from.row == 0 && from.col == 4 && // King is on e8
+                !is_piece_at(game, 0, 5) && !is_piece_at(game, 0, 6) && // f8 and g8 are empty
+                !is_square_attacked(game, (Position){0, 5}, WHITE) && // f8 not attacked
+                !is_square_attacked(game, (Position){0, 6}, WHITE)) { // g8 not attacked
+                moves[count++] = (Position){0, 6}; // g8
+            }
+
+            // Black queenside castling (king moves to c8)
+            if (!game->black_king_moved && !game->black_rook_a_moved &&
+                from.row == 0 && from.col == 4 && // King is on e8
+                !is_piece_at(game, 0, 1) && !is_piece_at(game, 0, 2) && !is_piece_at(game, 0, 3) && // b8, c8, d8 are empty
+                !is_square_attacked(game, (Position){0, 2}, WHITE) && // c8 not attacked
+                !is_square_attacked(game, (Position){0, 3}, WHITE)) { // d8 not attacked
+                moves[count++] = (Position){0, 2}; // c8
+            }
+        }
+    }
+
+    return count;
 }
 
 /**
- * Setup board from FEN string
- * Parses FEN string and configures game state accordingly
- * Updates board position, current player, king positions, and castling rights
+ * Generate all possible moves for a piece at the specified position
+ * This is the main move generation function that delegates to piece-specific
+ * movement functions. It validates the piece exists and belongs to the current player.
  *
- * @param game Game state to modify
- * @param fen Valid FEN string
- * @return true if successful, false if parsing failed
+ * @param game Current game state
+ * @param from Position of piece to generate moves for
+ * @param moves Array to store generated moves (caller must provide sufficient space)
+ * @return Number of possible moves found (0 if piece invalid or no moves available)
  */
-/**
- * Parse FEN board position (piece placement field)
- * Parses the first field of FEN notation and updates board state with piece positions
- *
- * @param game Game state to update with parsed pieces
- * @param fen_ptr Pointer to start of FEN string
- * @return Pointer to the character after board position field (typically a space)
- */
-static const char* parse_fen_board_position(ChessGame *game, const char* fen_ptr) {
-    int row = 0, col = 0;
-    const char* ptr = fen_ptr;
+int get_possible_moves(ChessGame *game, Position from, Position moves[]) {
+    if (!is_valid_position(from.row, from.col) || !is_piece_at(game, from.row, from.col)) {
+        return 0;
+    }
 
-    while (*ptr && *ptr != ' ' && row < BOARD_SIZE) {
-        if (*ptr == '/') {
-            row++;
-            col = 0;
-        } else if (isdigit(*ptr)) {
-            col += (*ptr - '0');
-        } else {
-            PieceType piece_type = char_to_piece_type(tolower(*ptr));
-            Color piece_color = isupper(*ptr) ? WHITE : BLACK;
+    Piece piece = get_piece_at(game, from.row, from.col);
 
-            if (row < BOARD_SIZE && col < BOARD_SIZE) {
-                game->board[row][col].type = piece_type;
-                game->board[row][col].color = piece_color;
+    if (piece.color != game->current_player) {
+        return 0;
+    }
 
-                if (piece_type == KING) {
-                    if (piece_color == WHITE) {
-                        game->white_king_pos.row = row;
-                        game->white_king_pos.col = col;
+    switch (piece.type) {
+        case PAWN:   return get_pawn_moves(game, from, moves);
+        case ROOK:   return get_rook_moves(game, from, moves);
+        case KNIGHT: return get_knight_moves(game, from, moves);
+        case BISHOP: return get_bishop_moves(game, from, moves);
+        case QUEEN:  return get_queen_moves(game, from, moves);
+        case KING:   return get_king_moves(game, from, moves);
+        default:     return 0;
+    }
+}
+
+
+/******************************************************************************
+ *                         MOVE VALIDATION & GAME RULES
+ ******************************************************************************/
+
+
+bool is_square_attacked(ChessGame *game, Position pos, Color by_color) {
+    for (int row = 0; row < BOARD_SIZE; row++) {
+        for (int col = 0; col < BOARD_SIZE; col++) {
+            if (is_piece_at(game, row, col)) {
+                Piece piece = get_piece_at(game, row, col);
+                if (piece.color == by_color) {
+                    Position moves[64];
+                    Color original_player = game->current_player;
+                    game->current_player = by_color;
+
+                    int move_count;
+                    // Use special king function to avoid infinite recursion
+                    if (piece.type == KING) {
+                        move_count = get_king_moves_no_castling(game, (Position){row, col}, moves);
                     } else {
-                        game->black_king_pos.row = row;
-                        game->black_king_pos.col = col;
+                        move_count = get_possible_moves(game, (Position){row, col}, moves);
+                    }
+
+                    game->current_player = original_player;
+
+                    for (int i = 0; i < move_count; i++) {
+                        if (moves[i].row == pos.row && moves[i].col == pos.col) {
+                            return true;
+                        }
                     }
                 }
             }
-            col++;
         }
-        ptr++;
     }
-
-    return ptr;
+    return false;
 }
 
-/**
- * Parse FEN metadata fields (active color, castling, en passant, counters)
- * Parses all fields after board position and updates game state
- *
- * @param game Game state to update with parsed metadata
- * @param fen_ptr Pointer to start of metadata fields (after board position)
- */
-static void parse_fen_metadata(ChessGame *game, const char* fen_ptr) {
-    const char* ptr = fen_ptr;
-
-    // Parse active color
-    if (*ptr == ' ') ptr++;
-    if (*ptr == 'w' || *ptr == 'W') {
-        game->current_player = WHITE;
-    } else if (*ptr == 'b' || *ptr == 'B') {
-        game->current_player = BLACK;
-    } else {
-        game->current_player = WHITE;
-    }
-
-    // Skip to castling rights
-    while (*ptr && *ptr != ' ') ptr++;
-    if (*ptr == ' ') ptr++;
-
-    // Parse castling rights
-    game->white_king_moved = true;
-    game->black_king_moved = true;
-    game->white_rook_a_moved = true;
-    game->white_rook_h_moved = true;
-    game->black_rook_a_moved = true;
-    game->black_rook_h_moved = true;
-
-    while (*ptr && *ptr != ' ') {
-        switch (*ptr) {
-            case 'K':
-                game->white_king_moved = false;
-                game->white_rook_h_moved = false;
-                break;
-            case 'Q':
-                game->white_king_moved = false;
-                game->white_rook_a_moved = false;
-                break;
-            case 'k':
-                game->black_king_moved = false;
-                game->black_rook_h_moved = false;
-                break;
-            case 'q':
-                game->black_king_moved = false;
-                game->black_rook_a_moved = false;
-                break;
-        }
-        ptr++;
-    }
-
-    // Parse en passant target square
-    while (*ptr && *ptr == ' ') ptr++;
-    game->en_passant_available = false;
-    game->en_passant_target.row = -1;
-    game->en_passant_target.col = -1;
-
-    if (*ptr && *ptr != '-' && *ptr != ' ') {
-        if (*ptr >= 'a' && *ptr <= 'h') {
-            char file = *ptr;
-            ptr++;
-            if (*ptr >= '1' && *ptr <= '8') {
-                char rank = *ptr;
-                game->en_passant_target.col = file - 'a';
-                game->en_passant_target.row = '8' - rank;
-                game->en_passant_available = true;
-                ptr++;
-            }
-        }
-    }
-    while (*ptr && *ptr != ' ') ptr++;
-
-    // Parse halfmove clock
-    while (*ptr && *ptr == ' ') ptr++;
-    if (*ptr && isdigit(*ptr)) {
-        game->halfmove_clock = atoi(ptr);
-        while (*ptr && isdigit(*ptr)) ptr++;
-    } else {
-        game->halfmove_clock = 0;
-    }
-
-    // Parse fullmove number
-    while (*ptr && *ptr == ' ') ptr++;
-    if (*ptr && isdigit(*ptr)) {
-        game->fullmove_number = atoi(ptr);
-        while (*ptr && isdigit(*ptr)) ptr++;
-    } else {
-        game->fullmove_number = 1;
-    }
+bool is_in_check(ChessGame *game, Color color) {
+    Position king_pos = (color == WHITE) ? game->white_king_pos : game->black_king_pos;
+    return is_square_attacked(game, king_pos, (color == WHITE) ? BLACK : WHITE);
 }
 
-bool setup_board_from_fen(ChessGame *game, const char* fen) {
-    if (!validate_fen_string(fen)) {
-        return false;
-    }
+bool would_be_in_check_after_move(ChessGame *game, Position from, Position to) {
+    Piece moving_piece = get_piece_at(game, from.row, from.col);
+    Piece captured_piece = get_piece_at(game, to.row, to.col);
 
-    // Initialize king positions to invalid values
-    game->white_king_pos.row = -1;
-    game->white_king_pos.col = -1;
-    game->black_king_pos.row = -1;
-    game->black_king_pos.col = -1;
+    set_piece_at(game, to.row, to.col, moving_piece);
+    clear_position(game, from.row, from.col);
 
-    // Clear the board
-    for (int row = 0; row < BOARD_SIZE; row++) {
-        for (int col = 0; col < BOARD_SIZE; col++) {
-            game->board[row][col].type = EMPTY;
-            game->board[row][col].color = WHITE;
+    if (moving_piece.type == KING) {
+        if (moving_piece.color == WHITE) {
+            game->white_king_pos = to;
+        } else {
+            game->black_king_pos = to;
         }
     }
 
-    // Parse board position (piece placement)
-    const char* ptr = parse_fen_board_position(game, fen);
+    bool in_check = is_in_check(game, moving_piece.color);
 
-    // Parse metadata fields (active color, castling, en passant, counters)
-    parse_fen_metadata(game, ptr);
+    set_piece_at(game, from.row, from.col, moving_piece);
+    set_piece_at(game, to.row, to.col, captured_piece);
 
-    // Calculate captured pieces based on current board position
-    calculate_captured_pieces(game);
-
-    // Verify both kings were found during parsing
-    if (game->white_king_pos.row == -1 || game->black_king_pos.row == -1) {
-        return false;
+    if (moving_piece.type == KING) {
+        if (moving_piece.color == WHITE) {
+            game->white_king_pos = from;
+        } else {
+            game->black_king_pos = from;
+        }
     }
 
-    // Update check status
-    game->in_check[WHITE] = is_in_check(game, WHITE);
-    game->in_check[BLACK] = is_in_check(game, BLACK);
+    return in_check;
+}
 
-    return true;
+bool is_valid_move(ChessGame *game, Position from, Position to) {
+    Position possible_moves[64];
+    int move_count = get_possible_moves(game, from, possible_moves);
+
+    for (int i = 0; i < move_count; i++) {
+        if (possible_moves[i].row == to.row && possible_moves[i].col == to.col) {
+            return !would_be_in_check_after_move(game, from, to);
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -1061,6 +708,11 @@ bool setup_board_from_fen(ChessGame *game, const char* fen) {
 bool is_fifty_move_rule_draw(ChessGame *game) {
     return game->halfmove_clock >= FIFTY_MOVE_HALFMOVES;
 }
+
+
+/******************************************************************************
+ *                            PAWN PROMOTION SYSTEM
+ ******************************************************************************/
 
 
 /**
@@ -1208,6 +860,152 @@ bool make_promotion_move(ChessGame *game, Position from, Position to, PieceType 
     return true;
 }
 
+
+/******************************************************************************
+ *                              MOVE EXECUTION
+ ******************************************************************************/
+
+
+/**
+ * Execute a chess move after validation
+ * Handles piece movement, capture tracking, king position updates,
+ * turn switching, and check status updates. This is the main function
+ * for actually executing moves on the board.
+ *
+ * @param game Current game state (will be modified)
+ * @param from Starting position of the move
+ * @param to Destination position of the move
+ * @return true if move was executed successfully, false if move is invalid
+ */
+bool make_move(ChessGame *game, Position from, Position to) {
+    if (!is_valid_move(game, from, to)) {
+        return false;
+    }
+
+    // Check if this is a pawn promotion move
+    if (is_promotion_move(game, from, to)) {
+        PieceType promotion_choice = get_promotion_choice();
+        return make_promotion_move(game, from, to, promotion_choice);
+    }
+
+    Piece moving_piece = get_piece_at(game, from.row, from.col);
+    Piece captured_piece = get_piece_at(game, to.row, to.col);
+    bool is_en_passant_capture = false;
+
+    // Check if this is an en passant capture
+    if (moving_piece.type == PAWN && game->en_passant_available &&
+        to.row == game->en_passant_target.row && to.col == game->en_passant_target.col &&
+        captured_piece.type == EMPTY) {
+        // This is an en passant capture - remove the captured pawn
+        int captured_pawn_row = (moving_piece.color == WHITE) ? to.row + 1 : to.row - 1;
+        captured_piece = get_piece_at(game, captured_pawn_row, to.col);
+        clear_position(game, captured_pawn_row, to.col);
+        is_en_passant_capture = true;
+    }
+
+    if (captured_piece.type != EMPTY) {
+        if (captured_piece.color == WHITE) {
+            game->black_captured.captured_pieces[game->black_captured.count++] = captured_piece;
+        } else {
+            game->white_captured.captured_pieces[game->white_captured.count++] = captured_piece;
+        }
+    }
+
+    set_piece_at(game, to.row, to.col, moving_piece);
+    clear_position(game, from.row, from.col);
+
+    if (moving_piece.type == KING) {
+        // Check if this is a castling move (king moves 2 squares horizontally)
+        if (abs(to.col - from.col) == 2) {
+            // This is castling - also move the rook
+            if (moving_piece.color == WHITE) {
+                if (to.col == 6) {
+                    // White kingside castling: move rook from h1 to f1
+                    Piece rook = get_piece_at(game, 7, 7);
+                    set_piece_at(game, 7, 5, rook);
+                    clear_position(game, 7, 7);
+                    game->white_rook_h_moved = true;
+                } else if (to.col == 2) {
+                    // White queenside castling: move rook from a1 to d1
+                    Piece rook = get_piece_at(game, 7, 0);
+                    set_piece_at(game, 7, 3, rook);
+                    clear_position(game, 7, 0);
+                    game->white_rook_a_moved = true;
+                }
+            } else { // BLACK
+                if (to.col == 6) {
+                    // Black kingside castling: move rook from h8 to f8
+                    Piece rook = get_piece_at(game, 0, 7);
+                    set_piece_at(game, 0, 5, rook);
+                    clear_position(game, 0, 7);
+                    game->black_rook_h_moved = true;
+                } else if (to.col == 2) {
+                    // Black queenside castling: move rook from a8 to d8
+                    Piece rook = get_piece_at(game, 0, 0);
+                    set_piece_at(game, 0, 3, rook);
+                    clear_position(game, 0, 0);
+                    game->black_rook_a_moved = true;
+                }
+            }
+        }
+
+        if (moving_piece.color == WHITE) {
+            game->white_king_pos = to;
+            game->white_king_moved = true;
+        } else {
+            game->black_king_pos = to;
+            game->black_king_moved = true;
+        }
+    }
+
+    if (moving_piece.type == ROOK) {
+        if (moving_piece.color == WHITE) {
+            if (from.row == 7 && from.col == 0) game->white_rook_a_moved = true;
+            if (from.row == 7 && from.col == 7) game->white_rook_h_moved = true;
+        } else {
+            if (from.row == 0 && from.col == 0) game->black_rook_a_moved = true;
+            if (from.row == 0 && from.col == 7) game->black_rook_h_moved = true;
+        }
+    }
+
+    // Update FEN move counters according to chess rules
+    bool was_capture = (captured_piece.type != EMPTY || is_en_passant_capture);
+    bool was_pawn_move = (moving_piece.type == PAWN);
+
+    if (was_pawn_move || was_capture) {
+        // Halfmove clock resets to 0 on pawn moves or captures
+        game->halfmove_clock = 0;
+    } else {
+        // Otherwise increment halfmove clock
+        game->halfmove_clock++;
+    }
+
+    // Fullmove number increments after Black's move (when switching from BLACK to WHITE)
+    if (game->current_player == BLACK) {
+        game->fullmove_number++;
+    }
+
+    // Update en passant state
+    game->en_passant_available = false;
+    game->en_passant_target.row = -1;
+    game->en_passant_target.col = -1;
+
+    // Check if this pawn move creates an en passant opportunity
+    if (moving_piece.type == PAWN && abs(to.row - from.row) == 2) {
+        // Pawn moved two squares, set en passant target square
+        game->en_passant_available = true;
+        game->en_passant_target.row = (from.row + to.row) / 2;  // Square between from and to
+        game->en_passant_target.col = to.col;
+    }
+
+    game->current_player = (game->current_player == WHITE) ? BLACK : WHITE;
+
+    game->in_check[WHITE] = is_in_check(game, WHITE);
+    game->in_check[BLACK] = is_in_check(game, BLACK);
+
+    return true;
+}
+
 /**
  * Execute a move from a Move structure
  * Handles both regular moves and AI promotion moves without user prompts
@@ -1225,6 +1023,298 @@ bool execute_move(ChessGame *game, Move move) {
     // For regular moves (including human promotions handled by make_move)
     return make_move(game, move.from, move.to);
 }
+
+
+/******************************************************************************
+ *                           FEN SYSTEM & BOARD SETUP
+ ******************************************************************************/
+
+
+/**
+ * Validate FEN string format
+ * Performs basic validation of FEN string structure and content
+ *
+ * @param fen FEN string to validate
+ * @return true if FEN appears valid, false otherwise
+ */
+bool validate_fen_string(const char* fen) {
+    if (!fen || strlen(fen) == 0) return false;
+
+    // Count slashes (should be 7 for 8 ranks)
+    int slash_count = 0;
+    int board_chars = 0;
+    const char* ptr = fen;
+
+    // Parse board section (until first space)
+    while (*ptr && *ptr != ' ') {
+        if (*ptr == '/') {
+            slash_count++;
+        } else if (isdigit(*ptr)) {
+            int empty_squares = *ptr - '0';
+            if (empty_squares < 1 || empty_squares > 8) return false;
+            board_chars += empty_squares;
+        } else if (strchr("rnbqkpRNBQKP", *ptr)) {
+            board_chars++;
+        } else {
+            return false; // Invalid character
+        }
+        ptr++;
+    }
+
+    // Should have exactly 7 slashes and 64 board positions
+    if (slash_count != 7 || board_chars != 64) return false;
+
+    // Should have at least one space (separating board from other FEN components)
+    if (*ptr != ' ') return false;
+
+    return true;
+}
+
+/**
+ * Calculate captured pieces by comparing current board to starting position
+ * Determines which pieces are missing from their starting positions
+ * and populates the captured pieces arrays accordingly
+ *
+ * @param game Game state with current board position
+ */
+void calculate_captured_pieces(ChessGame *game) {
+    // Standard starting pieces count for each type and color
+    int starting_counts[2][7] = {
+        // WHITE: EMPTY, PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING
+        {0, 8, 2, 2, 2, 1, 1},
+        // BLACK: EMPTY, PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING
+        {0, 8, 2, 2, 2, 1, 1}
+    };
+
+    // Count current pieces on board
+    int current_counts[2][7] = {{0}};
+
+    for (int row = 0; row < BOARD_SIZE; row++) {
+        for (int col = 0; col < BOARD_SIZE; col++) {
+            Piece piece = game->board[row][col];
+            if (piece.type != EMPTY) {
+                current_counts[piece.color][piece.type]++;
+            }
+        }
+    }
+
+    // Clear captured pieces arrays
+    game->white_captured.count = 0;
+    game->black_captured.count = 0;
+
+    // Calculate captured pieces for each color
+    for (int color = 0; color < 2; color++) {
+        for (int piece_type = PAWN; piece_type <= KING; piece_type++) {
+            int captured = starting_counts[color][piece_type] - current_counts[color][piece_type];
+
+            // Add captured pieces to the appropriate array
+            for (int i = 0; i < captured; i++) {
+                Piece captured_piece = {piece_type, color};
+
+                if (color == WHITE) {
+                    // White piece was captured by Black
+                    game->black_captured.captured_pieces[game->black_captured.count++] = captured_piece;
+                } else {
+                    // Black piece was captured by White
+                    game->white_captured.captured_pieces[game->white_captured.count++] = captured_piece;
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Parse FEN board position (piece placement field)
+ * Parses the first field of FEN notation and updates board state with piece positions
+ *
+ * @param game Game state to update with parsed pieces
+ * @param fen_ptr Pointer to start of FEN string
+ * @return Pointer to the character after board position field (typically a space)
+ */
+static const char* parse_fen_board_position(ChessGame *game, const char* fen_ptr) {
+    int row = 0, col = 0;
+    const char* ptr = fen_ptr;
+
+    while (*ptr && *ptr != ' ' && row < BOARD_SIZE) {
+        if (*ptr == '/') {
+            row++;
+            col = 0;
+        } else if (isdigit(*ptr)) {
+            col += (*ptr - '0');
+        } else {
+            PieceType piece_type = char_to_piece_type(tolower(*ptr));
+            Color piece_color = isupper(*ptr) ? WHITE : BLACK;
+
+            if (row < BOARD_SIZE && col < BOARD_SIZE) {
+                game->board[row][col].type = piece_type;
+                game->board[row][col].color = piece_color;
+
+                if (piece_type == KING) {
+                    if (piece_color == WHITE) {
+                        game->white_king_pos.row = row;
+                        game->white_king_pos.col = col;
+                    } else {
+                        game->black_king_pos.row = row;
+                        game->black_king_pos.col = col;
+                    }
+                }
+            }
+            col++;
+        }
+        ptr++;
+    }
+
+    return ptr;
+}
+
+/**
+ * Parse FEN metadata fields (active color, castling, en passant, counters)
+ * Parses all fields after board position and updates game state
+ *
+ * @param game Game state to update with parsed metadata
+ * @param fen_ptr Pointer to start of metadata fields (after board position)
+ */
+static void parse_fen_metadata(ChessGame *game, const char* fen_ptr) {
+    const char* ptr = fen_ptr;
+
+    // Parse active color
+    if (*ptr == ' ') ptr++;
+    if (*ptr == 'w' || *ptr == 'W') {
+        game->current_player = WHITE;
+    } else if (*ptr == 'b' || *ptr == 'B') {
+        game->current_player = BLACK;
+    } else {
+        game->current_player = WHITE;
+    }
+
+    // Skip to castling rights
+    while (*ptr && *ptr != ' ') ptr++;
+    if (*ptr == ' ') ptr++;
+
+    // Parse castling rights
+    game->white_king_moved = true;
+    game->black_king_moved = true;
+    game->white_rook_a_moved = true;
+    game->white_rook_h_moved = true;
+    game->black_rook_a_moved = true;
+    game->black_rook_h_moved = true;
+
+    while (*ptr && *ptr != ' ') {
+        switch (*ptr) {
+            case 'K':
+                game->white_king_moved = false;
+                game->white_rook_h_moved = false;
+                break;
+            case 'Q':
+                game->white_king_moved = false;
+                game->white_rook_a_moved = false;
+                break;
+            case 'k':
+                game->black_king_moved = false;
+                game->black_rook_h_moved = false;
+                break;
+            case 'q':
+                game->black_king_moved = false;
+                game->black_rook_a_moved = false;
+                break;
+        }
+        ptr++;
+    }
+
+    // Parse en passant target square
+    while (*ptr && *ptr == ' ') ptr++;
+    game->en_passant_available = false;
+    game->en_passant_target.row = -1;
+    game->en_passant_target.col = -1;
+
+    if (*ptr && *ptr != '-' && *ptr != ' ') {
+        if (*ptr >= 'a' && *ptr <= 'h') {
+            char file = *ptr;
+            ptr++;
+            if (*ptr >= '1' && *ptr <= '8') {
+                char rank = *ptr;
+                game->en_passant_target.col = file - 'a';
+                game->en_passant_target.row = '8' - rank;
+                game->en_passant_available = true;
+                ptr++;
+            }
+        }
+    }
+    while (*ptr && *ptr != ' ') ptr++;
+
+    // Parse halfmove clock
+    while (*ptr && *ptr == ' ') ptr++;
+    if (*ptr && isdigit(*ptr)) {
+        game->halfmove_clock = atoi(ptr);
+        while (*ptr && isdigit(*ptr)) ptr++;
+    } else {
+        game->halfmove_clock = 0;
+    }
+
+    // Parse fullmove number
+    while (*ptr && *ptr == ' ') ptr++;
+    if (*ptr && isdigit(*ptr)) {
+        game->fullmove_number = atoi(ptr);
+        while (*ptr && isdigit(*ptr)) ptr++;
+    } else {
+        game->fullmove_number = 1;
+    }
+}
+
+/**
+ * Setup board from FEN string
+ * Parses FEN string and configures game state accordingly
+ * Updates board position, current player, king positions, and castling rights
+ *
+ * @param game Game state to modify
+ * @param fen Valid FEN string
+ * @return true if successful, false if parsing failed
+ */
+bool setup_board_from_fen(ChessGame *game, const char* fen) {
+    if (!validate_fen_string(fen)) {
+        return false;
+    }
+
+    // Initialize king positions to invalid values
+    game->white_king_pos.row = -1;
+    game->white_king_pos.col = -1;
+    game->black_king_pos.row = -1;
+    game->black_king_pos.col = -1;
+
+    // Clear the board
+    for (int row = 0; row < BOARD_SIZE; row++) {
+        for (int col = 0; col < BOARD_SIZE; col++) {
+            game->board[row][col].type = EMPTY;
+            game->board[row][col].color = WHITE;
+        }
+    }
+
+    // Parse board position (piece placement)
+    const char* ptr = parse_fen_board_position(game, fen);
+
+    // Parse metadata fields (active color, castling, en passant, counters)
+    parse_fen_metadata(game, ptr);
+
+    // Calculate captured pieces based on current board position
+    calculate_captured_pieces(game);
+
+    // Verify both kings were found during parsing
+    if (game->white_king_pos.row == -1 || game->black_king_pos.row == -1) {
+        return false;
+    }
+
+    // Update check status
+    game->in_check[WHITE] = is_in_check(game, WHITE);
+    game->in_check[BLACK] = is_in_check(game, BLACK);
+
+    return true;
+}
+
+
+/******************************************************************************
+ *                            TIME CONTROL SYSTEM
+ ******************************************************************************/
+
 
 /**
  * Parse time control string format (xx/yy or xx/yy/zz/ww)
