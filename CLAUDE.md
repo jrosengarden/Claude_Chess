@@ -940,6 +940,25 @@ providing sufficient timing information for chess games.
     - **Testing**: All 19 micro-tests pass, zero compilation warnings
     - **Commit**: Sep 25, 2025
 
+13. **Replace Magic ANSI Color Codes with Named Constants** ✅
+    - **Issue**: Magic ANSI color codes scattered throughout codebase
+      (13 instances), making color scheme changes difficult to locate and modify
+    - **Fix**: Created 9 named constants in chess.h for all color and
+      terminal control codes:
+      - Terminal controls: `SCREEN_RESET`, `CLEAR_SCREEN`, `CURSOR_LINEUP_TOEND`
+      - Piece colors: `COLOR_WHITE_PIECE`, `COLOR_BLACK_PIECE`
+      - Inverted colors: `COLOR_WHITE_PIECE_INVERTED`, `COLOR_BLACK_PIECE_INVERTED`
+      - Player status: `COLOR_WHITE_PLAYER`, `COLOR_BLACK_PLAYER`
+    - **Impact**: Self-documenting code, easy color scheme changes,
+      maintainable color system
+    - **Files modified**: chess.h (9 constants added), chess.c (7 references),
+      main.c (6 references)
+    - **Bonus**: Colorized title screen "White" and "Black" text to match
+      piece colors
+    - **Testing**: All 19 micro-tests pass, zero compilation warnings,
+      tested on macOS/Ubuntu/RPi5
+    - **Commit**: Sep 26, 2025
+
 ### Progress Metrics
 
 **Lines of Code Reduced:** ~961 lines removed so far
@@ -965,7 +984,7 @@ providing sufficient timing information for chess games.
 
 ### Next Session Plan
 
-**Current Status: 8 of 12 items complete - Excellent progress!**
+**Current Status: 9 of 12 items complete - Excellent progress!**
 
 **✅ COMPLETED:**
 - Priority 1: ALL 5 items complete (critical maintainability)
@@ -973,8 +992,9 @@ providing sufficient timing information for chess games.
   - Item 6: `setup_board_from_fen()` refactored ✅
   - Item 7: Named constants defined ✅
   - Item 8: Documentation (tabled for later)
-- Priority 3: 1 of 4 items complete
+- Priority 3: 2 of 4 items complete
   - Item 12: Header includes cleanup ✅
+  - Item 13: Magic ANSI color codes replaced with named constants ✅
 
 **🔲 REMAINING WORK (Priority 3 - Optional improvements):**
 1. **Item 9**: Reorganize chess.c by Logical Subsystem (2 hours)

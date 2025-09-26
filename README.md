@@ -303,8 +303,8 @@ DefaultTimeControl=30/10/5/0     # Default time controls
     a b c d e f g h
 ```
 
-- **Uppercase** = White pieces (bold magenta)
-- **Lowercase** = Black pieces (bold cyan)
+- **Uppercase** = White pieces (bold cyan)
+- **Lowercase** = Black pieces (bold magenta)
 - `*` = Available move
 - Highlighted piece = Capturable
 
