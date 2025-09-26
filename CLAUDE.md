@@ -386,6 +386,12 @@ is_fifty_move_rule_draw()  // Automatic draw detection
 5. **Claude development rule**: If debugging approaches fail 2-3 times,
      especially for platform-specific issues, use web search to find
      documented solutions
+6. **chess.c Organization Rule** (CRITICAL): When adding new functions to
+     chess.c, they MUST be placed in the appropriate logical section AND
+     the Table of Contents at the top of the file MUST be updated to
+     include the new function with a brief description. The 8 sections are:
+     Board Management, Position & Utility, Move Generation, Move Validation,
+     Pawn Promotion, Move Execution, FEN System, and Time Control.
 
 ### Development Workflow (CRITICAL)
 **After ANY code changes, ALWAYS:**
@@ -959,6 +965,30 @@ providing sufficient timing information for chess games.
       tested on macOS/Ubuntu/RPi5
     - **Commit**: Sep 26, 2025
 
+14. **Reorganize chess.c by Logical Subsystem** ✅
+    - **Issue**: chess.c functions scattered without logical organization,
+      making navigation and maintenance difficult
+    - **Fix**: Reorganized all functions into 8 logical subsections with
+      clear visual separation using asterisk-boxed headers:
+      - Board Management & Initialization
+      - Position & Utility Functions
+      - Move Generation (by Piece Type)
+      - Move Validation & Game Rules
+      - Pawn Promotion System
+      - Move Execution
+      - FEN System & Board Setup
+      - Time Control System
+    - **Impact**: Dramatically improved code navigation and maintainability
+    - **Bonus**: Added comprehensive Table of Contents at top of file with
+      all functions and descriptions for instant navigation
+    - **Cleanup**: Removed all **JR** commented development artifacts for
+      professional code quality
+    - **Mandatory Rule Added**: New development standard requiring all future
+      chess.c functions be placed in proper sections with TOC updates
+    - **Testing**: All 19 micro-tests pass, zero compilation warnings,
+      tested on macOS/Ubuntu/RPi5
+    - **Commit**: Sep 26, 2025
+
 ### Progress Metrics
 
 **Lines of Code Reduced:** ~961 lines removed so far
@@ -984,7 +1014,7 @@ providing sufficient timing information for chess games.
 
 ### Next Session Plan
 
-**Current Status: 9 of 12 items complete - Excellent progress!**
+**Current Status: 10 of 12 items complete - Excellent progress!**
 
 **✅ COMPLETED:**
 - Priority 1: ALL 5 items complete (critical maintainability)
@@ -992,20 +1022,17 @@ providing sufficient timing information for chess games.
   - Item 6: `setup_board_from_fen()` refactored ✅
   - Item 7: Named constants defined ✅
   - Item 8: Documentation (tabled for later)
-- Priority 3: 2 of 4 items complete
+- Priority 3: 3 of 4 items complete
+  - Item 9: Reorganize chess.c by Logical Subsystem ✅
   - Item 12: Header includes cleanup ✅
   - Item 13: Magic ANSI color codes replaced with named constants ✅
 
 **🔲 REMAINING WORK (Priority 3 - Optional improvements):**
-1. **Item 9**: Reorganize chess.c by Logical Subsystem (2 hours)
-   - Group functions: Board mgmt → Move generation → Validation →
-     Execution → Display
-
-2. **Item 10**: Encapsulate Global Variables in Context Structs (4-6 hours)
+1. **Item 10**: Encapsulate Global Variables in Context Structs (4-6 hours)
    - Create `GameSession` and `RuntimeConfig` structures
    - Reduce global state footprint
 
-3. **Item 11**: Standardize Naming Conventions (3-4 hours)
+2. **Item 11**: Standardize Naming Conventions (3-4 hours)
    - Enforce: snake_case (functions), PascalCase (types),
      SCREAMING_SNAKE_CASE (constants)
 
