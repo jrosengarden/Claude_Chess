@@ -1077,5 +1077,144 @@ continue when you have a fresh 5-hour block.
 - Incremental commits after each major change (safe approach)
 - **USER handles all git/repo operations** (clearly documented)
 
+## Proposed Next Project
+
+### iOS SwiftUI Chess App
+
+**Concept:** Port the complete Claude Chess implementation to a native
+iOS app using SwiftUI, preserving all core functionality while adding
+mobile-specific enhancements.
+
+**Project Feasibility:** ✅ **HIGHLY VIABLE**
+- Claude has demonstrated comprehensive SwiftUI/iOS development capabilities
+- Complete understanding of existing chess logic and architecture
+- Proven track record with UCI protocol integration and game state management
+- Familiar with testing patterns and validation requirements
+
+### Core Architecture Translation
+
+**Swift Data Structures:**
+```swift
+struct ChessGame {
+    var board: [[Piece]]
+    var currentPlayer: Color
+    var whiteKingPos: Position
+    var blackKingPos: Position
+    // ... existing logic translates directly
+}
+
+// SwiftUI View Hierarchy
+ContentView -> GameBoardView -> ChessSquareView -> PieceView
+```
+
+**Preserved Functionality:**
+- Complete chess rules (castling, en passant, promotion, 50-move rule)
+- AI opponent integration (Stockfish or cloud-based APIs)
+- Time controls with separate White/Black allocations
+- FEN/PGN import/export capabilities
+- Position evaluation and analysis
+- Game history and loading system
+- Opening library integration
+
+### iOS-Specific Enhancements
+
+**Enhanced User Experience:**
+- Touch-based move input with drag-and-drop
+- Haptic feedback for moves, captures, and check
+- Native iOS animations for piece movements
+- Adaptive layouts (portrait/landscape, iPad split-view)
+- Share functionality for PGN/FEN positions
+
+**Mobile Platform Features:**
+- Background app support for timed games
+- Push notifications for time warnings
+- iOS widgets for quick game resume
+- Document-based app architecture
+- iCloud sync for game history
+- Accessibility support (VoiceOver)
+
+### Stockfish Integration Options
+
+**Option 1: Native iOS Framework**
+- Compile Stockfish as iOS framework/library
+- Maintain existing UCI protocol communication
+- Preserve current AI difficulty system
+- Keep evaluation and hint systems intact
+
+**Option 2: Cloud-Based AI**
+- lichess.org API or Chess.com API integration
+- Network-based position analysis
+- Multiple AI opponent personalities
+- Online game capabilities
+
+### Development Approach
+
+**Phase 1: Core Game Logic**
+- Port chess rules and move validation to Swift
+- Implement basic SwiftUI board display
+- Touch-based move input system
+
+**Phase 2: AI Integration**
+- Stockfish framework integration or API setup
+- UCI protocol communication layer
+- AI difficulty and evaluation systems
+
+**Phase 3: Advanced Features**
+- Time controls and game state management
+- FEN/PGN import/export functionality
+- Game history and loading capabilities
+- Opening library integration
+
+**Phase 4: iOS Polish**
+- Animations and haptic feedback
+- Background processing and notifications
+- Share functionality and document support
+- App Store preparation and testing
+
+### Technical Advantages
+
+**Code Reusability:**
+- Chess logic algorithms translate directly from C to Swift
+- Existing validation and testing patterns applicable
+- UCI protocol knowledge directly transferable
+- File format handling (FEN/PGN) preservable
+
+**Development Efficiency:**
+- Complete requirements already established
+- Testing methodology proven and documented
+- User experience patterns validated
+- Architecture decisions already made
+
+### Project Timeline Estimate
+
+**Conservative Estimate:** 6-8 weeks of development sessions
+- Week 1-2: Project setup and core game logic
+- Week 3-4: AI integration and advanced features
+- Week 5-6: iOS-specific enhancements and polish
+- Week 7-8: Testing, optimization, and App Store preparation
+
+**Note:** Timeline assumes similar session frequency and scope as
+current chess project.
+
+### Benefits Over Terminal Version
+
+**Accessibility:** Broader user base with intuitive touch interface
+**Portability:** Native mobile app with offline capabilities
+**Distribution:** App Store reach vs. command-line tool limitations
+**Cross-Platform:** iOS app runs natively on Apple Silicon Macs -
+significantly wider audience reach
+**Features:** Platform-specific enhancements (haptic, notifications, etc.)
+**Modernization:** Contemporary UI/UX standards and design patterns
+
+### Discussion Notes
+
+**User Interest Level:** High - proposed as natural evolution of current project
+**Technical Feasibility:** Confirmed viable with Claude's demonstrated capabilities
+**Knowledge Transfer:** Seamless transition leveraging existing chess expertise
+**Innovation Opportunity:** Modern mobile interpretation of proven chess implementation
+
+**Status:** Documented for future consideration when current terminal chess
+project reaches completion milestone.
+
 ---
 *Developer reference for Claude Chess - Focused technical documentation*
