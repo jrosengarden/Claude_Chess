@@ -1020,47 +1020,37 @@ providing sufficient timing information for chess games.
 
 ### Next Session Plan
 
-**Current Status: 11 of 12 items complete - Outstanding progress!**
-
-**✅ COMPLETED:**
-- Priority 1: ALL 5 items complete (critical maintainability)
-- Priority 2: 2 of 3 items complete
-  - Item 6: `setup_board_from_fen()` refactored ✅
-  - Item 7: Named constants defined ✅
-  - Item 8: Documentation (tabled for later)
-- Priority 3: 4 of 4 items complete
-  - Item 9: Reorganize chess.c by Logical Subsystem ✅
-  - Item 11: Standardize Naming Conventions ✅
-  - Item 12: Header includes cleanup ✅
-  - Item 13: Magic ANSI color codes replaced with named constants ✅
-
-**🔲 REMAINING WORK (Priority 3 - Optional improvements):**
-1. **Item 10**: Encapsulate Global Variables in Context Structs (4-6 hours)
-   - Create `GameSession` and `RuntimeConfig` structures
-   - Reduce global state footprint
-   - **Status**: Deferred - Current global variable usage is
-     acceptable for project scope
-   - **Rationale**: 4-6 hour effort for stylistic improvement not
-     justified for terminal app
-   - **Future consideration**: Revisit if expanding to iOS or
-     multiplayer features
-
-**✅ CRITICAL FIRST TASK COMPLETED:**
-- **Fixed CLAUDE.md line lengths** ✅ - All lines now under 80 characters
-- **Fixed README.md line lengths** ✅ - All lines properly formatted
-- **Fixed awkward line breaks** ✅ - Combined orphaned short continuations
-- **Professional documentation formatting** ✅ - Both project docs complete
+**Current Status: 11 of 12 items complete - Preparing for iOS transition**
 
 **Refactoring Status: EFFECTIVELY COMPLETE**
 - 11 of 12 items completed (92% completion rate)
 - All critical and important items finished
-- Item 10 deferred as non-essential for current scope
 - Codebase in excellent, production-ready condition
 
-**Recommendation for Next Session:**
-- Focus on new features or enhancements
-- Alternative: Item 8 (documentation) if desired
-- Consider iOS SwiftUI port project (see Proposed Next Project section)
+**Next Session Agenda:**
+
+1. **Complete Deferred Refactoring Tasks (Optional)**
+   - Item 8: Add documentation to undocumented functions (~2-3 hours)
+   - Item 10: Encapsulate global variables in context structs (4-6 hours)
+     - *Status: Deferred as non-essential for terminal app scope*
+
+2. **Finalize Terminal Project Documentation**
+   - Remove detailed refactoring section from CLAUDE.md
+   - Replace with executive summary covering:
+     - Total accomplishments (11/12 items, ~961 lines reduced/reorganized)
+     - Code quality improvements achieved
+     - Final metrics and outcomes
+   - Keep documentation concise and professional
+
+3. **Commence iOS Development**
+   - Begin Phase 1: Core Game Logic
+   - Start with Swift data structures
+   - Port chess rules from C implementation
+   - Work in separate Claude_Chess_iOS/ directory with dedicated CLAUDE.md
+     and README.md
+
+**Note:** iOS project has separate documentation in Claude_Chess_iOS/
+to maintain clear separation between terminal and iOS codebases.
 
 ### Session Summary (Sep 23-30, 2025)
 
