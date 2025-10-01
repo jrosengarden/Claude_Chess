@@ -3,12 +3,39 @@
 A native iOS chess application built with SwiftUI, featuring a complete
 chess implementation with AI opponent integration.
 
+## Important: Relationship to Terminal Project
+
+This iOS app is a direct port of the terminal-based Claude Chess
+project located in the parent directory (`../`).
+
+**For Developers**: All feature specifications, chess logic, and
+development standards are documented in `../CLAUDE.md`. The terminal
+project is the authoritative source for how chess features should
+behave.
+
+**File Organization**:
+```
+Chess Stuff/
+├── Claude_Chess/              # Terminal project (C)
+│   ├── CLAUDE.md             # PRIMARY REFERENCE for features
+│   ├── README.md
+│   ├── chess.c               # Chess logic implementation
+│   └── ...
+└── Claude_Chess_iOS/          # This iOS project
+    ├── CLAUDE.md             # iOS-specific dev notes
+    ├── README.md             # This file
+    └── ...
+```
+
+Always consult the terminal project documentation before implementing
+any feature.
+
 ## Overview
 
-Claude Chess iOS is a modern, touch-based chess application for iPhone,
-iPad, and Apple Silicon Macs. It ports the complete feature set from
-the terminal-based Claude Chess project to a native iOS experience with
-SwiftUI.
+Claude Chess iOS is a modern, touch-based chess application for
+iPhone, iPad, and Apple Silicon Macs. It ports the complete feature
+set from the terminal-based Claude Chess project to a native iOS
+experience with SwiftUI.
 
 ## Features (Planned)
 
