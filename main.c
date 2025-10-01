@@ -2076,6 +2076,15 @@ void print_help() {
     printf("\n");  // Final blank line
 }
 
+/**
+ * Check if a player has any legal moves available
+ * Iterates through all pieces of the specified color and tests if any
+ * piece has at least one legal move. Used for stalemate and checkmate detection.
+ *
+ * @param game Current game state
+ * @param color Color of player to check for legal moves
+ * @return true if player has at least one legal move, false if no moves available
+ */
 bool has_legal_moves(ChessGame *game, Color color) {
     for (int row = 0; row < BOARD_SIZE; row++) {
         for (int col = 0; col < BOARD_SIZE; col++) {
@@ -2103,10 +2112,27 @@ bool has_legal_moves(ChessGame *game, Color color) {
     return false;
 }
 
+/**
+ * Check if a player is in checkmate
+ * Checkmate occurs when the king is in check and has no legal moves to escape check
+ *
+ * @param game Current game state
+ * @param color Color of player to check for checkmate
+ * @return true if player is in checkmate, false otherwise
+ */
 bool is_checkmate(ChessGame *game, Color color) {
     return is_in_check(game, color) && !has_legal_moves(game, color);
 }
 
+/**
+ * Check if a player is in stalemate
+ * Stalemate occurs when the player is NOT in check but has no legal moves.
+ * Results in a draw.
+ *
+ * @param game Current game state
+ * @param color Color of player to check for stalemate
+ * @return true if player is in stalemate, false otherwise
+ */
 bool is_stalemate(ChessGame *game, Color color) {
     return !is_in_check(game, color) && !has_legal_moves(game, color);
 }
@@ -2629,6 +2655,15 @@ void handle_white_turn(ChessGame *game, StockfishEngine *engine) {
     handle_move_execution(input, game);
 }
 
+/**
+ * Handle AI (Black) player's turn
+ * Gets AI's move from Stockfish engine, validates it, executes the move,
+ * and updates game state. Saves position to FEN log after move completion.
+ * Handles AI pawn promotion automatically without user prompts.
+ *
+ * @param game Current game state
+ * @param engine Stockfish engine for AI move generation
+ */
 void handle_black_turn(ChessGame *game, StockfishEngine *engine) {
     printf("\nBlack's turn (AI thinking...)");
     fflush(stdout);

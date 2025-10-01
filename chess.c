@@ -155,6 +155,14 @@ void init_board(ChessGame *game) {
     }
 }
 
+/**
+ * Convert a piece to its character representation
+ * Returns uppercase for White pieces, lowercase for Black pieces
+ *
+ * @param piece The piece to convert
+ * @return Character representing the piece ('P/p'=pawn, 'R/r'=rook, 'N/n'=knight,
+ *         'B/b'=bishop, 'Q/q'=queen, 'K/k'=king, '.'=empty, '?'=invalid)
+ */
 char piece_to_char(Piece piece) {
     if (piece.type == EMPTY) return '.';
 
@@ -167,6 +175,16 @@ char piece_to_char(Piece piece) {
     return piece.color == WHITE ? c : c + 32;
 }
 
+/**
+ * Display the chess board with colored pieces and possible moves
+ * Shows board coordinates, piece positions with color highlighting,
+ * possible moves with '*' markers, and capturable pieces in inverted colors.
+ * Also displays check status if applicable.
+ *
+ * @param game Current game state with board position
+ * @param possible_moves Array of positions showing legal moves (NULL to hide moves)
+ * @param move_count Number of positions in possible_moves array
+ */
 void print_board(ChessGame *game, Position possible_moves[], int move_count) {
     printf("\n    a b c d e f g h\n");
     printf("  +----------------+\n");
@@ -240,6 +258,17 @@ void print_board(ChessGame *game, Position possible_moves[], int move_count) {
     }
 }
 
+/**
+ * Display captured pieces with time control integration
+ * Shows list of captured pieces for one player, including remaining time
+ * if time controls are enabled. Dynamically calculates and displays
+ * current time with live countdown during active player's turn.
+ *
+ * @param captured Pointer to CapturedPieces structure containing captured pieces
+ * @param color_code ANSI color code for display formatting
+ * @param player_name Name of player ("White" or "Black")
+ * @param game Current game state (used for time control calculations)
+ */
 void print_captured_pieces(CapturedPieces *captured, const char* color_code, const char* player_name, ChessGame* game) {
     // Determine if this is White or Black based on player name
     bool is_white = (strcmp(player_name, "White") == 0);
@@ -289,26 +318,76 @@ void print_captured_pieces(CapturedPieces *captured, const char* color_code, con
  ******************************************************************************/
 
 
+/**
+ * Check if row and column coordinates are within board boundaries
+ * Validates that coordinates are in the range [0, BOARD_SIZE-1] for both row and column
+ *
+ * @param row Row coordinate to validate
+ * @param col Column coordinate to validate
+ * @return true if position is within board bounds, false otherwise
+ */
 bool is_valid_position(int row, int col) {
     return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
 }
 
+/**
+ * Check if a piece exists at the specified board position
+ * Determines if the square contains a chess piece or is empty
+ *
+ * @param game Current game state
+ * @param row Row coordinate of square to check
+ * @param col Column coordinate of square to check
+ * @return true if a piece exists at the position, false if empty
+ */
 bool is_piece_at(ChessGame *game, int row, int col) {
     return game->board[row][col].type != EMPTY;
 }
 
+/**
+ * Get the piece at a specified board position
+ * Retrieves the piece data structure from the board array
+ *
+ * @param game Current game state
+ * @param row Row coordinate of square
+ * @param col Column coordinate of square
+ * @return Piece structure at the specified position (may be EMPTY type)
+ */
 Piece get_piece_at(ChessGame *game, int row, int col) {
     return game->board[row][col];
 }
 
+/**
+ * Place a piece at a specified board position
+ * Sets the piece data at the given coordinates, overwriting any existing piece
+ *
+ * @param game Current game state
+ * @param row Row coordinate of destination square
+ * @param col Column coordinate of destination square
+ * @param piece Piece structure to place at the position
+ */
 void set_piece_at(ChessGame *game, int row, int col, Piece piece) {
     game->board[row][col] = piece;
 }
 
+/**
+ * Clear a board position by setting it to empty
+ * Removes any piece at the specified square
+ *
+ * @param game Current game state
+ * @param row Row coordinate of square to clear
+ * @param col Column coordinate of square to clear
+ */
 void clear_position(ChessGame *game, int row, int col) {
     game->board[row][col] = (Piece){EMPTY, WHITE};
 }
 
+/**
+ * Convert algebraic notation string to Position structure
+ * Parses chess notation like "e4", "a1", "h8" into row/col coordinates
+ *
+ * @param input Algebraic notation string (e.g., "e4", "a1")
+ * @return Position structure with row/col coordinates, or {-1, -1} if invalid
+ */
 Position char_to_position(const char *input) {
     Position pos = {-1, -1};
 
@@ -325,6 +404,13 @@ Position char_to_position(const char *input) {
     return pos;
 }
 
+/**
+ * Convert Position structure to algebraic notation string
+ * Converts row/col coordinates into chess notation like "e4", "a1", "h8"
+ *
+ * @param pos Position structure with row and col coordinates
+ * @return Static string buffer containing algebraic notation (do not free)
+ */
 char *position_to_string(Position pos) {
     static char str[3];
     str[0] = 'a' + pos.col;
@@ -357,6 +443,17 @@ PieceType char_to_piece_type(char c) {
  ******************************************************************************/
 
 
+/**
+ * Generate all legal pawn moves from a given position
+ * Handles pawn forward movement, double-move from starting position,
+ * diagonal captures, and en passant captures. Pawns move forward one square,
+ * or two squares from starting position if path is clear.
+ *
+ * @param game Current game state
+ * @param from Position of pawn to move
+ * @param moves Array to store generated moves (must have space for at least 4 moves)
+ * @return Number of legal pawn moves found
+ */
 int get_pawn_moves(ChessGame *game, Position from, Position moves[]) {
     int count = 0;
     Piece piece = get_piece_at(game, from.row, from.col);
@@ -407,6 +504,16 @@ int get_pawn_moves(ChessGame *game, Position from, Position moves[]) {
     return count;
 }
 
+/**
+ * Generate all legal rook moves from a given position
+ * Rooks move horizontally or vertically any number of squares until
+ * blocked by another piece or board edge. Can capture enemy pieces.
+ *
+ * @param game Current game state
+ * @param from Position of rook to move
+ * @param moves Array to store generated moves (must have space for up to 14 moves)
+ * @return Number of legal rook moves found
+ */
 int get_rook_moves(ChessGame *game, Position from, Position moves[]) {
     int count = 0;
     Piece piece = get_piece_at(game, from.row, from.col);
@@ -435,6 +542,16 @@ int get_rook_moves(ChessGame *game, Position from, Position moves[]) {
     return count;
 }
 
+/**
+ * Generate all legal bishop moves from a given position
+ * Bishops move diagonally any number of squares until blocked by
+ * another piece or board edge. Can capture enemy pieces.
+ *
+ * @param game Current game state
+ * @param from Position of bishop to move
+ * @param moves Array to store generated moves (must have space for up to 13 moves)
+ * @return Number of legal bishop moves found
+ */
 int get_bishop_moves(ChessGame *game, Position from, Position moves[]) {
     int count = 0;
     Piece piece = get_piece_at(game, from.row, from.col);
@@ -463,6 +580,16 @@ int get_bishop_moves(ChessGame *game, Position from, Position moves[]) {
     return count;
 }
 
+/**
+ * Generate all legal knight moves from a given position
+ * Knights move in an L-shape: 2 squares in one direction and 1 square
+ * perpendicular. Knights can jump over other pieces. Can capture enemy pieces.
+ *
+ * @param game Current game state
+ * @param from Position of knight to move
+ * @param moves Array to store generated moves (must have space for up to 8 moves)
+ * @return Number of legal knight moves found
+ */
 int get_knight_moves(ChessGame *game, Position from, Position moves[]) {
     int count = 0;
     Piece piece = get_piece_at(game, from.row, from.col);
@@ -487,6 +614,16 @@ int get_knight_moves(ChessGame *game, Position from, Position moves[]) {
     return count;
 }
 
+/**
+ * Generate all legal queen moves from a given position
+ * Queens combine rook and bishop movement: horizontal, vertical, and diagonal
+ * in all directions until blocked. Can capture enemy pieces.
+ *
+ * @param game Current game state
+ * @param from Position of queen to move
+ * @param moves Array to store generated moves (must have space for up to 27 moves)
+ * @return Number of legal queen moves found
+ */
 int get_queen_moves(ChessGame *game, Position from, Position moves[]) {
     int count = 0;
     count += get_rook_moves(game, from, moves);
@@ -494,6 +631,17 @@ int get_queen_moves(ChessGame *game, Position from, Position moves[]) {
     return count;
 }
 
+/**
+ * Generate basic king moves without castling consideration
+ * Kings move one square in any direction (horizontal, vertical, or diagonal).
+ * This function excludes castling moves and is used for attack detection
+ * to prevent infinite recursion in check calculations.
+ *
+ * @param game Current game state
+ * @param from Position of king to move
+ * @param moves Array to store generated moves (must have space for up to 8 moves)
+ * @return Number of legal basic king moves found (excluding castling)
+ */
 int get_king_moves_no_castling(ChessGame *game, Position from, Position moves[]) {
     int count = 0;
     Piece piece = get_piece_at(game, from.row, from.col);
@@ -520,6 +668,17 @@ int get_king_moves_no_castling(ChessGame *game, Position from, Position moves[])
     return count;
 }
 
+/**
+ * Generate all legal king moves including castling
+ * Kings move one square in any direction. Also handles kingside and queenside
+ * castling with full rule validation (king/rook haven't moved, path is clear,
+ * squares not under attack, king not in check).
+ *
+ * @param game Current game state
+ * @param from Position of king to move
+ * @param moves Array to store generated moves (must have space for up to 10 moves)
+ * @return Number of legal king moves found (including castling if available)
+ */
 int get_king_moves(ChessGame *game, Position from, Position moves[]) {
     // Get standard moves first
     int count = get_king_moves_no_castling(game, from, moves);
@@ -607,6 +766,16 @@ int get_possible_moves(ChessGame *game, Position from, Position moves[]) {
  ******************************************************************************/
 
 
+/**
+ * Check if a square is under attack by pieces of a given color
+ * Tests whether any piece of the specified color can move to the target square.
+ * Used for check detection, castling validation, and move legality.
+ *
+ * @param game Current game state
+ * @param pos Position of square to check
+ * @param by_color Color of attacking pieces to check for
+ * @return true if square is attacked by specified color, false otherwise
+ */
 bool is_square_attacked(ChessGame *game, Position pos, Color by_color) {
     for (int row = 0; row < BOARD_SIZE; row++) {
         for (int col = 0; col < BOARD_SIZE; col++) {
@@ -639,11 +808,29 @@ bool is_square_attacked(ChessGame *game, Position pos, Color by_color) {
     return false;
 }
 
+/**
+ * Check if a king is currently in check
+ * Determines if the king of the specified color is under attack by opponent pieces
+ *
+ * @param game Current game state
+ * @param color Color of king to check
+ * @return true if king is in check, false otherwise
+ */
 bool is_in_check(ChessGame *game, Color color) {
     Position king_pos = (color == WHITE) ? game->white_king_pos : game->black_king_pos;
     return is_square_attacked(game, king_pos, (color == WHITE) ? BLACK : WHITE);
 }
 
+/**
+ * Simulate a move and check if it would leave the king in check
+ * Temporarily executes the move, tests for check, then restores original position.
+ * Used to validate move legality and prevent illegal moves that expose the king.
+ *
+ * @param game Current game state
+ * @param from Starting position of move
+ * @param to Destination position of move
+ * @return true if move would result in check, false if move is safe
+ */
 bool would_be_in_check_after_move(ChessGame *game, Position from, Position to) {
     Piece moving_piece = get_piece_at(game, from.row, from.col);
     Piece captured_piece = get_piece_at(game, to.row, to.col);
@@ -675,6 +862,17 @@ bool would_be_in_check_after_move(ChessGame *game, Position from, Position to) {
     return in_check;
 }
 
+/**
+ * Validate if a move is legal according to chess rules
+ * Checks if destination is in the piece's possible moves list and verifies
+ * the move doesn't leave the player's king in check. This is the main move
+ * validation function used before executing moves.
+ *
+ * @param game Current game state
+ * @param from Starting position of move
+ * @param to Destination position of move
+ * @return true if move is legal, false otherwise
+ */
 bool is_valid_move(ChessGame *game, Position from, Position to) {
     Position possible_moves[64];
     int move_count = get_possible_moves(game, from, possible_moves);
