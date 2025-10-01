@@ -36,45 +36,64 @@
 #include <termios.h>     // For terminal control (arrow keys)
 #include <unistd.h>      // For getpid() and unlink()
 
-// Global version string
+// Global version string (const - can remain global)
 char* version_string = "v0.9 Sep-22-2025";
 
-// Global debug flag for diagnostic output
-bool debug_mode = false;
-
-// Global flags for command line options
-bool suppress_pgn_creation = false;  // PGNOFF - suppress auto PGN creation on exit
-bool delete_fen_on_exit = false;     // FENOFF - delete FEN file on exit
-
-// Global FEN log filename for current game session
-char fen_log_filename[256];
-
-// Global persistent PGN temp filename for live updates
-char persistent_pgn_filename[256];
-bool pgn_window_active = false;
-
-// Global flag to track if gameplay has started (prevents skill level changes)
-bool game_started = false;
-
-// Global skill level tracking (default MAX_SKILL_LEVEL = full strength)
-int current_skill_level = MAX_SKILL_LEVEL;
-
-// Configuration structure for chess game settings
+/**
+ * ChessConfig - Configuration loaded from CHESS.ini file
+ * Contains all user-configurable settings for the chess application
+ */
 typedef struct {
-    char fen_directory[512];    // Path to directory containing FEN files
-    char pgn_directory[512];    // Path to directory containing PGN files
-    int default_skill_level;    // Default AI skill level (0-20)
-    bool auto_create_pgn;       // Create PGN files on exit (true=PGNON, false=PGNOFF)
-    bool auto_delete_fen;       // Delete FEN files on exit (true=FENOFF, false=FENON)
-    char default_time_control[16]; // Default time control (e.g., "30/10")
+    char fen_directory[512];           // Path to directory containing FEN files
+    char pgn_directory[512];           // Path to directory containing PGN files
+    int default_skill_level;           // Default AI skill level (0-20)
+    bool auto_create_pgn;              // Create PGN files on exit (true=PGNON, false=PGNOFF)
+    bool auto_delete_fen;              // Delete FEN files on exit (true=FENOFF, false=FENON)
+    char default_time_control[16];     // Default time control (e.g., "30/10")
+    bool fen_directory_overridden;     // Flag for debug messages
+    bool skill_level_overridden;       // Flag for debug messages
 } ChessConfig;
 
-// Global configuration instance
-ChessConfig config = {0};
+/**
+ * RuntimeConfig - Runtime configuration and command line options
+ * Tracks flags set via command line that can override config file settings
+ */
+typedef struct {
+    bool debug_mode;                   // DEBUG - Enable diagnostic output
+    bool suppress_pgn_creation;        // PGNOFF - Suppress auto PGN creation on exit
+    bool delete_fen_on_exit;           // FENOFF - Delete FEN file on exit
+} RuntimeConfig;
 
-// Configuration override tracking for debug messages
-bool fen_directory_overridden = false;
-bool skill_level_overridden = false;
+/**
+ * GameSession - Active game session state
+ * Tracks current game state including files, windows, and gameplay status
+ * Encapsulates most mutable global state for better code organization
+ */
+typedef struct {
+    char fen_log_filename[256];        // FEN log file for current session
+    char persistent_pgn_filename[256]; // Persistent PGN file for live updates
+    bool pgn_window_active;            // Whether live PGN window is open
+    bool game_started;                 // Whether first move has been made
+    int current_skill_level;           // Active AI skill level
+    ChessConfig config;                // Configuration settings
+    RuntimeConfig runtime;             // Runtime flags
+} GameSession;
+
+// Global game session - encapsulates mutable application state
+GameSession g_session = {0};
+
+/**
+ * Initialize the global game session structure with default values
+ */
+void init_game_session() {
+    memset(&g_session, 0, sizeof(GameSession));
+    g_session.current_skill_level = MAX_SKILL_LEVEL;
+    g_session.pgn_window_active = false;
+    g_session.game_started = false;
+    g_session.runtime.debug_mode = false;
+    g_session.runtime.suppress_pgn_creation = false;
+    g_session.runtime.delete_fen_on_exit = false;
+}
 
 /**
  * Display command line help information
@@ -111,8 +130,8 @@ void show_command_line_help() {
 void generate_fen_filename() {
     time_t now = time(NULL);
     struct tm *local = localtime(&now);
-    
-    snprintf(fen_log_filename, sizeof(fen_log_filename), 
+
+    snprintf(g_session.fen_log_filename, sizeof(g_session.fen_log_filename),
              "CHESS_%02d%02d%02d_%02d%02d%02d.fen",
              local->tm_mon + 1,    // Month (1-12)
              local->tm_mday,       // Day (1-31)
@@ -128,7 +147,7 @@ void generate_fen_filename() {
  * This file persists during the game session for live PGN updates
  */
 void generate_persistent_pgn_filename() {
-    snprintf(persistent_pgn_filename, sizeof(persistent_pgn_filename),
+    snprintf(g_session.persistent_pgn_filename, sizeof(g_session.persistent_pgn_filename),
              "/tmp/chess_pgn_live_%d.txt", getpid());
 }
 
@@ -137,16 +156,16 @@ void generate_persistent_pgn_filename() {
  * Called after each move to refresh the live PGN display
  */
 void update_persistent_pgn_file() {
-    if (!pgn_window_active) {
+    if (!g_session.pgn_window_active) {
         return;  // No PGN window is active, skip update
     }
 
-    char* pgn_content = convert_fen_to_pgn_string(fen_log_filename);
+    char* pgn_content = convert_fen_to_pgn_string(g_session.fen_log_filename);
     if (!pgn_content) {
         return;  // Could not generate PGN content
     }
 
-    FILE* temp_file = fopen(persistent_pgn_filename, "w");
+    FILE* temp_file = fopen(g_session.persistent_pgn_filename, "w");
     if (temp_file) {
         fprintf(temp_file, "%s", pgn_content);
         fprintf(temp_file, "\n\nLive PGN Display - Updates automatically after each move\n");
@@ -162,9 +181,9 @@ void update_persistent_pgn_file() {
  * Called on game exit to remove the temporary file
  */
 void cleanup_persistent_pgn_file() {
-    if (pgn_window_active && persistent_pgn_filename[0] != '\0') {
-        unlink(persistent_pgn_filename);
-        pgn_window_active = false;
+    if (g_session.pgn_window_active && g_session.persistent_pgn_filename[0] != '\0') {
+        unlink(g_session.persistent_pgn_filename);
+        g_session.pgn_window_active = false;
     }
 }
 
@@ -177,7 +196,7 @@ void cleanup_persistent_pgn_file() {
  */
 void save_fen_log(ChessGame *game) {
     char *fen = board_to_fen(game);
-    FILE *fen_file = fopen(fen_log_filename, "a");
+    FILE *fen_file = fopen(g_session.fen_log_filename, "a");
     if (fen_file) {
         fprintf(fen_file, "%s\n", fen);
         fclose(fen_file);
@@ -228,12 +247,12 @@ void load_config() {
     }
 
     // Initialize default values
-    strcpy(config.fen_directory, ".");  // Default to current directory
-    strcpy(config.pgn_directory, ".");  // Default to current directory
-    config.default_skill_level = 5;     // Default skill level
-    config.auto_create_pgn = true;      // Default PGNON (create PGN files)
-    config.auto_delete_fen = false;     // Default FENON (keep FEN files)
-    strcpy(config.default_time_control, "30/10/5/0"); // Default: White 30/10, Black 5/0
+    strcpy(g_session.config.fen_directory, ".");  // Default to current directory
+    strcpy(g_session.config.pgn_directory, ".");  // Default to current directory
+    g_session.config.default_skill_level = 5;     // Default skill level
+    g_session.config.auto_create_pgn = true;      // Default PGNON (create PGN files)
+    g_session.config.auto_delete_fen = false;     // Default FENON (keep FEN files)
+    strcpy(g_session.config.default_time_control, "30/10/5/0"); // Default: White 30/10, Black 5/0
 
     if (!config_file) {
         // Create default config file if it doesn't exist
@@ -283,11 +302,11 @@ void load_config() {
 
                     // Validate that the directory exists and is accessible
                     if (is_valid_directory(temp_path)) {
-                        strcpy(config.fen_directory, temp_path);
+                        strcpy(g_session.config.fen_directory, temp_path);
                     } else {
                         // Invalid directory - fallback to default and mark for debug message
-                        strcpy(config.fen_directory, ".");
-                        fen_directory_overridden = true;
+                        strcpy(g_session.config.fen_directory, ".");
+                        g_session.config.fen_directory_overridden = true;
                     }
                 } else if (strcmp(key, "PGNDirectory") == 0) {
                     // Expand path (handle tilde, etc.)
@@ -296,10 +315,10 @@ void load_config() {
 
                     // Validate that the directory exists and is accessible
                     if (is_valid_directory(temp_path)) {
-                        strcpy(config.pgn_directory, temp_path);
+                        strcpy(g_session.config.pgn_directory, temp_path);
                     } else {
                         // Invalid directory - fallback to default
-                        strcpy(config.pgn_directory, ".");
+                        strcpy(g_session.config.pgn_directory, ".");
                     }
                 }
             } else if (strcmp(section, "Settings") == 0) {
@@ -307,37 +326,37 @@ void load_config() {
                     int skill = atoi(value);
                     // Validate skill level range
                     if (skill >= MIN_SKILL_LEVEL && skill <= MAX_SKILL_LEVEL) {
-                        config.default_skill_level = skill;
+                        g_session.config.default_skill_level = skill;
                     } else {
                         // Invalid skill level - use default and mark for debug message
-                        config.default_skill_level = 5;
-                        skill_level_overridden = true;
+                        g_session.config.default_skill_level = 5;
+                        g_session.config.skill_level_overridden = true;
                     }
                 } else if (strcasecmp(key, "AutoCreatePGN") == 0) {
                     // Parse boolean values: true/yes/on/1 = true, false/no/off/0 = false
                     if (strcasecmp(value, "true") == 0 || strcasecmp(value, "yes") == 0 ||
                         strcasecmp(value, "on") == 0 || strcmp(value, "1") == 0) {
-                        config.auto_create_pgn = true;
+                        g_session.config.auto_create_pgn = true;
                     } else if (strcasecmp(value, "false") == 0 || strcasecmp(value, "no") == 0 ||
                                strcasecmp(value, "off") == 0 || strcmp(value, "0") == 0) {
-                        config.auto_create_pgn = false;
+                        g_session.config.auto_create_pgn = false;
                     }
                     // Invalid values are ignored, keeping default
                 } else if (strcasecmp(key, "AutoDeleteFEN") == 0) {
                     // Parse boolean values: true/yes/on/1 = true, false/no/off/0 = false
                     if (strcasecmp(value, "true") == 0 || strcasecmp(value, "yes") == 0 ||
                         strcasecmp(value, "on") == 0 || strcmp(value, "1") == 0) {
-                        config.auto_delete_fen = true;
+                        g_session.config.auto_delete_fen = true;
                     } else if (strcasecmp(value, "false") == 0 || strcasecmp(value, "no") == 0 ||
                                strcasecmp(value, "off") == 0 || strcmp(value, "0") == 0) {
-                        config.auto_delete_fen = false;
+                        g_session.config.auto_delete_fen = false;
                     }
                     // Invalid values are ignored, keeping default
                 } else if (strcasecmp(key, "DefaultTimeControl") == 0) {
                     // Validate time control format (xx/yy or 0/0)
                     TimeControl temp_tc;
                     if (parse_time_control(value, &temp_tc)) {
-                        strcpy(config.default_time_control, value);
+                        strcpy(g_session.config.default_time_control, value);
                     }
                     // Invalid values are ignored, keeping default
                 }
@@ -440,12 +459,12 @@ void expand_path(const char* input_path, char* expanded_path, size_t max_len) {
  */
 void reset_fen_log_for_setup(ChessGame *game) {
     // Delete the current FEN log file
-    remove(fen_log_filename);
-    
+    remove(g_session.fen_log_filename);
+
     // Generate a new FEN log filename for the setup position
     generate_fen_filename();
-    
-    // Log the new starting position 
+
+    // Log the new starting position
     save_fen_log(game);
 }
 
@@ -459,17 +478,17 @@ void reset_fen_log_for_setup(ChessGame *game) {
  * Returns number of move pairs that can be undone (each pair = White + AI move)
  */
 int count_available_undos() {
-    FILE *file = fopen(fen_log_filename, "r");
+    FILE *file = fopen(g_session.fen_log_filename, "r");
     if (!file) return 0;
-    
+
     int line_count = 0;
     char buffer[256];
-    
+
     while (fgets(buffer, sizeof(buffer), file)) {
         line_count++;
     }
     fclose(file);
-    
+
     // Each move pair requires 2 FEN entries, but we need at least 1 entry to remain (starting position)
     return (line_count > 2) ? (line_count - 1) / 2 : 0;
 }
@@ -479,27 +498,27 @@ int count_available_undos() {
  * Each move pair removes 2 FEN entries (White move + AI response)
  */
 void truncate_fen_log_by_moves(int move_pairs_to_undo) {
-    FILE *file = fopen(fen_log_filename, "r");
+    FILE *file = fopen(g_session.fen_log_filename, "r");
     if (!file) return;
-    
+
     // Read all lines into memory
     char lines[MAX_PGN_DISPLAY_MOVES][256];  // Support up to MAX_PGN_DISPLAY_MOVES moves
     int line_count = 0;
-    
+
     while (fgets(lines[line_count], sizeof(lines[line_count]), file) && line_count < MAX_PGN_DISPLAY_MOVES) {
         // Remove newline character for easier handling
         lines[line_count][strcspn(lines[line_count], "\n")] = '\0';
         line_count++;
     }
     fclose(file);
-    
+
     // Remove 2 lines per move pair to undo
     int lines_to_remove = move_pairs_to_undo * 2;
     if (line_count > lines_to_remove) {
         line_count -= lines_to_remove;
-        
+
         // Rewrite the file with the truncated content
-        file = fopen(fen_log_filename, "w");
+        file = fopen(g_session.fen_log_filename, "w");
         if (file) {
             for (int i = 0; i < line_count; i++) {
                 fprintf(file, "%s\n", lines[i]);
@@ -514,23 +533,23 @@ void truncate_fen_log_by_moves(int move_pairs_to_undo) {
  * Reads the FEN file and uses the last entry to restore game state
  */
 bool restore_from_fen_log(ChessGame *game) {
-    FILE *file = fopen(fen_log_filename, "r");
+    FILE *file = fopen(g_session.fen_log_filename, "r");
     if (!file) return false;
-    
+
     char last_fen[256] = "";
     char buffer[256];
-    
+
     // Read all lines to find the last one
     while (fgets(buffer, sizeof(buffer), file)) {
         strcpy(last_fen, buffer);
     }
     fclose(file);
-    
+
     // Remove newline character
     last_fen[strcspn(last_fen, "\n")] = '\0';
-    
+
     if (strlen(last_fen) == 0) return false;
-    
+
     // Restore game state from FEN
     return setup_board_from_fen(game, last_fen);
 }
@@ -580,10 +599,10 @@ bool is_starting_position_only_fen_file(const char* filename) {
  */
 void convert_fen_to_pgn() {
     // Check if FEN file contains only the starting position
-    if (is_starting_position_only_fen_file(fen_log_filename)) {
+    if (is_starting_position_only_fen_file(g_session.fen_log_filename)) {
         // Remove the FEN file - no point keeping starting position only
-        if (unlink(fen_log_filename) == 0) {
-            printf("Removed empty game file (starting position only): %s\n", fen_log_filename);
+        if (unlink(g_session.fen_log_filename) == 0) {
+            printf("Removed empty game file (starting position only): %s\n", g_session.fen_log_filename);
         }
         // Don't create PGN file - no meaningful game to record
         return;
@@ -591,7 +610,7 @@ void convert_fen_to_pgn() {
 
     // Create PGN filename from FEN filename
     char pgn_filename[256];
-    char* base_name = strdup(fen_log_filename);
+    char* base_name = strdup(g_session.fen_log_filename);
 
     // Remove .fen extension if present
     char* dot = strrchr(base_name, '.');
@@ -601,7 +620,7 @@ void convert_fen_to_pgn() {
     free(base_name);
 
     // Open FEN file for reading
-    FILE* fen_file = fopen(fen_log_filename, "r");
+    FILE* fen_file = fopen(g_session.fen_log_filename, "r");
     if (!fen_file) {
         // FEN file doesn't exist or can't be opened, exit silently
         return;
@@ -610,7 +629,7 @@ void convert_fen_to_pgn() {
     // Use system call to run fen_to_pgn utility with input redirection
     // This avoids duplicating the complex conversion logic
     char command[512];
-    snprintf(command, sizeof(command), "echo '%s' | ./fen_to_pgn > /dev/null 2>&1", fen_log_filename);
+    snprintf(command, sizeof(command), "echo '%s' | ./fen_to_pgn > /dev/null 2>&1", g_session.fen_log_filename);
     system(command);
 
     fclose(fen_file);
@@ -624,7 +643,7 @@ void convert_fen_to_pgn() {
 void show_game_files() {
     // Create PGN filename from FEN filename for checking
     char pgn_filename[256];
-    char* base_name = strdup(fen_log_filename);
+    char* base_name = strdup(g_session.fen_log_filename);
 
     // Remove .fen extension if present
     char* dot = strrchr(base_name, '.');
@@ -634,11 +653,11 @@ void show_game_files() {
     free(base_name);
 
     // Check what files exist and what command line options were used
-    bool fen_exists = (access(fen_log_filename, F_OK) == 0);
+    bool fen_exists = (access(g_session.fen_log_filename, F_OK) == 0);
     bool pgn_exists = (access(pgn_filename, F_OK) == 0);
 
     if (!fen_exists && !pgn_exists) {
-        if (suppress_pgn_creation && delete_fen_on_exit) {
+        if (g_session.runtime.suppress_pgn_creation && g_session.runtime.delete_fen_on_exit) {
             printf("\nNo game files saved (PGNOFF and FENOFF options used).\n");
         } else {
             printf("\nNo game files created (game never progressed beyond starting position).\n");
@@ -648,14 +667,14 @@ void show_game_files() {
 
     printf("\nGame files created:\n");
     if (fen_exists) {
-        printf("  FEN log: %s\n", fen_log_filename);
-    } else if (delete_fen_on_exit) {
-        printf("  FEN log: %s (deleted due to FENOFF option)\n", fen_log_filename);
+        printf("  FEN log: %s\n", g_session.fen_log_filename);
+    } else if (g_session.runtime.delete_fen_on_exit) {
+        printf("  FEN log: %s (deleted due to FENOFF option)\n", g_session.fen_log_filename);
     }
 
     if (pgn_exists) {
         printf("  PGN file: %s\n", pgn_filename);
-    } else if (suppress_pgn_creation) {
+    } else if (g_session.runtime.suppress_pgn_creation) {
         printf("  PGN file: %s (not created due to PGNOFF option)\n", pgn_filename);
     }
 }
@@ -709,12 +728,12 @@ bool display_pgn_in_new_window(const char* pgn_content) {
     }
 
     // Initialize persistent PGN filename if not already done
-    if (persistent_pgn_filename[0] == '\0') {
+    if (g_session.persistent_pgn_filename[0] == '\0') {
         generate_persistent_pgn_filename();
     }
 
     // Create initial persistent file with PGN content
-    FILE* temp_file = fopen(persistent_pgn_filename, "w");
+    FILE* temp_file = fopen(g_session.persistent_pgn_filename, "w");
     if (!temp_file) {
         return false;  // Could not create temp file, use fallback
     }
@@ -725,7 +744,7 @@ bool display_pgn_in_new_window(const char* pgn_content) {
     fclose(temp_file);
 
     // Mark PGN window as active for live updates
-    pgn_window_active = true;
+    g_session.pgn_window_active = true;
 
     // Build command based on detected terminal with file watching
     char command[1024];
@@ -734,32 +753,32 @@ bool display_pgn_in_new_window(const char* pgn_content) {
         // macOS Terminal using AppleScript with file watching
         snprintf(command, sizeof(command),
             "osascript -e 'tell application \"Terminal\" to do script \"clear; echo \\\"Claude Chess - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; while [ -f %s ]; do clear; echo \\\"Claude Chess - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; cat %s 2>/dev/null || echo \\\"PGN file not found\\\"; sleep 2; done; echo; echo \\\"Game ended - PGN window closing...\\\"; sleep 2; exit\"' > /dev/null 2>&1 &",
-            persistent_pgn_filename, persistent_pgn_filename);
+            g_session.persistent_pgn_filename, g_session.persistent_pgn_filename);
     } else if (strcmp(terminal_cmd, "gnome-terminal") == 0) {
         // GNOME Terminal with file watching
         snprintf(command, sizeof(command),
             "gnome-terminal --title=\"Claude Chess - Live PGN Notation\" -- bash -c 'while [ -f %s ]; do clear; echo \"Claude Chess - Live PGN Notation\"; echo \"================================\"; echo; cat %s 2>/dev/null || echo \"PGN file not found\"; sleep 2; done; echo; echo \"Game ended - PGN window closing...\"; sleep 2' > /dev/null 2>&1 &",
-            persistent_pgn_filename, persistent_pgn_filename);
+            g_session.persistent_pgn_filename, g_session.persistent_pgn_filename);
     } else if (strcmp(terminal_cmd, "konsole") == 0) {
         // KDE Konsole with file watching
         snprintf(command, sizeof(command),
             "konsole --title \"Claude Chess - Live PGN Notation\" -e bash -c 'while [ -f %s ]; do clear; echo \"Claude Chess - Live PGN Notation\"; echo \"================================\"; echo; cat %s 2>/dev/null || echo \"PGN file not found\"; sleep 2; done; echo; echo \"Game ended - PGN window closing...\"; sleep 2' > /dev/null 2>&1 &",
-            persistent_pgn_filename, persistent_pgn_filename);
+            g_session.persistent_pgn_filename, g_session.persistent_pgn_filename);
     } else if (strcmp(terminal_cmd, "mate-terminal") == 0) {
         // MATE Terminal with file watching
         snprintf(command, sizeof(command),
             "mate-terminal --title=\"Claude Chess - Live PGN Notation\" -e 'bash -c \"while [ -f %s ]; do clear; echo \\\"Claude Chess - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; cat %s 2>/dev/null || echo \\\"PGN file not found\\\"; sleep 2; done; echo; echo \\\"Game ended - PGN window closing...\\\"; sleep 2\"' > /dev/null 2>&1 &",
-            persistent_pgn_filename, persistent_pgn_filename);
+            g_session.persistent_pgn_filename, g_session.persistent_pgn_filename);
     } else if (strcmp(terminal_cmd, "xfce4-terminal") == 0) {
         // Xfce Terminal with file watching
         snprintf(command, sizeof(command),
             "xfce4-terminal --title=\"Claude Chess - Live PGN Notation\" -e 'bash -c \"while [ -f %s ]; do clear; echo \\\"Claude Chess - Live PGN Notation\\\"; echo \\\"================================\\\"; echo; cat %s 2>/dev/null || echo \\\"PGN file not found\\\"; sleep 2; done; echo; echo \\\"Game ended - PGN window closing...\\\"; sleep 2\"' > /dev/null 2>&1 &",
-            persistent_pgn_filename, persistent_pgn_filename);
+            g_session.persistent_pgn_filename, g_session.persistent_pgn_filename);
     } else {
         // Basic xterm fallback with file watching
         snprintf(command, sizeof(command),
             "xterm -title \"Claude Chess - Live PGN Notation\" -e bash -c 'while [ -f %s ]; do clear; echo \"Claude Chess - Live PGN Notation\"; echo \"================================\"; echo; cat %s 2>/dev/null || echo \"PGN file not found\"; sleep 2; done; echo; echo \"Game ended - PGN window closing...\"; sleep 2' > /dev/null 2>&1 &",
-            persistent_pgn_filename, persistent_pgn_filename);
+            g_session.persistent_pgn_filename, g_session.persistent_pgn_filename);
     }
 
     // Execute the command
@@ -772,8 +791,8 @@ bool display_pgn_in_new_window(const char* pgn_content) {
         return true;
     } else {
         // Clean up temp file if command failed
-        pgn_window_active = false;
-        unlink(persistent_pgn_filename);
+        g_session.pgn_window_active = false;
+        unlink(g_session.persistent_pgn_filename);
         return false;
     }
 }
@@ -988,11 +1007,11 @@ int scan_single_directory(const char* directory_path, FENGameInfo **games, int c
         if (fen_ext != NULL && strcmp(fen_ext, ".fen") == 0) {
 
             // Skip the current game's FEN file - no point in loading the game you're already playing
-            const char *current_fen_basename = strrchr(fen_log_filename, '/');
+            const char *current_fen_basename = strrchr(g_session.fen_log_filename, '/');
             if (current_fen_basename) {
                 current_fen_basename++; // Skip the '/'
             } else {
-                current_fen_basename = fen_log_filename; // No path separator found
+                current_fen_basename = g_session.fen_log_filename; // No path separator found
             }
             if (strcmp(entry->d_name, current_fen_basename) == 0) {
                 continue;
@@ -1141,8 +1160,8 @@ int scan_fen_files(FENGameInfo **games) {
     }
 
     // Then, scan FENDirectory if it's different from current directory
-    if (strcmp(config.fen_directory, ".") != 0) {
-        count = scan_single_directory(config.fen_directory, games, count, &capacity, false);
+    if (strcmp(g_session.config.fen_directory, ".") != 0) {
+        count = scan_single_directory(g_session.config.fen_directory, games, count, &capacity, false);
         if (count == -1) {
             free(*games);
             return -1;
@@ -1191,8 +1210,8 @@ int scan_pgn_files(PGNGameInfo **games) {
     }
 
     // Then, scan PGNDirectory if it's different from current directory
-    if (strcmp(config.pgn_directory, ".") != 0) {
-        count = scan_single_directory_pgn(config.pgn_directory, games, count, &capacity, false);
+    if (strcmp(g_session.config.pgn_directory, ".") != 0) {
+        count = scan_single_directory_pgn(g_session.config.pgn_directory, games, count, &capacity, false);
         if (count == -1) {
             free(*games);
             return -1;
@@ -1289,7 +1308,7 @@ void free_fen_navigator(FENNavigator *nav) {
  * This preserves the complete game history when resuming from a LOAD
  */
 void copy_game_history_to_new_log(FENNavigator *nav, int up_to_position) {
-    FILE *file = fopen(fen_log_filename, "w");
+    FILE *file = fopen(g_session.fen_log_filename, "w");
     if (!file) {
         printf("Warning: Could not create new FEN log file for game history.\n");
         return;
@@ -1435,12 +1454,12 @@ void handle_load_fen_command(ChessGame *game) {
     int game_count = scan_fen_files(&games);
 
     if (game_count == -1) {
-        printf("\nError: Cannot access FEN directory '%s'\n", config.fen_directory);
+        printf("\nError: Cannot access FEN directory '%s'\n", g_session.config.fen_directory);
         printf("Please check:\n");
         printf("1. The directory exists\n");
         printf("2. You have read permissions\n");
         printf("3. The path is correct in CHESS.ini\n");
-        printf("\nCurrent configured path: %s\n", config.fen_directory);
+        printf("\nCurrent configured path: %s\n", g_session.config.fen_directory);
         return;
     }
 
@@ -1451,7 +1470,7 @@ void handle_load_fen_command(ChessGame *game) {
     if (game_count == 0) {
         printf("No FEN files found in directories\n");
         printf("Current directory: .\n");
-        printf("FEN directory: %s\n", config.fen_directory);
+        printf("FEN directory: %s\n", g_session.config.fen_directory);
         printf("Play some games first to create FEN logs, or move your FEN files to these directories!\n");
         printf("\nPress ENTER to continue...");
         fflush(stdout);
@@ -1593,23 +1612,23 @@ void handle_load_fen_command(ChessGame *game) {
                 save_response[strcspn(save_response, "\n")] = '\0';  // Remove newline
 
                 if (strcasecmp(save_response, "y") == 0 || strcasecmp(save_response, "yes") == 0) {
-                    printf("Current game saved as: %s\n", fen_log_filename);
+                    printf("Current game saved as: %s\n", g_session.fen_log_filename);
                 } else {
                     printf("Current game not saved.\n");
                     // Delete current FEN file since user doesn't want to save it
-                    unlink(fen_log_filename);
+                    unlink(g_session.fen_log_filename);
                 }
             }
 
             // Create new FEN log for continued gameplay
             generate_fen_filename();
-            printf("New game log: %s\n", fen_log_filename);
+            printf("New game log: %s\n", g_session.fen_log_filename);
 
             // Copy complete game history up to selected position
             copy_game_history_to_new_log(&nav, selected_position);
 
             // Reset game started flag to allow new skill settings
-            game_started = false;
+            g_session.game_started = false;
         } else {
             printf("\nError loading selected position!\n");
         }
@@ -1663,12 +1682,12 @@ void handle_load_pgn_command(ChessGame *game) {
     int game_count = scan_pgn_files(&games);
 
     if (game_count == -1) {
-        printf("\nError: Cannot access PGN directory '%s'\n", config.pgn_directory);
+        printf("\nError: Cannot access PGN directory '%s'\n", g_session.config.pgn_directory);
         printf("Please check:\n");
         printf("1. The directory exists\n");
         printf("2. You have read permissions\n");
         printf("3. The path is correct in CHESS.ini\n");
-        printf("\nCurrent configured path: %s\n", config.pgn_directory);
+        printf("\nCurrent configured path: %s\n", g_session.config.pgn_directory);
         return;
     }
 
@@ -1679,7 +1698,7 @@ void handle_load_pgn_command(ChessGame *game) {
     if (game_count == 0) {
         printf("No PGN files found in directories\n");
         printf("Current directory: .\n");
-        printf("PGN directory: %s\n", config.pgn_directory);
+        printf("PGN directory: %s\n", g_session.config.pgn_directory);
         printf("Add some PGN files to these directories to use this feature!\n");
         printf("\nPress ENTER to continue...");
         fflush(stdout);
@@ -1799,7 +1818,7 @@ void handle_load_pgn_command(ChessGame *game) {
     if (games[selection].from_current_dir) {
         snprintf(full_path, sizeof(full_path), "./%s", games[selection].filename);
     } else {
-        snprintf(full_path, sizeof(full_path), "%s/%s", config.pgn_directory, games[selection].filename);
+        snprintf(full_path, sizeof(full_path), "%s/%s", g_session.config.pgn_directory, games[selection].filename);
     }
 
     if (!load_pgn_positions(full_path, &nav)) {
@@ -1835,23 +1854,23 @@ void handle_load_pgn_command(ChessGame *game) {
                 save_response[strcspn(save_response, "\n")] = '\0';  // Remove newline
 
                 if (strcasecmp(save_response, "y") == 0 || strcasecmp(save_response, "yes") == 0) {
-                    printf("Current game saved as: %s\n", fen_log_filename);
+                    printf("Current game saved as: %s\n", g_session.fen_log_filename);
                 } else {
                     printf("Current game not saved.\n");
                     // Delete current FEN file since user doesn't want to save it
-                    unlink(fen_log_filename);
+                    unlink(g_session.fen_log_filename);
                 }
             }
 
             // Create new FEN log for continued gameplay
             generate_fen_filename();
-            printf("New game log: %s\n", fen_log_filename);
+            printf("New game log: %s\n", g_session.fen_log_filename);
 
             // Copy complete game history up to selected position
             copy_game_history_to_new_log(&nav, selected_position);
 
             // Reset game started flag to allow new skill settings
-            game_started = false;
+            g_session.game_started = false;
         } else {
             printf("\nError loading selected position!\n");
         }
@@ -1960,7 +1979,7 @@ void print_evaluation_line(int evaluation) {
 void print_game_info(ChessGame *game) {
     printf("\n=== Claude Chess ===\n");
     printf("Current player: %s\n", game->current_player == WHITE ? "WHITE" : "BLACK");
-    printf("Stockfish Skill Level: %d\n", current_skill_level);
+    printf("Stockfish Skill Level: %d\n", g_session.current_skill_level);
     
     // Display captured pieces for both players
     printf("\n");
@@ -2150,12 +2169,12 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
     if (strcmp(input, "quit") == 0) {
         cleanup_persistent_pgn_file();
 
-        if (!suppress_pgn_creation) {
+        if (!g_session.runtime.suppress_pgn_creation) {
             convert_fen_to_pgn();
         }
 
-        if (delete_fen_on_exit) {
-            unlink(fen_log_filename);
+        if (g_session.runtime.delete_fen_on_exit) {
+            unlink(g_session.fen_log_filename);
         }
 
         show_game_files();
@@ -2175,12 +2194,12 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
         fflush(stdout);
 
         char hint_move[10];
-        if (get_hint_move(engine, game, hint_move, debug_mode)) {
-            if (debug_mode) {
+        if (get_hint_move(engine, game, hint_move, g_session.runtime.debug_mode)) {
+            if (g_session.runtime.debug_mode) {
                 printf("\nDebug: Stockfish returned hint: '%s'\n", hint_move);
             }
             Move suggested_move = parse_move_string(hint_move);
-            if (debug_mode) {
+            if (g_session.runtime.debug_mode) {
                 printf("Debug: Parsed hint from (%d,%d) to (%d,%d)\n",
                        suggested_move.from.row, suggested_move.from.col,
                        suggested_move.to.row, suggested_move.to.col);
@@ -2207,7 +2226,7 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
     }
 
     if (strncmp(input, "skill ", 6) == 0 || strncmp(input, "SKILL ", 6) == 0) {
-        if (game_started) {
+        if (g_session.game_started) {
             printf("\nSkill level cannot be changed after the game has started!\n");
             printf("Use this command only before making your first move.\n");
         } else {
@@ -2216,7 +2235,7 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
 
             if (skill_level >= MIN_SKILL_LEVEL && skill_level <= MAX_SKILL_LEVEL) {
                 if (set_skill_level(engine, skill_level)) {
-                    current_skill_level = skill_level;
+                    g_session.current_skill_level = skill_level;
                     printf("\nStockfish skill level set to %d (%d=easiest, %d=strongest)\n",
                            skill_level, MIN_SKILL_LEVEL, MAX_SKILL_LEVEL);
                 } else {
@@ -2235,7 +2254,7 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
     }
 
     if (strncmp(input, "time ", 5) == 0 || strncmp(input, "TIME ", 5) == 0) {
-        if (game_started) {
+        if (g_session.game_started) {
             printf("\nTime controls cannot be changed after the game has started!\n");
             printf("Use this command only before making your first move.\n");
         } else {
@@ -2288,7 +2307,7 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
         printf("\nGenerating current game PGN notation...");
         fflush(stdout);
 
-        char* pgn_content = convert_fen_to_pgn_string(fen_log_filename);
+        char* pgn_content = convert_fen_to_pgn_string(g_session.fen_log_filename);
         if (pgn_content) {
             if (display_pgn_in_new_window(pgn_content)) {
                 printf("Close the PGN window when you're done viewing.\n");
@@ -2319,7 +2338,7 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
         if (get_position_evaluation(engine, game, &centipawn_score)) {
             int scale_score = centipawns_to_scale(centipawn_score);
             printf("\nCurrent Game Evaluation (Stockfish depth 15):\n");
-            if (debug_mode) {
+            if (g_session.runtime.debug_mode) {
                 printf("DEBUG: Raw centipawn score: %+d\n", centipawn_score);
             }
             print_evaluation_line(scale_score);
@@ -2340,7 +2359,7 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
         printf("You play as %sWhite%s, AI plays as %sBlack%s\n", COLOR_WHITE_PIECE, SCREEN_RESET, COLOR_BLACK_PIECE, SCREEN_RESET);
         printf("Stockfish engine is running successfully!\n");
 
-        if (debug_mode) {
+        if (g_session.runtime.debug_mode) {
             printf("*** DEBUG MODE ENABLED ***\n");
         }
 
@@ -2361,7 +2380,7 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
         printf("                            (special thanks to the Stockfish team for their incredible open-source engine!)\n");
 
 
-        if (debug_mode) {
+        if (g_session.runtime.debug_mode) {
             printf("*** DEBUG MODE ENABLED ***\n");
         }
 
@@ -2463,12 +2482,12 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
 
             cleanup_persistent_pgn_file();
 
-            if (!suppress_pgn_creation) {
+            if (!g_session.runtime.suppress_pgn_creation) {
                 convert_fen_to_pgn();
             }
 
-            if (delete_fen_on_exit) {
-                unlink(fen_log_filename);
+            if (g_session.runtime.delete_fen_on_exit) {
+                unlink(g_session.fen_log_filename);
             }
 
             show_game_files();
@@ -2502,7 +2521,7 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
             printf("\nBoard setup successful from FEN: %s\n", fen_input);
 
             reset_fen_log_for_setup(game);
-            printf("New FEN log file created: %s\n", fen_log_filename);
+            printf("New FEN log file created: %s\n", g_session.fen_log_filename);
 
             printf("\nGame will continue from this custom position.\n");
         } else {
@@ -2599,7 +2618,7 @@ void handle_move_execution(const char *input, ChessGame *game) {
     }
 
     if (make_move(game, from, to)) {
-        game_started = true;
+        g_session.game_started = true;
         stop_move_timer(game);
         printf("Move made: %s to %s                             \n", from_str, to_str);
         save_fen_log(game);
@@ -2670,13 +2689,13 @@ void handle_black_turn(ChessGame *game, StockfishEngine *engine) {
 
 
     char move_str[10];
-    if (get_best_move(engine, game, move_str, debug_mode)) {
-        if (debug_mode) {
+    if (get_best_move(engine, game, move_str, g_session.runtime.debug_mode)) {
+        if (g_session.runtime.debug_mode) {
             printf("\nDebug: Stockfish returned move: '%s'\n", move_str);
         }
         Move ai_move = parse_move_string(move_str);
-        if (debug_mode) {
-            printf("Debug: Parsed from (%d,%d) to (%d,%d)\n", 
+        if (g_session.runtime.debug_mode) {
+            printf("Debug: Parsed from (%d,%d) to (%d,%d)\n",
                    ai_move.from.row, ai_move.from.col, ai_move.to.row, ai_move.to.col);
         }
         
@@ -2733,23 +2752,26 @@ int main(int argc, char *argv[]) {
     ChessGame game;
     StockfishEngine engine = {0};
 
+    // Initialize game session with default values
+    init_game_session();
+
     // Load configuration settings from CHESS.ini first
     load_config();
 
     // Initialize file creation flags from configuration
     // These can be overridden by command line options
-    suppress_pgn_creation = !config.auto_create_pgn;  // true=PGNOFF, false=PGNON
-    delete_fen_on_exit = config.auto_delete_fen;      // true=FENOFF, false=FENON
+    g_session.runtime.suppress_pgn_creation = !g_session.config.auto_create_pgn;  // true=PGNOFF, false=PGNON
+    g_session.runtime.delete_fen_on_exit = g_session.config.auto_delete_fen;      // true=FENOFF, false=FENON
 
     // Parse command line arguments (case-insensitive)
     // Command line options override configuration settings
     for (int i = 1; i < argc; i++) {
         if (strcasecmp(argv[i], "DEBUG") == 0) {
-            debug_mode = true;
+            g_session.runtime.debug_mode = true;
         } else if (strcasecmp(argv[i], "PGNOFF") == 0) {
-            suppress_pgn_creation = true;
+            g_session.runtime.suppress_pgn_creation = true;
         } else if (strcasecmp(argv[i], "FENOFF") == 0) {
-            delete_fen_on_exit = true;
+            g_session.runtime.delete_fen_on_exit = true;
         } else if (strcasecmp(argv[i], "/HELP") == 0) {
             show_command_line_help();
             exit(0);
@@ -2773,7 +2795,7 @@ int main(int argc, char *argv[]) {
     
     printf("=== Claude Chess with Stockfish AI ===\n");
     printf("You play as %sWhite%s, AI plays as %sBlack%s\n", COLOR_WHITE_PIECE, SCREEN_RESET, COLOR_BLACK_PIECE, SCREEN_RESET);
-    if (debug_mode) {
+    if (g_session.runtime.debug_mode) {
         printf("*** DEBUG MODE ENABLED ***\n");
     }
     printf("Initializing Stockfish engine...\n");
@@ -2786,8 +2808,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Apply default skill level from configuration
-    if (set_skill_level(&engine, config.default_skill_level)) {
-        current_skill_level = config.default_skill_level;
+    if (set_skill_level(&engine, g_session.config.default_skill_level)) {
+        g_session.current_skill_level = g_session.config.default_skill_level;
     }
     
     // Get and display Stockfish version
@@ -2796,21 +2818,21 @@ int main(int argc, char *argv[]) {
         clear_screen();
         printf("=== Claude Chess with %s AI ===\n", version_str);
         printf("You play as %sWhite%s, AI plays as %sBlack%s\n", COLOR_WHITE_PIECE, SCREEN_RESET, COLOR_BLACK_PIECE, SCREEN_RESET);
-        if (debug_mode) {
+        if (g_session.runtime.debug_mode) {
             printf("*** DEBUG MODE ENABLED ***\n");
-            printf("Configuration loaded: FENDirectory='%s'\n", config.fen_directory);
-            printf("Configuration loaded: PGNDirectory='%s'\n", config.pgn_directory);
-            printf("Configuration loaded: DefaultSkillLevel=%d\n", config.default_skill_level);
-            printf("Configuration loaded: AutoCreatePGN=%s\n", config.auto_create_pgn ? "true" : "false");
-            printf("Configuration loaded: AutoDeleteFEN=%s\n", config.auto_delete_fen ? "true" : "false");
-            printf("Configuration loaded: DefaultTimeControl='%s'", config.default_time_control);
-            if (strcmp(config.default_time_control, "0/0") == 0) {
+            printf("Configuration loaded: FENDirectory='%s'\n", g_session.config.fen_directory);
+            printf("Configuration loaded: PGNDirectory='%s'\n", g_session.config.pgn_directory);
+            printf("Configuration loaded: DefaultSkillLevel=%d\n", g_session.config.default_skill_level);
+            printf("Configuration loaded: AutoCreatePGN=%s\n", g_session.config.auto_create_pgn ? "true" : "false");
+            printf("Configuration loaded: AutoDeleteFEN=%s\n", g_session.config.auto_delete_fen ? "true" : "false");
+            printf("Configuration loaded: DefaultTimeControl='%s'", g_session.config.default_time_control);
+            if (strcmp(g_session.config.default_time_control, "0/0") == 0) {
                 printf(" (time controls disabled)\n");
             } else {
                 // Check if it's 2-value (same for both) or 4-value (different for each)
                 int count = 0;
-                for (int i = 0; config.default_time_control[i]; i++) {
-                    if (config.default_time_control[i] == '/') count++;
+                for (int i = 0; g_session.config.default_time_control[i]; i++) {
+                    if (g_session.config.default_time_control[i] == '/') count++;
                 }
                 if (count == 1) {
                     printf(" (both players get same time allocation)\n");
@@ -2819,33 +2841,33 @@ int main(int argc, char *argv[]) {
                 }
             }
             printf("Active flags: suppress_pgn_creation=%s, delete_fen_on_exit=%s\n",
-                   suppress_pgn_creation ? "true" : "false", delete_fen_on_exit ? "true" : "false");
+                   g_session.runtime.suppress_pgn_creation ? "true" : "false", g_session.runtime.delete_fen_on_exit ? "true" : "false");
 
             // Show any configuration overrides
-            if (fen_directory_overridden) {
+            if (g_session.config.fen_directory_overridden) {
                 printf("WARNING: Invalid FENDirectory in CHESS.ini - using default '.'\n");
             }
-            if (skill_level_overridden) {
+            if (g_session.config.skill_level_overridden) {
                 printf("WARNING: Invalid DefaultSkillLevel in CHESS.ini - using default 5\n");
             }
         }
         printf("Stockfish initialized successfully!\n");
     } else {
-        if (debug_mode) {
+        if (g_session.runtime.debug_mode) {
             printf("*** DEBUG MODE ENABLED ***\n");
-            printf("Configuration loaded: FENDirectory='%s'\n", config.fen_directory);
-            printf("Configuration loaded: PGNDirectory='%s'\n", config.pgn_directory);
-            printf("Configuration loaded: DefaultSkillLevel=%d\n", config.default_skill_level);
-            printf("Configuration loaded: AutoCreatePGN=%s\n", config.auto_create_pgn ? "true" : "false");
-            printf("Configuration loaded: AutoDeleteFEN=%s\n", config.auto_delete_fen ? "true" : "false");
-            printf("Configuration loaded: DefaultTimeControl='%s'", config.default_time_control);
-            if (strcmp(config.default_time_control, "0/0") == 0) {
+            printf("Configuration loaded: FENDirectory='%s'\n", g_session.config.fen_directory);
+            printf("Configuration loaded: PGNDirectory='%s'\n", g_session.config.pgn_directory);
+            printf("Configuration loaded: DefaultSkillLevel=%d\n", g_session.config.default_skill_level);
+            printf("Configuration loaded: AutoCreatePGN=%s\n", g_session.config.auto_create_pgn ? "true" : "false");
+            printf("Configuration loaded: AutoDeleteFEN=%s\n", g_session.config.auto_delete_fen ? "true" : "false");
+            printf("Configuration loaded: DefaultTimeControl='%s'", g_session.config.default_time_control);
+            if (strcmp(g_session.config.default_time_control, "0/0") == 0) {
                 printf(" (time controls disabled)\n");
             } else {
                 // Check if it's 2-value (same for both) or 4-value (different for each)
                 int count = 0;
-                for (int i = 0; config.default_time_control[i]; i++) {
-                    if (config.default_time_control[i] == '/') count++;
+                for (int i = 0; g_session.config.default_time_control[i]; i++) {
+                    if (g_session.config.default_time_control[i] == '/') count++;
                 }
                 if (count == 1) {
                     printf(" (both players get same time allocation)\n");
@@ -2854,13 +2876,13 @@ int main(int argc, char *argv[]) {
                 }
             }
             printf("Active flags: suppress_pgn_creation=%s, delete_fen_on_exit=%s\n",
-                   suppress_pgn_creation ? "true" : "false", delete_fen_on_exit ? "true" : "false");
+                   g_session.runtime.suppress_pgn_creation ? "true" : "false", g_session.runtime.delete_fen_on_exit ? "true" : "false");
 
             // Show any configuration overrides
-            if (fen_directory_overridden) {
+            if (g_session.config.fen_directory_overridden) {
                 printf("WARNING: Invalid FENDirectory in CHESS.ini - using default '.'\n");
             }
-            if (skill_level_overridden) {
+            if (g_session.config.skill_level_overridden) {
                 printf("WARNING: Invalid DefaultSkillLevel in CHESS.ini - using default 5\n");
             }
         }
@@ -2876,7 +2898,7 @@ int main(int argc, char *argv[]) {
 
     // Initialize time controls from config
     TimeControl default_time_control;
-    if (parse_time_control(config.default_time_control, &default_time_control)) {
+    if (parse_time_control(g_session.config.default_time_control, &default_time_control)) {
         game.time_control = default_time_control;
         init_game_timer(&game, &default_time_control);
     }
@@ -2899,13 +2921,13 @@ int main(int argc, char *argv[]) {
             cleanup_persistent_pgn_file();
 
             // Create PGN file unless suppressed by PGNOFF
-            if (!suppress_pgn_creation) {
+            if (!g_session.runtime.suppress_pgn_creation) {
                 convert_fen_to_pgn();
             }
 
             // Delete FEN file if requested by FENOFF (after PGN creation)
-            if (delete_fen_on_exit) {
-                unlink(fen_log_filename);
+            if (g_session.runtime.delete_fen_on_exit) {
+                unlink(g_session.fen_log_filename);
             }
 
             show_game_files();
@@ -2924,13 +2946,13 @@ int main(int argc, char *argv[]) {
             cleanup_persistent_pgn_file();
 
             // Create PGN file unless suppressed by PGNOFF
-            if (!suppress_pgn_creation) {
+            if (!g_session.runtime.suppress_pgn_creation) {
                 convert_fen_to_pgn();
             }
 
             // Delete FEN file if requested by FENOFF (after PGN creation)
-            if (delete_fen_on_exit) {
-                unlink(fen_log_filename);
+            if (g_session.runtime.delete_fen_on_exit) {
+                unlink(g_session.fen_log_filename);
             }
 
             show_game_files();
@@ -2947,13 +2969,13 @@ int main(int argc, char *argv[]) {
             cleanup_persistent_pgn_file();
 
             // Create PGN file unless suppressed by PGNOFF
-            if (!suppress_pgn_creation) {
+            if (!g_session.runtime.suppress_pgn_creation) {
                 convert_fen_to_pgn();
             }
 
             // Delete FEN file if requested by FENOFF (after PGN creation)
-            if (delete_fen_on_exit) {
-                unlink(fen_log_filename);
+            if (g_session.runtime.delete_fen_on_exit) {
+                unlink(g_session.fen_log_filename);
             }
 
             show_game_files();
@@ -2971,13 +2993,13 @@ int main(int argc, char *argv[]) {
             cleanup_persistent_pgn_file();
 
             // Create PGN file unless suppressed by PGNOFF
-            if (!suppress_pgn_creation) {
+            if (!g_session.runtime.suppress_pgn_creation) {
                 convert_fen_to_pgn();
             }
 
             // Delete FEN file if requested by FENOFF (after PGN creation)
-            if (delete_fen_on_exit) {
-                unlink(fen_log_filename);
+            if (g_session.runtime.delete_fen_on_exit) {
+                unlink(g_session.fen_log_filename);
             }
 
             show_game_files();
