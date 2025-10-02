@@ -80,7 +80,18 @@ experience with SwiftUI.
 
 ## Development Status
 
-**Current Phase:** Initial Setup and Planning
+**Current Phase:** Core Development - Phase 1
+
+**Latest Progress (October 2, 2025):**
+- ✅ Core data models implemented and tested
+- ✅ Foundation types: Color, PieceType, Position, Piece
+- ✅ FEN character parsing and algebraic notation support
+- ✅ Zero-warning compilation verified
+
+**Next Steps:**
+- Build basic chess board UI (8x8 grid)
+- Visual piece rendering with Unicode symbols
+- Initial game display in simulator
 
 This project is in active development. Core features are being ported
 from the proven terminal-based implementation.
@@ -107,7 +118,11 @@ Claude_Chess_iOS/                          # Project root
         ├── Claude_ChessApp.swift         # App entry point
         ├── ContentView.swift             # Main UI view
         ├── Assets.xcassets/              # Asset catalog
-        └── (Additional files to be added)
+        └── Models/                       # Core data models
+            ├── Color.swift               # Chess piece colors
+            ├── PieceType.swift           # Chess piece types
+            ├── Position.swift            # Board positions
+            └── Piece.swift               # Piece representation
 ```
 
 **Workflow:**
