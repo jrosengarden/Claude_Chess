@@ -85,19 +85,36 @@ experience with SwiftUI.
 This project is in active development. Core features are being ported
 from the proven terminal-based implementation.
 
-## Project Structure
+## Xcode Project Structure
+
+**Developer Note:** All development work occurs within the Xcode
+project directory. User works in Xcode IDE with `Claude_Chess.xcodeproj`
+loaded for builds, simulator testing, and visual verification.
 
 ```
-Claude_Chess_iOS/
-├── Claude_Chess/
-│   ├── Claude_Chess.xcodeproj/
-│   └── Claude_Chess/
-│       ├── Claude_ChessApp.swift
-│       ├── ContentView.swift
-│       └── (Additional files to be added)
-├── CLAUDE.md    # Developer reference documentation
-└── README.md    # This file
+Claude_Chess_iOS/                          # Project root
+├── CLAUDE.md                             # Developer reference docs
+├── README.md                             # This file
+└── Claude_Chess/                         # Xcode project directory
+    ├── Claude_Chess.xcodeproj/           # Xcode project file
+    │   ├── project.pbxproj               # Project configuration
+    │   ├── xcuserdata/                   # User-specific settings
+    │   └── project.xcworkspace/          # Workspace settings
+    │       ├── contents.xcworkspacedata
+    │       └── xcshareddata/swiftpm/     # Swift Package Manager
+    ├── .git/                             # Separate git repo (iOS)
+    └── Claude_Chess/                     # Main source directory
+        ├── Claude_ChessApp.swift         # App entry point
+        ├── ContentView.swift             # Main UI view
+        ├── Assets.xcassets/              # Asset catalog
+        └── (Additional files to be added)
 ```
+
+**Workflow:**
+- Claude edits Swift files in `Claude_Chess/Claude_Chess/` directory
+- User builds/tests in Xcode with `Claude_Chess.xcodeproj` loaded
+- User handles all git operations
+- User verifies visual UI and interactive behavior in Simulator
 
 ## Parent Project
 
