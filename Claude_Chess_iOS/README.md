@@ -113,7 +113,6 @@ Claude_Chess_iOS/                          # Project root
     │   └── project.xcworkspace/          # Workspace settings
     │       ├── contents.xcworkspacedata
     │       └── xcshareddata/swiftpm/     # Swift Package Manager
-    ├── .git/                             # Separate git repo (iOS)
     └── Claude_Chess/                     # Main source directory
         ├── Claude_ChessApp.swift         # App entry point
         ├── ContentView.swift             # Main UI view
