@@ -30,8 +30,8 @@ logic, features, and behavior.**
 **Current Phase:** Phase 1 Complete - Ready for Phase 2
 **Created:** September 30, 2025
 **Last Updated:** October 8, 2025
-**Development Stage:** Visual chess board complete with all pieces
-displayed in starting position
+**Development Stage:** Visual chess board complete with all pieces,
+settings menu, and customizable board colors
 
 ## Build System
 
@@ -59,20 +59,24 @@ xcodebuild clean -project Claude_Chess/Claude_Chess.xcodeproj \
 - `Models/Color.swift` - Color enum (white/black) with opposite
     property and display formatting
 - `Models/PieceType.swift` - PieceType enum (6 piece types) with
-    Unicode symbols and FEN character mapping
+    asset name mapping for Cburnett SVG graphics
 - `Models/Position.swift` - Position struct with row/col indices,
     algebraic notation parsing/generation, and validation
 - `Models/Piece.swift` - Piece struct combining type and color with
-    FEN parsing and display symbols
+    FEN parsing and asset name generation
 - `Models/ChessGame.swift` - Complete game state management with
     board position, castling rights, en passant tracking, and move
     counters
+- `Models/BoardColorTheme.swift` - Board color theme system with
+    RGB color components, 6 preset themes, and custom color support
 
 ### Views (Implemented - Phase 1)
 - `Views/ChessBoardView.swift` - Visual 8x8 chess board with
-    alternating square colors and piece rendering using Unicode symbols
+    dynamic color themes and piece rendering using Cburnett SVG graphics
+- `Views/SettingsView.swift` - Settings menu with board color theme
+    selection and custom color picker with live preview
 - `ContentView.swift` - Main app view integrating chess board with
-    game state display
+    game state display and settings access via gear icon
 
 ### Planned Module Structure
 
@@ -526,6 +530,7 @@ references and standards
 warnings
 
 **Session 4: Oct 8, 2025** - Phase 1 Complete: Visual Chess Board
+with Settings
 - Created `ChessGame.swift` model with complete game state management
 - Implemented `ChessBoardView.swift` with 8x8 grid and piece rendering
 - Integrated chess board into `ContentView.swift`
@@ -540,9 +545,17 @@ warnings
   mapping
 - Updated ChessBoardView to use Image() instead of Text() for piece
   rendering
+- **Implemented comprehensive settings menu system**:
+  - Created `BoardColorTheme.swift` model with 6 preset themes
+  - Added custom color theme with RGB component storage
+  - Built `SettingsView.swift` with navigation structure
+  - Implemented `CustomColorPickerView` with live 4x4 board preview
+  - Added gear icon settings button to ContentView
+  - Theme persistence via @AppStorage/UserDefaults
 - Successfully built and ran app in iPhone 17 Pro simulator
 - **Result**: Fully functional visual chess board with professional-
-  quality vector graphics pieces in standard starting position
+  quality vector graphics pieces, customizable color themes, and
+  persistent user preferences
 
 ### Key Decisions
 
@@ -560,17 +573,29 @@ from Wikimedia Commons for professional appearance, rejecting Unicode
 symbols due to unprofessional "hollow/sketch" appearance of white
 pieces
 
+**Oct 8, 2025**: Settings architecture - Implemented extensible
+navigation-based settings system early in Phase 1 to establish proper
+architecture before Phase 2 complexity. Custom color feature added as
+first user customization option with full persistence support.
+
 ### Implementation Progress
 
 **✅ Phase 1 Complete (Oct 8, 2025):**
-- Core data structures (Color, PieceType, Position, Piece, ChessGame)
+- Core data structures (Color, PieceType, Position, Piece, ChessGame,
+  BoardColorTheme)
 - FEN character parsing and generation
 - Algebraic notation support (e.g., "e4", "a1")
 - Professional chess piece graphics (Cburnett SVG assets)
-- Visual 8x8 chess board with alternating square colors
+- Visual 8x8 chess board with dynamic color themes
 - Piece rendering using vector graphics (SVG)
 - Standard starting position setup
 - Game state display (current player)
+- Settings menu with gear icon access
+- Board color theme system (6 presets: Classic, Wooden, Blue, Green,
+  Marble, Tournament)
+- Custom color picker with real-time 4x4 board preview
+- SwiftUI.Color to RGB component extraction via UIColor bridge
+- Theme persistence using @AppStorage/UserDefaults
 - Zero-warning compilation
 - Successfully running in simulator
 
@@ -587,6 +612,64 @@ pieces
 - Time controls
 - Game save/load
 - FEN/PGN import/export
+
+### Board Color Theme System
+
+**Architecture Overview:**
+Complete color customization system with 6 preset themes plus custom
+color picker. Themes persist across app restarts using UserDefaults.
+
+**Theme Model** (`BoardColorTheme.swift`):
+```swift
+struct BoardColorTheme: Identifiable, Codable, Equatable {
+    let id: String
+    let name: String
+    let lightSquare: ColorComponents
+    let darkSquare: ColorComponents
+}
+```
+
+**Preset Themes**:
+1. **Classic** - Traditional tan/brown (default)
+2. **Wooden** - Warm amber/dark brown with golden light squares
+3. **Blue** - Cool blue tones
+4. **Green** - Forest green with light squares
+5. **Marble** - Elegant grey/white
+6. **Tournament** - High contrast white/dark green
+7. **Custom** - User-defined colors via color picker
+
+**Persistence Implementation**:
+- Theme selection: `@AppStorage("boardThemeId")`
+- Custom colors: 6 separate `@AppStorage` properties for RGB
+  components
+  - `customLightRed`, `customLightGreen`, `customLightBlue`
+  - `customDarkRed`, `customDarkGreen`, `customDarkBlue`
+- Values persist in UserDefaults across app kills and device restarts
+
+**Custom Color Picker Features**:
+- Live 4x4 chess board preview showing actual color appearance
+- Separate ColorPicker controls for light and dark squares
+- Real-time preview updates as colors change
+- Automatic theme switching to "custom" when colors modified
+- RGB component extraction from SwiftUI.Color via UIColor bridge
+
+**Technical Implementation**:
+- `BoardColorTheme.componentsFrom(color:)` converts SwiftUI.Color to
+  RGB using UIColor
+- `BoardColorTheme.theme(withId:customLight:customDark:)` returns
+  custom theme with user colors
+- ChessBoardView reads both theme ID and custom colors from
+  @AppStorage
+- Dynamic theme resolution in `currentTheme` computed property
+
+**User Experience Flow**:
+1. Tap gear icon in ContentView
+2. Navigate to "Board Colors" in SettingsView
+3. Select preset theme (immediate preview) OR tap "Custom"
+4. Custom picker shows live 4x4 board preview
+5. Adjust light/dark square colors independently
+6. Return to game - board reflects new colors
+7. Colors persist even after app termination
 
 ### Chess Piece Assets
 

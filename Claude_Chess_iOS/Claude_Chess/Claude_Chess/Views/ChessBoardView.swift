@@ -7,19 +7,6 @@
 
 import SwiftUI
 
-// Chess board color scheme
-fileprivate let lightSquareColor = SwiftUI.Color(
-    red: 0.93,
-    green: 0.85,
-    blue: 0.71
-)
-
-fileprivate let darkSquareColor = SwiftUI.Color(
-    red: 0.72,
-    green: 0.53,
-    blue: 0.30
-)
-
 /// Visual representation of a chess board with alternating light/dark squares
 /// and piece placement
 struct ChessBoardView: View {
@@ -27,9 +14,35 @@ struct ChessBoardView: View {
     private let rows = 8
     private let columns = 8
 
-    // Optional: pass in board state (for now, we'll start with empty)
+    // Board state
     var board: [[Piece?]] = Array(repeating: Array(repeating: nil, count: 8),
                                    count: 8)
+
+    // Color theme (persisted via AppStorage)
+    @AppStorage("boardThemeId") private var boardThemeId = "classic"
+
+    // Custom color storage
+    @AppStorage("customLightRed") private var customLightRed: Double = 0.93
+    @AppStorage("customLightGreen") private var customLightGreen: Double = 0.85
+    @AppStorage("customLightBlue") private var customLightBlue: Double = 0.71
+    @AppStorage("customDarkRed") private var customDarkRed: Double = 0.72
+    @AppStorage("customDarkGreen") private var customDarkGreen: Double = 0.53
+    @AppStorage("customDarkBlue") private var customDarkBlue: Double = 0.30
+
+    private var currentTheme: BoardColorTheme {
+        if boardThemeId == "custom" {
+            let lightComponents = BoardColorTheme.ColorComponents(
+                red: customLightRed, green: customLightGreen, blue: customLightBlue
+            )
+            let darkComponents = BoardColorTheme.ColorComponents(
+                red: customDarkRed, green: customDarkGreen, blue: customDarkBlue
+            )
+            return BoardColorTheme.theme(withId: boardThemeId,
+                                        customLight: lightComponents,
+                                        customDark: darkComponents)
+        }
+        return BoardColorTheme.theme(withId: boardThemeId)
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -46,7 +59,9 @@ struct ChessBoardView: View {
                                 row: row,
                                 col: col,
                                 piece: board[row][col],
-                                isLight: isLightSquare(row: row, col: col)
+                                isLight: isLightSquare(row: row, col: col),
+                                lightColor: currentTheme.lightSquare.color,
+                                darkColor: currentTheme.darkSquare.color
                             )
                             .frame(width: squareSize, height: squareSize)
                         }
@@ -81,12 +96,13 @@ struct ChessSquareView: View {
     let col: Int
     let piece: Piece?
     let isLight: Bool
+    let lightColor: SwiftUI.Color
+    let darkColor: SwiftUI.Color
 
     var body: some View {
         ZStack {
             // Square background
-            Rectangle()
-                .fill(isLight ? lightSquareColor : darkSquareColor)
+            (isLight ? lightColor : darkColor)
 
             // Piece (if present)
             if let piece = piece {

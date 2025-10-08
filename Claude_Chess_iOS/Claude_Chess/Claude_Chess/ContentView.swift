@@ -11,12 +11,29 @@ struct ContentView: View {
     // Game state
     @StateObject private var game = ChessGame()
 
+    // Settings sheet presentation
+    @State private var showingSettings = false
+
     var body: some View {
         VStack {
-            Text("Claude Chess")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .padding()
+            // Header with title and settings button
+            HStack {
+                Text("Claude Chess")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+
+                Spacer()
+
+                Button {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.title2)
+                        .foregroundColor(.primary)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top)
 
             // Chess board with current game state
             ChessBoardView(board: game.board)
@@ -27,6 +44,11 @@ struct ContentView: View {
             Text("Current Player: \(game.currentPlayer.displayName)")
                 .font(.headline)
                 .padding(.top)
+
+            Spacer()
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
         }
     }
 }
