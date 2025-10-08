@@ -134,6 +134,54 @@ terminal project:
 4. **60fps Performance** - Smooth animations, efficient updates
 5. **Swift API Guidelines** - Follow Apple's naming conventions
 
+### Documentation Standards (Critical - Prevent Doc Sprawl)
+
+**Lessons Learned from Terminal Project:**
+The terminal project's CLAUDE.md grew to ~1400 lines with significant
+redundancy requiring multiple refactoring sessions. iOS project
+standards prevent this issue.
+
+**Mandatory Documentation Practices:**
+
+1. **Session History - Stay Concise**
+   - Focus on KEY DECISIONS and ARCHITECTURE CHOICES only
+   - Do NOT document every code change or file modification
+   - Keep entries to 3-5 bullet points maximum per session
+   - Bad: "Updated line 47 in FileX.swift to fix typo"
+   - Good: "Implemented custom color picker with live preview"
+
+2. **No Duplicate Feature Documentation**
+   - Document each feature ONCE in its logical section
+   - "Latest Progress" and "Implementation Progress" must stay
+     synchronized
+   - Do NOT replicate architecture details across sections
+   - Cross-reference with "See Section X" when needed
+
+3. **Implementation Progress Section**
+   - Keep completed items as brief bullet points
+   - Do NOT expand with implementation details (those go in
+     dedicated sections)
+   - Update status (✅/🔄/📋) without expanding text unnecessarily
+
+4. **Avoid "Recently Completed" Lists**
+   - Terminal project suffered from ever-growing "Recently
+     Completed" sections
+   - Move completed items to appropriate permanent sections
+   - Session History captures temporal progression
+
+5. **Architecture Documentation**
+   - Document new systems ONCE in dedicated subsection
+   - Example: "Board Color Theme System" documents entire feature
+   - Do NOT repeat details in Session History or Implementation
+     Progress
+
+**Review Checkpoints:**
+- Every 3-4 sessions: Scan for redundancy
+- Before Phase transitions: Consolidate documentation
+- Flag if CLAUDE.md approaches 1000+ lines
+
+**Current Status:** ~720 lines (healthy), no redundancy detected
+
 ### Code Style
 - Swift API Design Guidelines compliance
 - Clear, self-documenting function names
