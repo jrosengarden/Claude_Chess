@@ -88,15 +88,17 @@ experience with SwiftUI.
 - ✅ ChessGame model with complete game state management
 - ✅ Visual 8x8 chess board with proper colors
 - ✅ All pieces displayed in standard starting position
-- ✅ Unicode chess symbols rendering correctly
+- ✅ Professional Cburnett SVG chess pieces from Wikimedia Commons
+- ✅ Vector graphics rendering for perfect scaling
 - ✅ Successfully running in iPhone 17 Pro simulator
 - ✅ Zero-warning compilation verified
 
 **Phase 1 Screenshot:**
 The app displays a beautiful chess board with alternating light tan
 and dark brown squares, all 32 pieces in their correct starting
-positions using Unicode symbols (♜♞♝♛♚ etc.), with "Claude Chess"
-title and "Current Player: White" status display.
+positions using professional Cburnett SVG graphics from Wikimedia
+Commons, with "Claude Chess" title and "Current Player: White" status
+display.
 
 **Next Steps (Phase 2):**
 - Touch input handling for piece selection and movement
@@ -177,6 +179,10 @@ parent project features:
 - Established clean separation between Models and Views
 - Created reusable ChessBoardView component
 - Integrated ObservableObject pattern for reactive UI updates
+- Implemented professional chess piece graphics using Cburnett SVG
+  assets from Wikimedia Commons (CC-BY-SA 3.0 license)
+- Vector graphics implementation for perfect scaling across all iOS
+  devices
 
 ### Phase 2: Move Validation & Input (Planned - Next)
 
@@ -219,9 +225,37 @@ parent project features:
 - **User Experience** - Intuitive, responsive, accessible interface
 - **Performance** - Smooth 60fps animations and efficient state updates
 
+## Credits & Attribution
+
+### Chess Piece Graphics
+
+This app uses the **Cburnett Chess Pieces** from Wikimedia Commons:
+
+- **Source**: https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces
+- **Creator**: User:Cburnett
+- **License**: CC-BY-SA 3.0 (Creative Commons Attribution-ShareAlike
+  3.0 Unported)
+- **Assets**: 12 SVG files (6 piece types × 2 colors)
+- **Usage**: These professional-quality vector graphics are widely used
+  by Wikipedia, chess.com (early versions), and numerous chess
+  applications worldwide
+
+The Cburnett chess pieces are considered a standard for digital chess
+representation and provide App Store-quality graphics.
+
+### License Compliance
+
+The CC-BY-SA 3.0 license requires:
+- **Attribution**: Credit given to User:Cburnett and Wikimedia Commons
+  (provided above)
+- **ShareAlike**: Any derivative works must be licensed under the same
+  or compatible license
+- **Commercial Use**: Permitted with proper attribution
+
 ## License
 
-(To be determined)
+(To be determined - must be compatible with CC-BY-SA 3.0 for chess
+piece assets)
 
 ## Contact
 

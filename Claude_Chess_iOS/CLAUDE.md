@@ -532,9 +532,17 @@ warnings
 - Resolved SwiftUI Color initializer issues using file-level constants
 - Fixed property name mismatches (symbol vs displaySymbol, displayName
   vs description)
+- **Replaced Unicode symbols with professional Cburnett SVG chess piece
+  assets** from Wikimedia Commons
+- Added 12 SVG chess piece images to Assets.xcassets (6 pieces × 2
+  colors)
+- Implemented `assetName(for:)` method in PieceType for image asset
+  mapping
+- Updated ChessBoardView to use Image() instead of Text() for piece
+  rendering
 - Successfully built and ran app in iPhone 17 Pro simulator
-- **Result**: Fully functional visual chess board displaying all
-  pieces in standard starting position with proper colors
+- **Result**: Fully functional visual chess board with professional-
+  quality vector graphics pieces in standard starting position
 
 ### Key Decisions
 
@@ -547,15 +555,20 @@ Lichess Phase 2, Chess.com Phase 3)
 fileprivate constants with fully-qualified SwiftUI.Color type to
 avoid initializer ambiguity issues
 
+**Oct 8, 2025**: Chess piece graphics - Adopted Cburnett SVG assets
+from Wikimedia Commons for professional appearance, rejecting Unicode
+symbols due to unprofessional "hollow/sketch" appearance of white
+pieces
+
 ### Implementation Progress
 
 **✅ Phase 1 Complete (Oct 8, 2025):**
 - Core data structures (Color, PieceType, Position, Piece, ChessGame)
 - FEN character parsing and generation
 - Algebraic notation support (e.g., "e4", "a1")
-- Unicode chess symbols for UI display
+- Professional chess piece graphics (Cburnett SVG assets)
 - Visual 8x8 chess board with alternating square colors
-- Piece rendering using Unicode symbols
+- Piece rendering using vector graphics (SVG)
 - Standard starting position setup
 - Game state display (current player)
 - Zero-warning compilation
@@ -575,6 +588,40 @@ avoid initializer ambiguity issues
 - Game save/load
 - FEN/PGN import/export
 
+### Chess Piece Assets
+
+**Source**: Cburnett Chess Pieces from Wikimedia Commons
+**License**: CC-BY-SA 3.0 (Creative Commons Attribution-ShareAlike)
+**Creator**: User:Cburnett
+**URL**: https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces
+
+**Assets Used** (12 SVG files):
+- White pieces: `Chess_klt45.svg`, `Chess_qlt45.svg`, `Chess_rlt45.svg`,
+  `Chess_blt45.svg`, `Chess_nlt45.svg`, `Chess_plt45.svg`
+- Black pieces: `Chess_kdt45.svg`, `Chess_qdt45.svg`, `Chess_rdt45.svg`,
+  `Chess_bdt45.svg`, `Chess_ndt45.svg`, `Chess_pdt45.svg`
+
+**File Naming Convention**:
+- Format: `Chess_XYZ45.svg`
+- X = piece letter (k=king, q=queen, r=rook, b=bishop, n=knight,
+  p=pawn)
+- Y = color (l=light/white, d=dark/black)
+- Z = background (t=transparent)
+- 45 = size reference
+
+**Implementation Details**:
+- Assets stored in `Assets.xcassets` catalog
+- `PieceType.assetName(for:)` method maps pieces to asset names
+- `Piece.assetName` property provides convenient access
+- ChessBoardView uses `Image()` with `.resizable()` and
+  `.aspectRatio()` for proper scaling
+- Vector graphics scale perfectly on all iOS devices
+
+**Attribution**: These chess pieces are widely used across Wikipedia,
+chess.com (early versions), and numerous chess applications. The
+Cburnett style is considered a standard for digital chess
+representation.
+
 ### Technical Challenges Resolved
 
 **Oct 8, 2025**: SwiftUI Color initializer ambiguity
@@ -584,6 +631,19 @@ avoid initializer ambiguity issues
   explicit SwiftUI.Color type qualification
 - **Learning**: SwiftUI color initialization in struct properties can
   have type inference issues; file-level constants avoid this
+
+**Oct 8, 2025**: Chess piece visual quality
+- **Problem**: Unicode chess symbols (♔♕♖♗♘♙) rendered with
+  unprofessional "hollow/sketch" appearance for white pieces
+- **Attempted Solutions**: SF Symbols (not available), solid Unicode
+  with white fill (foregroundColor doesn't work on emoji-style glyphs),
+  white background circles (visually unappealing)
+- **Final Solution**: Professional SVG assets from Wikimedia Commons
+  (Cburnett pieces)
+- **Result**: App Store-quality graphics matching professional chess
+  applications
+- **Learning**: Unicode chess symbols are inadequate for professional
+  iOS apps; vector image assets are required for quality presentation
 
 ### Future Considerations
 - App Store deployment strategy

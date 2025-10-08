@@ -36,6 +36,24 @@ enum PieceType: String, CaseIterable, Codable {
         }
     }
 
+    /// Returns the asset image name for the piece (Cburnett SVG style)
+    /// - Parameter color: The color of the piece
+    /// - Returns: Asset name matching the Wikimedia Commons Cburnett naming
+    func assetName(for color: Color) -> String {
+        let pieceCode: String
+        switch self {
+        case .king:   pieceCode = "k"
+        case .queen:  pieceCode = "q"
+        case .rook:   pieceCode = "r"
+        case .bishop: pieceCode = "b"
+        case .knight: pieceCode = "n"
+        case .pawn:   pieceCode = "p"
+        }
+
+        let colorCode = color == .white ? "l" : "d"
+        return "Chess_\(pieceCode)\(colorCode)t45"
+    }
+
     /// Returns the FEN character representation of the piece
     /// - Parameter color: The color of the piece
     /// - Returns: FEN character (uppercase for white, lowercase for black)

@@ -61,4 +61,9 @@ struct Piece: Equatable, Hashable, Codable {
     var displayName: String {
         "\(color.displayName) \(type.displayName)"
     }
+
+    /// Returns the asset image name for this piece
+    var assetName: String {
+        type.assetName(for: color)
+    }
 }

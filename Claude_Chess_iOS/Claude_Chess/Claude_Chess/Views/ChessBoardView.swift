@@ -90,8 +90,10 @@ struct ChessSquareView: View {
 
             // Piece (if present)
             if let piece = piece {
-                Text(piece.symbol)
-                    .font(.system(size: 40))
+                Image(piece.assetName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 50, height: 50)
             }
         }
         .aspectRatio(1, contentMode: .fit)
