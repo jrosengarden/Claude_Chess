@@ -8,14 +8,26 @@
 import SwiftUI
 
 struct ContentView: View {
+    // Game state
+    @StateObject private var game = ChessGame()
+
     var body: some View {
         VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+            Text("Claude Chess")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .padding()
+
+            // Chess board with current game state
+            ChessBoardView(board: game.board)
+                .aspectRatio(1, contentMode: .fit)
+                .padding()
+
+            // Game info
+            Text("Current Player: \(game.currentPlayer.displayName)")
+                .font(.headline)
+                .padding(.top)
         }
-        .padding()
     }
 }
 
