@@ -11,12 +11,13 @@ struct ContentView: View {
     // Game state
     @StateObject private var game = ChessGame()
 
-    // Settings sheet presentation
+    // Sheet presentation states
+    @State private var showingGameMenu = false
     @State private var showingSettings = false
 
     var body: some View {
         VStack {
-            // Header with title and settings button
+            // Header with title and action buttons
             HStack {
                 Text("Claude Chess")
                     .font(.largeTitle)
@@ -24,6 +25,17 @@ struct ContentView: View {
 
                 Spacer()
 
+                // Game menu button
+                Button {
+                    showingGameMenu = true
+                } label: {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.title2)
+                        .foregroundColor(.primary)
+                }
+                .padding(.trailing, 8)
+
+                // Settings button
                 Button {
                     showingSettings = true
                 } label: {
@@ -46,6 +58,9 @@ struct ContentView: View {
                 .padding(.top)
 
             Spacer()
+        }
+        .sheet(isPresented: $showingGameMenu) {
+            GameMenuView()
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()

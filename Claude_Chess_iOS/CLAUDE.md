@@ -52,8 +52,11 @@ xcodebuild clean -project Claude_Chess/Claude_Chess.xcodeproj \
 ## Project Architecture
 
 ### Core Files (Current Structure)
-- `Claude_ChessApp.swift` - App entry point and lifecycle
-- `ContentView.swift` - Main UI entry point
+- `Claude_ChessApp.swift` - App entry point, lifecycle, and device-
+    specific orientation control (iPhone portrait-only, iPad all
+    orientations)
+- `ContentView.swift` - Main UI with chess board, game menu, and
+    settings access
 
 ### Models (Implemented - Phase 1)
 - `Models/Color.swift` - Color enum (white/black) with opposite
@@ -75,8 +78,10 @@ xcodebuild clean -project Claude_Chess/Claude_Chess.xcodeproj \
     dynamic color themes and piece rendering using Cburnett SVG graphics
 - `Views/SettingsView.swift` - Settings menu with board color theme
     selection and custom color picker with live preview
+- `Views/GameMenuView.swift` - Game menu for chess-specific commands
+    (New Game, Time Controls, Undo, Hint, FEN/PGN import/export, Resign)
 - `ContentView.swift` - Main app view integrating chess board with
-    game state display and settings access via gear icon
+    game state display, game menu, and settings access
 
 ### Planned Module Structure
 
@@ -605,6 +610,12 @@ with Settings
   quality vector graphics pieces, customizable color themes, and
   persistent user preferences
 
+**Session 5: Oct 8, 2025** - Orientation Support and Game Menu
+- Implemented device-specific orientation locking via AppDelegate
+- Fixed responsive layout issues in landscape mode
+- Created GameMenuView for chess-specific commands
+- Refined header layout with proper icon positioning
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -626,6 +637,11 @@ navigation-based settings system early in Phase 1 to establish proper
 architecture before Phase 2 complexity. Custom color feature added as
 first user customization option with full persistence support.
 
+**Oct 8, 2025**: Header layout - Decided against tab bar approach for
+Settings/Game Menu icons. Keeping both as modal sheets accessed from
+header maximizes board space and follows iOS conventions for action
+menus vs navigation sections.
+
 ### Implementation Progress
 
 **✅ Phase 1 Complete (Oct 8, 2025):**
@@ -636,8 +652,11 @@ first user customization option with full persistence support.
 - Professional chess piece graphics (Cburnett SVG assets)
 - Visual 8x8 chess board with dynamic color themes
 - Piece rendering using vector graphics (SVG)
+- Responsive piece sizing for all devices/orientations
+- Device-specific orientation support (iPhone portrait, iPad all)
 - Standard starting position setup
 - Game state display (current player)
+- Game menu with chess commands (placeholder actions)
 - Settings menu with gear icon access
 - Board color theme system (6 presets: Classic, Wooden, Blue, Green,
   Marble, Tournament)
@@ -645,7 +664,7 @@ first user customization option with full persistence support.
 - SwiftUI.Color to RGB component extraction via UIColor bridge
 - Theme persistence using @AppStorage/UserDefaults
 - Zero-warning compilation
-- Successfully running in simulator
+- Successfully running on iPhone, iPad, and macOS simulators
 
 **🔄 Phase 2 (Next Session):**
 - Touch input handling (tap to select/move pieces)
@@ -775,6 +794,17 @@ representation.
   applications
 - **Learning**: Unicode chess symbols are inadequate for professional
   iOS apps; vector image assets are required for quality presentation
+
+**Oct 8, 2025**: Responsive piece sizing across devices
+- **Problem**: Hardcoded 50x50 piece size resulted in tiny pieces on
+  iPad and layout issues in landscape orientation
+- **Solution**: Replaced fixed size with GeometryReader-based
+  responsive sizing (pieces scale to 90% of square size with 10%
+  padding)
+- **Result**: Perfect piece scaling across iPhone, iPad, macOS, and
+  all orientations
+- **Learning**: Always use GeometryReader for content that must adapt
+  to varying container sizes
 
 ### Future Considerations
 - App Store deployment strategy

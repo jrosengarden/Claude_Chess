@@ -100,16 +100,18 @@ struct ChessSquareView: View {
     let darkColor: SwiftUI.Color
 
     var body: some View {
-        ZStack {
-            // Square background
-            (isLight ? lightColor : darkColor)
+        GeometryReader { geometry in
+            ZStack {
+                // Square background
+                (isLight ? lightColor : darkColor)
 
-            // Piece (if present)
-            if let piece = piece {
-                Image(piece.assetName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 50, height: 50)
+                // Piece (if present)
+                if let piece = piece {
+                    Image(piece.assetName)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .padding(geometry.size.width * 0.1)
+                }
             }
         }
         .aspectRatio(1, contentMode: .fit)

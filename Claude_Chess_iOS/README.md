@@ -89,21 +89,25 @@ experience with SwiftUI.
 - ✅ Visual 8x8 chess board with proper colors
 - ✅ All pieces displayed in standard starting position
 - ✅ Professional Cburnett SVG chess pieces from Wikimedia Commons
-- ✅ Vector graphics rendering for perfect scaling
+- ✅ Responsive piece sizing across all devices and orientations
+- ✅ Device-specific orientation control (iPhone portrait, iPad all)
 - ✅ Settings menu system with navigation structure
+- ✅ Game menu with chess-specific commands (New Game, Time Controls, etc.)
 - ✅ Board color theme system with 7 preset themes
 - ✅ Custom color picker with live preview
 - ✅ Theme persistence across app restarts
-- ✅ Successfully running in iPhone 17 Pro simulator
+- ✅ Successfully running on iPhone, iPad, and macOS simulators
 - ✅ Zero-warning compilation verified
 
 **Phase 1 Highlights:**
 The app displays a beautiful chess board with all 32 pieces in their
 correct starting positions using professional Cburnett SVG graphics.
-Users can select from 6 preset color themes (Classic, Wooden, Blue,
-Green, Marble, Tournament) or create custom color schemes using the
-built-in color picker with real-time preview. Settings accessible via
-gear icon in title bar.
+Responsive design ensures perfect piece scaling across iPhone, iPad,
+and macOS in all orientations. Users can select from 6 preset color
+themes (Classic, Wooden, Blue, Green, Marble, Tournament) or create
+custom color schemes using the built-in color picker with real-time
+preview. Game menu provides access to chess commands while settings
+menu handles app preferences.
 
 **Next Steps (Phase 2):**
 - Touch input handling for piece selection and movement
@@ -144,6 +148,7 @@ Claude_Chess_iOS/                          # Project root
         │   └── BoardColorTheme.swift     # Board color themes
         └── Views/                        # UI components
             ├── ChessBoardView.swift      # Chess board visualization
+            ├── GameMenuView.swift        # Game menu and commands
             └── SettingsView.swift        # Settings and preferences
 ```
 
@@ -175,9 +180,12 @@ parent project features:
   ChessGame, BoardColorTheme)
 - Visual 8x8 chess board with alternating square colors
 - All 32 chess pieces rendered with professional Cburnett SVG graphics
+- Responsive piece sizing for all devices and orientations
+- Device-specific orientation control (iPhone portrait-only, iPad all)
 - Standard starting position setup
 - Game state tracking (current player, king positions, castling rights,
   en passant)
+- Game menu with chess-specific commands (placeholder actions)
 - Settings menu with gear icon access
 - Board color theme system (6 presets + custom)
 - Custom color picker with real-time 4x4 board preview
@@ -192,11 +200,13 @@ parent project features:
 - Integrated ObservableObject pattern for reactive UI updates
 - Implemented professional chess piece graphics using Cburnett SVG
   assets from Wikimedia Commons (CC-BY-SA 3.0 license)
-- Vector graphics implementation for perfect scaling across all iOS
-  devices
+- GeometryReader-based responsive piece sizing eliminates hardcoded
+  dimensions
+- Device-specific orientation handling via AppDelegate
 - Navigation-based settings architecture ready for future expansion
 - RGB color component extraction from SwiftUI.Color via UIColor bridge
 - Persistent user preferences across app termination and device restarts
+- Perfect scaling across iPhone, iPad, and macOS in all orientations
 
 ### Phase 2: Move Validation & Input (Planned - Next)
 
