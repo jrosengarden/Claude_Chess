@@ -1,0 +1,91 @@
+//
+//  AboutView.swift
+//  Claude_Chess
+//
+//  About view displaying app information, credits, and licenses
+//  This view shows app version, credits, license information,
+//  and attribution for third-party resources
+//
+
+import SwiftUI
+
+/// About view displaying app credits, licenses, and attribution
+/// - App version and build information
+/// - Development credits
+/// - Third-party license information (chess pieces, Stockfish, etc.)
+struct AboutView: View {
+    var body: some View {
+        List {
+            Section(header: Text("App Information")) {
+                HStack {
+                    Text("Version")
+                    Spacer()
+                    Text("1.0.0")
+                        .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    Text("Build")
+                    Spacer()
+                    Text("1")
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Section(header: Text("Credits")) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Claude Chess iOS")
+                        .font(.headline)
+                    Text("A native iOS port of the Claude Chess terminal application.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Development")
+                        .font(.headline)
+                    Text("Built with Claude Code and SwiftUI")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Section(header: Text("Third-Party Licenses")) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Cburnett Chess Pieces")
+                        .font(.headline)
+                    Text("License: CC-BY-SA 3.0 (Creative Commons Attribution-ShareAlike)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("Creator: User:Cburnett")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("Source: Wikimedia Commons")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                // TODO: Add Stockfish license when AI integration is complete
+                // TODO: Add any other third-party libraries used
+            }
+
+            Section(header: Text("Open Source")) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("This app is based on the open-source Claude Chess terminal project.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .navigationTitle("About")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    NavigationView {
+        AboutView()
+    }
+}

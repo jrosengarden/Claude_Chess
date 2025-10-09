@@ -13,6 +13,8 @@ import SwiftUI
 /// - New Game, Load/Save, Time Controls, Undo, Hint, Resign, etc.
 struct GameMenuView: View {
     @Environment(\.dismiss) var dismiss
+    @State private var showingScore = false
+    @State private var showingAbout = false
 
     var body: some View {
         NavigationView {
@@ -35,13 +37,27 @@ struct GameMenuView: View {
                     }) {
                         Label("Load Game", systemImage: "square.and.arrow.up")
                     }
+
+                    NavigationLink(destination: ScoreView()) {
+                        Label("Score", systemImage: "chart.bar")
+                            .foregroundColor(.accentColor)
+                    }
+
+                    NavigationLink(destination: AboutView()) {
+                        Label("About", systemImage: "info.circle")
+                            .foregroundColor(.accentColor)
+                    }
                 }
 
                 Section(header: Text("Game Controls")) {
-                    Button(action: {
-                        // TODO: Time controls action
-                    }) {
+                    NavigationLink(destination: OpponentView()) {
+                        Label("Opponent", systemImage: "cpu")
+                            .foregroundColor(.accentColor)
+                    }
+
+                    NavigationLink(destination: TimeControlsView()) {
                         Label("Time Controls", systemImage: "clock")
+                            .foregroundColor(.accentColor)
                     }
 
                     Button(action: {
@@ -73,13 +89,13 @@ struct GameMenuView: View {
                     Button(action: {
                         // TODO: Import PGN action
                     }) {
-                        Label("Import PGN", systemImage: "doc.badge.arrow.up")
+                        Label("Import PGN", systemImage: "arrow.up.doc")
                     }
 
                     Button(action: {
                         // TODO: Export PGN action
                     }) {
-                        Label("Export PGN", systemImage: "doc.badge.arrow.up")
+                        Label("Export PGN", systemImage: "arrow.down.doc")
                     }
                 }
 

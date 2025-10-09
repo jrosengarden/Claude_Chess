@@ -50,19 +50,26 @@ struct SettingsView: View {
                 // Section("AI Opponent") { ... }
                 // Section("Time Controls") { ... }
 
+                // Appearance Section
+                Section("Appearance") {
+                    NavigationLink {
+                        ChessPiecesView()
+                    } label: {
+                        HStack {
+                            Text("Chess Pieces")
+                            Spacer()
+                            Text("Cburnett")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
                 // About Section
                 Section("About") {
                     HStack {
                         Text("Version")
                         Spacer()
                         Text("1.0 (Phase 1)")
-                            .foregroundColor(.secondary)
-                    }
-
-                    HStack {
-                        Text("Chess Pieces")
-                        Spacer()
-                        Text("Cburnett (Wikimedia)")
                             .foregroundColor(.secondary)
                     }
                 }

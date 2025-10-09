@@ -14,6 +14,17 @@ struct ContentView: View {
     // Sheet presentation states
     @State private var showingGameMenu = false
     @State private var showingSettings = false
+    @State private var showingTimeControls = false
+
+    // Opponent settings
+    @AppStorage("selectedEngine") private var selectedEngine = "stockfish"
+    @AppStorage("stockfishSkillLevel") private var skillLevel = 5
+
+    // Time control settings
+    @AppStorage("whiteMinutes") private var whiteMinutes = 30
+    @AppStorage("whiteIncrement") private var whiteIncrement = 10
+    @AppStorage("blackMinutes") private var blackMinutes = 5
+    @AppStorage("blackIncrement") private var blackIncrement = 0
 
     var body: some View {
         VStack {
@@ -47,15 +58,92 @@ struct ContentView: View {
             .padding(.horizontal)
             .padding(.top)
 
+            // Captured pieces and time display (above board like terminal version)
+            VStack(spacing: 4) {
+                // White's info line
+                HStack(spacing: 12) {
+                    Image("Chess_klt45")
+                        .resizable()
+                        .frame(width: 20, height: 20)
+
+                    Text("White")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+
+                    Text("Captured:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text(capturedPiecesText(for: .white))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+
+                    // Time control display (if enabled) - tappable to open settings
+                    if isTimeControlsEnabled {
+                        Button(action: {
+                            showingTimeControls = true
+                        }) {
+                            Text(formatTime(whiteMinutes * 60))
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+
+                // Black's info line
+                HStack(spacing: 12) {
+                    Image("Chess_kdt45")
+                        .resizable()
+                        .frame(width: 20, height: 20)
+
+                    Text("Black")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+
+                    Text("Captured:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text(capturedPiecesText(for: .black))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+
+                    // Time control display (if enabled) - tappable to open settings
+                    if isTimeControlsEnabled {
+                        Button(action: {
+                            showingTimeControls = true
+                        }) {
+                            Text(formatTime(blackMinutes * 60))
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+
             // Chess board with current game state
             ChessBoardView(board: game.board)
                 .aspectRatio(1, contentMode: .fit)
-                .padding()
+                .padding(.horizontal)
+                .padding(.bottom)
 
             // Game info
-            Text("Current Player: \(game.currentPlayer.displayName)")
-                .font(.headline)
-                .padding(.top)
+            VStack(spacing: 8) {
+                Text("Current Player: \(game.currentPlayer.displayName)")
+                    .font(.headline)
+
+                // Opponent info - matches terminal project display
+                Text(opponentInfoText)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.top)
 
             Spacer()
         }
@@ -65,6 +153,57 @@ struct ContentView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
+        .sheet(isPresented: $showingTimeControls) {
+            NavigationView {
+                TimeControlsView()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") {
+                                showingTimeControls = false
+                            }
+                        }
+                    }
+            }
+        }
+    }
+
+    /// Computed property for opponent display text
+    /// Matches terminal project format: "Opponent: Stockfish (Level 5)"
+    private var opponentInfoText: String {
+        switch selectedEngine {
+        case "stockfish":
+            return "Opponent: Stockfish (Level \(skillLevel))"
+        case "chesscom":
+            return "Opponent: Chess.com"
+        case "lichess":
+            return "Opponent: Lichess"
+        default:
+            return "Opponent: Unknown"
+        }
+    }
+
+    /// Calculate captured pieces text for a given color
+    /// Returns list of captured opponent pieces (e.g., "♟♟♞♝")
+    /// Matches terminal project's captured pieces calculation logic
+    private func capturedPiecesText(for color: Color) -> String {
+        // TODO: Implement captured pieces calculation
+        // This will count pieces missing from the board for the opponent
+        // For now, return placeholder
+        return "None"
+    }
+
+    /// Check if time controls are enabled
+    /// Time controls are disabled when both players have 0 minutes and 0 increment
+    private var isTimeControlsEnabled: Bool {
+        return !(whiteMinutes == 0 && whiteIncrement == 0 && blackMinutes == 0 && blackIncrement == 0)
+    }
+
+    /// Format time in seconds to MM:SS format
+    /// Matches terminal project's time display format
+    private func formatTime(_ seconds: Int) -> String {
+        let minutes = seconds / 60
+        let remainingSeconds = seconds % 60
+        return String(format: "%d:%02d", minutes, remainingSeconds)
     }
 }
 

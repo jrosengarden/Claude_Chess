@@ -78,10 +78,18 @@ xcodebuild clean -project Claude_Chess/Claude_Chess.xcodeproj \
     dynamic color themes and piece rendering using Cburnett SVG graphics
 - `Views/SettingsView.swift` - Settings menu with board color theme
     selection and custom color picker with live preview
+- `Views/ChessPiecesView.swift` - Chess piece style selection
 - `Views/GameMenuView.swift` - Game menu for chess-specific commands
-    (New Game, Time Controls, Undo, Hint, FEN/PGN import/export, Resign)
-- `ContentView.swift` - Main app view integrating chess board with
-    game state display, game menu, and settings access
+- `Views/ScoreView.swift` - Position evaluation display with scale settings
+- `Views/ScaleView.swift` - Evaluation scale format selection
+- `Views/ScoreConversionChartView.swift` - Centipawn to scaled conversion table
+- `Views/AboutView.swift` - App information and licenses
+- `Views/OpponentView.swift` - AI engine selection (Stockfish/Lichess/Chess.com)
+- `Views/StockfishSettingsView.swift` - Stockfish skill level configuration
+- `Views/ChessComSettingsView.swift` - Chess.com settings (placeholder)
+- `Views/LichessSettingsView.swift` - Lichess settings (placeholder)
+- `Views/TimeControlsView.swift` - Time control configuration
+- `ContentView.swift` - Main app view with captured pieces and time display
 
 ### Planned Module Structure
 
@@ -185,7 +193,7 @@ standards prevent this issue.
 - Before Phase transitions: Consolidate documentation
 - Flag if CLAUDE.md approaches 1000+ lines
 
-**Current Status:** ~720 lines (healthy), no redundancy detected
+**Current Status:** ~900 lines (healthy), no redundancy detected
 
 ### Code Style
 - Swift API Design Guidelines compliance
@@ -616,6 +624,14 @@ with Settings
 - Created GameMenuView for chess-specific commands
 - Refined header layout with proper icon positioning
 
+**Session 6: Oct 9, 2025** - Game Controls and Configuration System
+- Implemented comprehensive menu system (Score, About, Opponent, Time Controls)
+- Created opponent selection with Stockfish/Chess.com/Lichess engines
+- Built time controls with separate White/Black settings and quick presets
+- Added captured pieces display above board matching terminal layout
+- Implemented chess piece style selection (Cburnett with future expansion)
+- Fixed PGN import/export icon consistency issues
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -644,41 +660,39 @@ menus vs navigation sections.
 
 ### Implementation Progress
 
-**✅ Phase 1 Complete (Oct 8, 2025):**
+**✅ Phase 1 Complete (Oct 9, 2025):**
 - Core data structures (Color, PieceType, Position, Piece, ChessGame,
   BoardColorTheme)
-- FEN character parsing and generation
-- Algebraic notation support (e.g., "e4", "a1")
 - Professional chess piece graphics (Cburnett SVG assets)
 - Visual 8x8 chess board with dynamic color themes
-- Piece rendering using vector graphics (SVG)
 - Responsive piece sizing for all devices/orientations
 - Device-specific orientation support (iPhone portrait, iPad all)
-- Standard starting position setup
-- Game state display (current player)
-- Game menu with chess commands (placeholder actions)
-- Settings menu with gear icon access
-- Board color theme system (6 presets: Classic, Wooden, Blue, Green,
-  Marble, Tournament)
-- Custom color picker with real-time 4x4 board preview
-- SwiftUI.Color to RGB component extraction via UIColor bridge
+- Comprehensive menu system (Game, Settings, Score, About, Opponent)
+- Opponent selection (Stockfish/Lichess/Chess.com with persistence)
+- Stockfish skill level slider (0-20 with game-start lock warning)
+- Time controls with separate White/Black settings and quick presets
+- Captured pieces display above board
+- Score evaluation format selection (Centipawns/Scaled/Win Probability)
+- Conversion chart for scaled format (-9 to +9)
+- Chess piece style selection (Cburnett, expandable)
+- Complete license attribution (Stockfish GPL, Cburnett CC-BY-SA)
+- Tappable time display shortcut to settings
 - Theme persistence using @AppStorage/UserDefaults
 - Zero-warning compilation
-- Successfully running on iPhone, iPad, and macOS simulators
 
-**🔄 Phase 2 (Next Session):**
+**🔄 Phase 2 (Next):**
 - Touch input handling (tap to select/move pieces)
-- Move validation logic (port from terminal project C implementation)
+- Move validation logic (port from terminal project)
 - Legal move highlighting
 - Piece movement with board state updates
+- Game-start lock enforcement (time controls/skill level)
 
 **📋 Phase 3 (Future):**
-- AI integration (Stockfish framework or API)
+- AI integration (Stockfish framework)
 - Move history and undo functionality
 - Check/checkmate/stalemate detection
-- Time controls
-- Game save/load
 - FEN/PGN import/export
+- Captured pieces calculation
 
 ### Board Color Theme System
 
@@ -806,11 +820,55 @@ representation.
 - **Learning**: Always use GeometryReader for content that must adapt
   to varying container sizes
 
+### Time Controls System
+
+**Architecture:** iOS-native implementation with separate White/Black settings
+
+**Features:**
+- Dual slider interface (minutes 0-60, increment 0-60 seconds)
+- Segmented status picker (Enabled/Disabled)
+- Quick presets (Blitz 5/0, Rapid 10/5, Classical 30/10, Terminal Default 30/10 vs 5/0)
+- Bidirectional sync (status picker ↔ slider values)
+- Main screen display with tappable time shortcut
+- Game-start lock (warning displayed, enforcement in Phase 2)
+
+**Persistence:** `@AppStorage` for whiteMinutes, whiteIncrement, blackMinutes, blackIncrement
+
+### Opponent Selection System
+
+**Architecture:** Multi-engine with protocol-based design for future expansion
+
+**Current Implementation:**
+- Stockfish (offline): Skill level 0-20 with slider, GPL license attribution
+- Chess.com (placeholder): Future Phase 3 implementation
+- Lichess (placeholder): Future Phase 2 implementation
+
+**Persistence:** `@AppStorage` for selectedEngine and stockfishSkillLevel (default 5)
+
+**Features:**
+- Engine selection with checkmarks
+- Skill level descriptions (Beginner/Casual/Intermediate/Advanced/Expert/Maximum)
+- Main screen display shows "Opponent: Stockfish (Level X)"
+- Game-start lock warning for skill changes
+
+### Score Evaluation System
+
+**Scale Formats:**
+- Centipawns (standard chess engine format)
+- Scaled (-9 to +9) - terminal project parity with conversion chart
+- Win Probability (percentage format)
+
+**Features:**
+- Scale selection with @AppStorage persistence (default: "scaled")
+- Conversion chart view (appears only when Scaled format selected)
+- Complete centipawn mapping from terminal project
+
 ### Future Considerations
 - App Store deployment strategy
 - Monetization approach (if any)
 - Multi-platform support (iOS, iPadOS, macOS)
 - Online gameplay features
+- Additional chess piece styles (minimalist, Staunton, 3D rendered)
 
 ---
 *Developer reference for Claude Chess iOS - Living documentation for
