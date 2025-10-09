@@ -66,10 +66,9 @@ struct GameMenuView: View {
                         Label("Undo Move", systemImage: "arrow.uturn.backward")
                     }
 
-                    Button(action: {
-                        // TODO: Hint action
-                    }) {
+                    NavigationLink(destination: HintView()) {
                         Label("Hint", systemImage: "lightbulb")
+                            .foregroundColor(.accentColor)
                     }
                 }
 

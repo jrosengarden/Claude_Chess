@@ -632,6 +632,12 @@ with Settings
 - Implemented chess piece style selection (Cburnett with future expansion)
 - Fixed PGN import/export icon consistency issues
 
+**Session 7: Oct 9, 2025** - UX Enhancements and Shortcuts
+- Device-specific text scaling (iPad/macOS 1.5x larger fonts)
+- Tappable opponent text shortcut to engine-specific settings
+- Lightbulb hint shortcut icon in header (yellow, positioned before menu)
+- Created HintView placeholder for Phase 2 implementation
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -658,6 +664,10 @@ Settings/Game Menu icons. Keeping both as modal sheets accessed from
 header maximizes board space and follows iOS conventions for action
 menus vs navigation sections.
 
+**Oct 9, 2025**: Dual access patterns - Retained features in both main
+view shortcuts (time controls, opponent, hint) AND hamburger menu for
+dual discovery mechanisms respecting different user interaction styles.
+
 ### Implementation Progress
 
 **✅ Phase 1 Complete (Oct 9, 2025):**
@@ -677,6 +687,10 @@ menus vs navigation sections.
 - Chess piece style selection (Cburnett, expandable)
 - Complete license attribution (Stockfish GPL, Cburnett CC-BY-SA)
 - Tappable time display shortcut to settings
+- Tappable opponent text shortcut to engine-specific settings
+- Lightbulb hint icon shortcut in header
+- HintView placeholder (Phase 2 ready)
+- Device-adaptive text scaling (iPhone/iPad/macOS)
 - Theme persistence using @AppStorage/UserDefaults
 - Zero-warning compilation
 

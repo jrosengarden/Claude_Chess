@@ -15,6 +15,8 @@ struct ContentView: View {
     @State private var showingGameMenu = false
     @State private var showingSettings = false
     @State private var showingTimeControls = false
+    @State private var showingOpponentSettings = false
+    @State private var showingHint = false
 
     // Opponent settings
     @AppStorage("selectedEngine") private var selectedEngine = "stockfish"
@@ -26,6 +28,48 @@ struct ContentView: View {
     @AppStorage("blackMinutes") private var blackMinutes = 5
     @AppStorage("blackIncrement") private var blackIncrement = 0
 
+    // Detect device type for adaptive text sizing
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    /// Check if running on larger device (iPad/macOS)
+    private var isLargeDevice: Bool {
+        #if os(macOS)
+        return true
+        #else
+        return horizontalSizeClass == .regular
+        #endif
+    }
+
+    /// Dynamic font for player names (White/Black)
+    private var playerNameFont: Font {
+        isLargeDevice ? .title3 : .subheadline
+    }
+
+    /// Dynamic font for captured pieces labels and values
+    private var capturedFont: Font {
+        isLargeDevice ? .title3 : .caption
+    }
+
+    /// Dynamic font for time display
+    private var timeFont: Font {
+        isLargeDevice ? .title3 : .caption
+    }
+
+    /// Dynamic font for game info (Current Player, Opponent)
+    private var gameInfoFont: Font {
+        isLargeDevice ? .title2 : .headline
+    }
+
+    /// Dynamic font for opponent info
+    private var opponentFont: Font {
+        isLargeDevice ? .title3 : .subheadline
+    }
+
+    /// Dynamic size for chess piece icons
+    private var pieceIconSize: CGFloat {
+        isLargeDevice ? 30 : 20
+    }
+
     var body: some View {
         VStack {
             // Header with title and action buttons
@@ -35,6 +79,16 @@ struct ContentView: View {
                     .fontWeight(.bold)
 
                 Spacer()
+
+                // Hint button (lightbulb icon)
+                Button {
+                    showingHint = true
+                } label: {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.title2)
+                        .foregroundColor(.yellow)
+                }
+                .padding(.trailing, 8)
 
                 // Game menu button
                 Button {
@@ -64,18 +118,18 @@ struct ContentView: View {
                 HStack(spacing: 12) {
                     Image("Chess_klt45")
                         .resizable()
-                        .frame(width: 20, height: 20)
+                        .frame(width: pieceIconSize, height: pieceIconSize)
 
                     Text("White")
-                        .font(.subheadline)
+                        .font(playerNameFont)
                         .fontWeight(.semibold)
 
                     Text("Captured:")
-                        .font(.caption)
+                        .font(capturedFont)
                         .foregroundColor(.secondary)
 
                     Text(capturedPiecesText(for: .white))
-                        .font(.caption)
+                        .font(capturedFont)
                         .foregroundColor(.secondary)
 
                     Spacer()
@@ -86,7 +140,8 @@ struct ContentView: View {
                             showingTimeControls = true
                         }) {
                             Text(formatTime(whiteMinutes * 60))
-                                .font(.caption)
+                                .font(timeFont)
+                                .fontWeight(.semibold)
                                 .foregroundColor(.blue)
                         }
                     }
@@ -96,18 +151,18 @@ struct ContentView: View {
                 HStack(spacing: 12) {
                     Image("Chess_kdt45")
                         .resizable()
-                        .frame(width: 20, height: 20)
+                        .frame(width: pieceIconSize, height: pieceIconSize)
 
                     Text("Black")
-                        .font(.subheadline)
+                        .font(playerNameFont)
                         .fontWeight(.semibold)
 
                     Text("Captured:")
-                        .font(.caption)
+                        .font(capturedFont)
                         .foregroundColor(.secondary)
 
                     Text(capturedPiecesText(for: .black))
-                        .font(.caption)
+                        .font(capturedFont)
                         .foregroundColor(.secondary)
 
                     Spacer()
@@ -118,7 +173,8 @@ struct ContentView: View {
                             showingTimeControls = true
                         }) {
                             Text(formatTime(blackMinutes * 60))
-                                .font(.caption)
+                                .font(timeFont)
+                                .fontWeight(.semibold)
                                 .foregroundColor(.blue)
                         }
                     }
@@ -136,12 +192,16 @@ struct ContentView: View {
             // Game info
             VStack(spacing: 8) {
                 Text("Current Player: \(game.currentPlayer.displayName)")
-                    .font(.headline)
+                    .font(gameInfoFont)
 
-                // Opponent info - matches terminal project display
-                Text(opponentInfoText)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                // Opponent info - tappable to open opponent settings
+                Button(action: {
+                    showingOpponentSettings = true
+                }) {
+                    Text(opponentInfoText)
+                        .font(opponentFont)
+                        .foregroundColor(.blue)
+                }
             }
             .padding(.top)
 
@@ -160,6 +220,42 @@ struct ContentView: View {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") {
                                 showingTimeControls = false
+                            }
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $showingOpponentSettings) {
+            NavigationView {
+                // Display the appropriate opponent settings view based on selected engine
+                Group {
+                    switch selectedEngine {
+                    case "stockfish":
+                        StockfishSettingsView()
+                    case "chesscom":
+                        ChessComSettingsView()
+                    case "lichess":
+                        LichessSettingsView()
+                    default:
+                        StockfishSettingsView()
+                    }
+                }
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") {
+                            showingOpponentSettings = false
+                        }
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingHint) {
+            NavigationView {
+                HintView()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") {
+                                showingHint = false
                             }
                         }
                     }

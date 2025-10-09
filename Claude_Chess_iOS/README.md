@@ -82,7 +82,7 @@ experience with SwiftUI.
 
 **Current Phase:** Phase 1 Complete - Visual Chess Board ✅
 
-**Latest Progress (October 8, 2025):**
+**Latest Progress (October 9, 2025):**
 - ✅ Core data models implemented and tested
 - ✅ Foundation types: Color, PieceType, Position, Piece
 - ✅ ChessGame model with complete game state management
@@ -90,9 +90,11 @@ experience with SwiftUI.
 - ✅ All pieces displayed in standard starting position
 - ✅ Professional Cburnett SVG chess pieces from Wikimedia Commons
 - ✅ Responsive piece sizing across all devices and orientations
+- ✅ Device-adaptive text scaling (larger on iPad/macOS)
 - ✅ Device-specific orientation control (iPhone portrait, iPad all)
 - ✅ Settings menu system with navigation structure
 - ✅ Game menu with chess-specific commands (New Game, Time Controls, etc.)
+- ✅ Quick-access shortcuts (hint lightbulb, tappable time/opponent)
 - ✅ Board color theme system with 7 preset themes
 - ✅ Custom color picker with live preview
 - ✅ Theme persistence across app restarts
