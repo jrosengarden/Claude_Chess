@@ -202,3 +202,4 @@ struct TimeControlsView: View {
         TimeControlsView()
     }
 }
+
