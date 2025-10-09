@@ -30,6 +30,18 @@ struct AboutView: View {
                     Text("1")
                         .foregroundColor(.secondary)
                 }
+                HStack {
+                    Text("Design")
+                    Spacer()
+                    Text("Jeff Rosengarden")
+                        .foregroundColor(.secondary)
+                }
+                HStack {
+                    Text("Programmer")
+                    Spacer()
+                    Text("Jeff Rosengarden")
+                        .foregroundColor(.secondary)
+                }
             }
 
             Section(header: Text("Credits")) {
@@ -44,7 +56,7 @@ struct AboutView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Development")
                         .font(.headline)
-                    Text("Built with Claude Code and SwiftUI")
+                    Text("Built in xCode with SwiftUI\n w/Assistance from Claude Code (v2.0.12)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
