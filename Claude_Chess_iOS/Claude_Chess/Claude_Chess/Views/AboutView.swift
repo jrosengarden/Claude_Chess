@@ -76,11 +76,27 @@ struct AboutView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Stockfish License")
+                        .font(.headline)
 
-                // TODO: Add Stockfish license when AI integration is complete
+                    Text("Stockfish is free software licensed under the GNU General Public License version 3 (GPLv3).")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("Copyright © 2004-2024 The Stockfish developers (see AUTHORS file)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("Website: https://stockfishchess.org")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+
                 // TODO: Add any other third-party libraries used
             }
-
+ 
             Section(header: Text("Open Source")) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("This app is based on the open-source Claude Chess terminal project.")
