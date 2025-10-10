@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Volumes/MacSSHD_CloneB/Root_Protected/Dropbox/Tech Books/Chess Stuff/Claude_Chess/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

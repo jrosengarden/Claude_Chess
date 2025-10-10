@@ -12,11 +12,11 @@ struct ContentView: View {
     @StateObject private var game = ChessGame()
 
     // Sheet presentation states
+    @State private var showingQuickGame = false
     @State private var showingGameMenu = false
     @State private var showingSettings = false
     @State private var showingTimeControls = false
     @State private var showingOpponentSettings = false
-    @State private var showingHint = false
 
     // Opponent settings
     @AppStorage("selectedEngine") private var selectedEngine = "stockfish"
@@ -80,17 +80,17 @@ struct ContentView: View {
 
                 Spacer()
 
-                // Hint button (lightbulb icon)
+                // Quick Game button (lightning bolt icon)
                 Button {
-                    showingHint = true
+                    showingQuickGame = true
                 } label: {
-                    Image(systemName: "lightbulb.fill")
+                    Image(systemName: "bolt.fill")
                         .font(.title2)
                         .foregroundColor(.yellow)
                 }
                 .padding(.trailing, 8)
 
-                // Game menu button
+                // Game menu button (hamburger)
                 Button {
                     showingGameMenu = true
                 } label: {
@@ -100,7 +100,7 @@ struct ContentView: View {
                 }
                 .padding(.trailing, 8)
 
-                // Settings button
+                // Settings button (gear)
                 Button {
                     showingSettings = true
                 } label: {
@@ -184,7 +184,7 @@ struct ContentView: View {
             .padding(.vertical, 8)
 
             // Chess board with current game state
-            ChessBoardView(board: game.board)
+            ChessBoardView(game: game)
                 .aspectRatio(1, contentMode: .fit)
                 .padding(.horizontal)
                 .padding(.bottom)
@@ -207,8 +207,11 @@ struct ContentView: View {
 
             Spacer()
         }
+        .sheet(isPresented: $showingQuickGame) {
+            QuickGameMenuView()
+        }
         .sheet(isPresented: $showingGameMenu) {
-            GameMenuView()
+            GameMenuView(game: game)
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
@@ -247,18 +250,6 @@ struct ContentView: View {
                         }
                     }
                 }
-            }
-        }
-        .sheet(isPresented: $showingHint) {
-            NavigationView {
-                HintView()
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") {
-                                showingHint = false
-                            }
-                        }
-                    }
             }
         }
     }

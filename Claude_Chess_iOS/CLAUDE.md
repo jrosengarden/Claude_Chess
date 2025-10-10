@@ -131,6 +131,10 @@ terminal project:
 6. **No Session Crashes**: Never run full games during development
    sessions
 7. **User Handles Git**: Developer never performs git operations
+8. **TODO Management**: Actively monitor and remove TODO comments
+   when functionality is implemented. Before marking any feature
+   complete, search for related TODOs and remove them. See TODO
+   Tracking section below for current inventory.
 
 ### Standards NOT Inherited (iOS-Specific Simplifications)
 
@@ -206,6 +210,67 @@ standards prevent this issue.
 - UI tests for critical user flows
 - Performance tests for board rendering
 - Integration tests for AI opponent
+
+### TODO Tracking System
+
+**Purpose:** Monitor in-code TODO comments to ensure completion and
+prevent accumulation of technical debt.
+
+**Current TODO Inventory (14 total as of Oct 10, 2025):**
+
+**Phase 2 - Move Validation & Game Logic (1 TODO):**
+- `HintView.swift:36` - Implement actual hint functionality
+
+**Phase 2 - Captured Pieces Calculation (1 TODO):**
+- `ContentView.swift:285` - Implement captured pieces calculation
+
+**Phase 2 - Score Display (2 TODOs):**
+- `ScoreView.swift:21` - Display current position evaluation
+- `ScoreView.swift:29` - Display game statistics
+
+**Phase 3 - Game Management (9 TODOs):**
+- `GameMenuView.swift:24` - New game action
+- `GameMenuView.swift:30` - Save game action
+- `GameMenuView.swift:36` - Load game action
+- `GameMenuView.swift:64` - Undo move action
+- `GameMenuView.swift:77` - Import FEN action
+- `GameMenuView.swift:83` - Export FEN action
+- `GameMenuView.swift:89` - Import PGN action
+- `GameMenuView.swift:95` - Export PGN action
+- `GameMenuView.swift:103` - Resign action
+
+**Future/Optional (1 TODO):**
+- `AboutView.swift:97` - Add any other third-party libraries used
+  (appropriate placeholder for future dependencies)
+
+**Active Maintenance Protocol (MANDATORY):**
+
+**When ADDING a TODO to code:**
+1. Add the TODO comment to the code file
+2. IMMEDIATELY update this TODO Tracking section
+3. Categorize by phase (Phase 2/3/Future)
+4. Update the total count at top of inventory
+
+**When REMOVING a TODO from code:**
+1. Remove the TODO comment from the code file
+2. IMMEDIATELY remove from this TODO Tracking section
+3. Update the total count at top of inventory
+4. Mention removal in Session History if feature-significant
+
+**Before marking ANY feature complete:**
+1. Search: `grep -r "TODO" . | grep [feature_name]`
+2. Remove ALL related TODOs from code
+3. Remove ALL related TODOs from this tracking section
+4. Verify with second grep search
+5. Update total count
+
+**Weekly audit during active development:**
+- Run: `grep -r "TODO" Claude_Chess/Claude_Chess/` to verify
+- Check for orphaned TODOs not in this tracking system
+- Check for tracking entries without corresponding code TODOs
+- Update inventory immediately if discrepancies found
+
+**This tracking system is USELESS unless actively maintained!**
 
 ## Terminal Project Feature Parity
 
@@ -637,6 +702,18 @@ with Settings
 - Tappable opponent text shortcut to engine-specific settings
 - Lightbulb hint shortcut icon in header (yellow, positioned before menu)
 - Created HintView placeholder for Phase 2 implementation
+
+**Session 8: Oct 10, 2025** - Phase 2 Move System and Bug Fixes
+- Recovered from interrupted session (implemented Quick Game Menu, modal
+  enforcement, move execution, New Game, castling)
+- Fixed castling rights bug: king moved flag now set for ANY king move,
+  not just castling moves
+- Fixed fullmove counter: clarified FEN specification (counter is
+  prospective, not retrospective)
+- Verified halfmove clock working correctly (resets on pawn moves/captures)
+- Verified castling working correctly (allowed/disallowed based on
+  king/rook movement)
+- All core move execution logic now validated and working
 
 ### Key Decisions
 

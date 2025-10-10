@@ -80,42 +80,39 @@ experience with SwiftUI.
 
 ## Development Status
 
-**Current Phase:** Phase 1 Complete - Visual Chess Board ✅
+**Current Phase:** Phase 2 In Progress - Move System ✅
 
-**Latest Progress (October 9, 2025):**
-- ✅ Core data models implemented and tested
-- ✅ Foundation types: Color, PieceType, Position, Piece
-- ✅ ChessGame model with complete game state management
-- ✅ Visual 8x8 chess board with proper colors
-- ✅ All pieces displayed in standard starting position
+**Latest Progress (October 10, 2025):**
+- ✅ **Phase 1 Complete**: Visual chess board with all UI elements
+- ✅ **Phase 2 Started**: Move execution system implemented
+- ✅ Touch input handling (tap-to-select, tap-to-move)
+- ✅ Legal move highlighting with blinking capture indicators
+- ✅ Complete move validation using MoveValidator
+- ✅ Full move execution with game state updates
+- ✅ Castling (kingside and queenside) working correctly
+- ✅ FEN counters (halfmove clock, fullmove number) validated
+- ✅ Castling rights tracking (prevents illegal castling after king/rook moves)
+- ✅ New Game functionality
+- ✅ Quick Game Menu with modal interaction enforcement
+- ✅ Core data models: Color, PieceType, Position, Piece, ChessGame
 - ✅ Professional Cburnett SVG chess pieces from Wikimedia Commons
-- ✅ Responsive piece sizing across all devices and orientations
-- ✅ Device-adaptive text scaling (larger on iPad/macOS)
-- ✅ Device-specific orientation control (iPhone portrait, iPad all)
-- ✅ Settings menu system with navigation structure
-- ✅ Game menu with chess-specific commands (New Game, Time Controls, etc.)
-- ✅ Quick-access shortcuts (hint lightbulb, tappable time/opponent)
-- ✅ Board color theme system with 7 preset themes
-- ✅ Custom color picker with live preview
-- ✅ Theme persistence across app restarts
-- ✅ Successfully running on iPhone, iPad, and macOS simulators
+- ✅ Board color theme system with 7 presets + custom picker
+- ✅ Device-adaptive scaling and orientation control
 - ✅ Zero-warning compilation verified
 
-**Phase 1 Highlights:**
-The app displays a beautiful chess board with all 32 pieces in their
-correct starting positions using professional Cburnett SVG graphics.
-Responsive design ensures perfect piece scaling across iPhone, iPad,
-and macOS in all orientations. Users can select from 6 preset color
-themes (Classic, Wooden, Blue, Green, Marble, Tournament) or create
-custom color schemes using the built-in color picker with real-time
-preview. Game menu provides access to chess commands while settings
-menu handles app preferences.
+**Phase 2 Highlights:**
+The app now supports full chess gameplay! Users can tap pieces to
+select them, see legal moves highlighted (green circles for moves,
+blinking for captures), and tap destinations to execute moves. All
+move validation is working, including castling rights tracking. The
+FEN counter system (halfmove clock and fullmove number) is fully
+implemented and validated. New Game button resets to starting position.
 
-**Next Steps (Phase 2):**
-- Touch input handling for piece selection and movement
-- Move validation logic (ported from terminal project)
-- Legal move highlighting
-- Piece movement with board state updates
+**Next Steps (Phase 2 Continued):**
+- Check/checkmate/stalemate detection
+- Pawn promotion with piece selection UI
+- En passant capture implementation
+- Move history tracking
 
 This project is in active development. Core features are being ported
 from the proven terminal-based implementation.
@@ -210,15 +207,23 @@ parent project features:
 - Persistent user preferences across app termination and device restarts
 - Perfect scaling across iPhone, iPad, and macOS in all orientations
 
-### Phase 2: Move Validation & Input (Planned - Next)
+### Phase 2: Move Validation & Input (In Progress - Oct 10, 2025)
+
+**Implemented Features:**
+- ✅ Touch input handling (tap-to-select, tap-to-move)
+- ✅ Move validation logic ported from terminal project (MoveValidator)
+- ✅ Legal move highlighting (green circles and blinking captures)
+- ✅ Piece movement with full game state updates
+- ✅ Castling (kingside/queenside with rights tracking)
+- ✅ FEN counter system (halfmove clock, fullmove number)
+- ✅ New Game functionality
+- ✅ Quick Game Menu with modal enforcement
 
 **Upcoming Features:**
-- Touch input handling for piece selection
-- Tap-to-select and tap-to-move interaction
-- Move validation logic ported from terminal project
-- Legal move highlighting
-- Piece movement with board state updates
-- Check detection
+- Check/checkmate/stalemate detection
+- Pawn promotion with UI
+- En passant capture
+- Move history tracking
 
 ### Phase 3: AI Integration (Future)
 

@@ -11,6 +11,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @AppStorage("boardThemeId") private var boardThemeId = "classic"
+    @AppStorage("showPossibleMoves") private var showPossibleMoves: Bool = true
 
     // Custom color storage
     @AppStorage("customLightRed") private var customLightRed: Double = 0.93
@@ -23,6 +24,15 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                // Game Options Section
+                Section {
+                    Toggle("Show Possible Moves", isOn: $showPossibleMoves)
+                } header: {
+                    Text("Game Options")
+                } footer: {
+                    Text("When enabled, legal moves are automatically highlighted when you select a piece. You can still preview moves for any piece by double-tapping it.")
+                }
+
                 // Board Settings Section
                 Section("Board") {
                     NavigationLink {

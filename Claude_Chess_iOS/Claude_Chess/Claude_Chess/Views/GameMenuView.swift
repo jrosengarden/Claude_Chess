@@ -13,6 +13,7 @@ import SwiftUI
 /// - New Game, Load/Save, Time Controls, Undo, Hint, Resign, etc.
 struct GameMenuView: View {
     @Environment(\.dismiss) var dismiss
+    @ObservedObject var game: ChessGame
     @State private var showingScore = false
     @State private var showingAbout = false
 
@@ -21,7 +22,8 @@ struct GameMenuView: View {
             List {
                 Section(header: Text("Game")) {
                     Button(action: {
-                        // TODO: New game action
+                        game.resetGame()
+                        dismiss()
                     }) {
                         Label("New Game", systemImage: "plus.circle")
                     }
@@ -122,5 +124,5 @@ struct GameMenuView: View {
 // MARK: - Preview
 
 #Preview {
-    GameMenuView()
+    GameMenuView(game: ChessGame())
 }

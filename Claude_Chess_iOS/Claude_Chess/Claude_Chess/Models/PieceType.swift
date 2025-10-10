@@ -9,6 +9,7 @@ import Foundation
 
 /// Represents the type of a chess piece
 enum PieceType: String, CaseIterable, Codable {
+    case empty   // Represents an empty square
     case pawn
     case rook
     case knight
@@ -21,6 +22,7 @@ enum PieceType: String, CaseIterable, Codable {
     /// - Returns: Unicode chess piece symbol
     func symbol(for color: Color) -> String {
         switch (self, color) {
+        case (.empty, _):       return " "
         case (.king, .white):   return "♔"
         case (.queen, .white):  return "♕"
         case (.rook, .white):   return "♖"
@@ -38,10 +40,11 @@ enum PieceType: String, CaseIterable, Codable {
 
     /// Returns the asset image name for the piece (Cburnett SVG style)
     /// - Parameter color: The color of the piece
-    /// - Returns: Asset name matching the Wikimedia Commons Cburnett naming
+    /// - Returns: Asset name matching the Wikimedia Commons Cburnett naming, or empty string for empty squares
     func assetName(for color: Color) -> String {
         let pieceCode: String
         switch self {
+        case .empty:  return ""  // No asset for empty squares
         case .king:   pieceCode = "k"
         case .queen:  pieceCode = "q"
         case .rook:   pieceCode = "r"
@@ -56,10 +59,11 @@ enum PieceType: String, CaseIterable, Codable {
 
     /// Returns the FEN character representation of the piece
     /// - Parameter color: The color of the piece
-    /// - Returns: FEN character (uppercase for white, lowercase for black)
+    /// - Returns: FEN character (uppercase for white, lowercase for black), or space for empty
     func fenCharacter(for color: Color) -> Character {
         let char: Character
         switch self {
+        case .empty:  return " "  // Empty square
         case .king:   char = "K"
         case .queen:  char = "Q"
         case .rook:   char = "R"
