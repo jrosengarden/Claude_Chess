@@ -28,6 +28,12 @@ struct ContentView: View {
     @AppStorage("blackMinutes") private var blackMinutes = 5
     @AppStorage("blackIncrement") private var blackIncrement = 0
 
+    // Haptic feedback
+    @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
+    #if os(iOS)
+    private let lightHaptic = UIImpactFeedbackGenerator(style: .light)
+    #endif
+
     // Detect device type for adaptive text sizing
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -70,6 +76,11 @@ struct ContentView: View {
         isLargeDevice ? 30 : 20
     }
 
+    /// Dynamic font for header action buttons (Quick Game, Menu, Settings)
+    private var headerButtonFont: Font {
+        isLargeDevice ? .system(size: 32) : .title2
+    }
+
     var body: some View {
         VStack {
             // Header with title and action buttons
@@ -82,30 +93,45 @@ struct ContentView: View {
 
                 // Quick Game button (lightning bolt icon)
                 Button {
+                    #if os(iOS)
+                    if hapticFeedbackEnabled {
+                        lightHaptic.impactOccurred()
+                    }
+                    #endif
                     showingQuickGame = true
                 } label: {
                     Image(systemName: "bolt.fill")
-                        .font(.title2)
+                        .font(headerButtonFont)
                         .foregroundColor(.yellow)
                 }
                 .padding(.trailing, 8)
 
                 // Game menu button (hamburger)
                 Button {
+                    #if os(iOS)
+                    if hapticFeedbackEnabled {
+                        lightHaptic.impactOccurred()
+                    }
+                    #endif
                     showingGameMenu = true
                 } label: {
                     Image(systemName: "line.3.horizontal")
-                        .font(.title2)
+                        .font(headerButtonFont)
                         .foregroundColor(.primary)
                 }
                 .padding(.trailing, 8)
 
                 // Settings button (gear)
                 Button {
+                    #if os(iOS)
+                    if hapticFeedbackEnabled {
+                        lightHaptic.impactOccurred()
+                    }
+                    #endif
                     showingSettings = true
                 } label: {
                     Image(systemName: "gearshape.fill")
-                        .font(.title2)
+                        .font(headerButtonFont)
                         .foregroundColor(.primary)
                 }
             }
@@ -137,6 +163,11 @@ struct ContentView: View {
                     // Time control display (if enabled) - tappable to open settings
                     if isTimeControlsEnabled {
                         Button(action: {
+                            #if os(iOS)
+                            if hapticFeedbackEnabled {
+                                lightHaptic.impactOccurred()
+                            }
+                            #endif
                             showingTimeControls = true
                         }) {
                             Text(formatTime(whiteMinutes * 60))
@@ -170,6 +201,11 @@ struct ContentView: View {
                     // Time control display (if enabled) - tappable to open settings
                     if isTimeControlsEnabled {
                         Button(action: {
+                            #if os(iOS)
+                            if hapticFeedbackEnabled {
+                                lightHaptic.impactOccurred()
+                            }
+                            #endif
                             showingTimeControls = true
                         }) {
                             Text(formatTime(blackMinutes * 60))
@@ -196,6 +232,11 @@ struct ContentView: View {
 
                 // Opponent info - tappable to open opponent settings
                 Button(action: {
+                    #if os(iOS)
+                    if hapticFeedbackEnabled {
+                        lightHaptic.impactOccurred()
+                    }
+                    #endif
                     showingOpponentSettings = true
                 }) {
                     Text(opponentInfoText)

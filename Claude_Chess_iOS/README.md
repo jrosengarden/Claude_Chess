@@ -82,10 +82,14 @@ experience with SwiftUI.
 
 **Current Phase:** Phase 2 In Progress - Move System ✅
 
-**Latest Progress (October 10, 2025):**
+**Latest Progress (October 11, 2025):**
 - ✅ **Phase 1 Complete**: Visual chess board with all UI elements
-- ✅ **Phase 2 Started**: Move execution system implemented
+- ✅ **Phase 2 In Progress**: Move execution + UX polish
 - ✅ Touch input handling (tap-to-select, tap-to-move)
+- ✅ **Drag-and-drop piece movement** with ghost piece visual feedback
+- ✅ **Comprehensive haptic feedback** (light/medium/heavy/warning types)
+- ✅ **Haptic toggle** in Settings for user control
+- ✅ Device-adaptive button scaling (iPad/macOS larger touch targets)
 - ✅ Legal move highlighting with blinking capture indicators
 - ✅ Complete move validation using MoveValidator
 - ✅ Full move execution with game state updates
@@ -100,13 +104,13 @@ experience with SwiftUI.
 - ✅ Device-adaptive scaling and orientation control
 - ✅ Zero-warning compilation verified
 
-**Phase 2 Highlights:**
-The app now supports full chess gameplay! Users can tap pieces to
-select them, see legal moves highlighted (green circles for moves,
-blinking for captures), and tap destinations to execute moves. All
-move validation is working, including castling rights tracking. The
-FEN counter system (halfmove clock and fullmove number) is fully
-implemented and validated. New Game button resets to starting position.
+**Phase 2 UX Highlights:**
+The app now features polished touch interactions! Users can either tap
+pieces to select and move, or drag pieces directly to their destination.
+The ghost piece follows your finger during drag with smart offset
+positioning for visibility. Haptic feedback provides tactile confirmation
+for piece selection, successful moves, and invalid move attempts. All
+haptics can be toggled on/off in Settings.
 
 **Next Steps (Phase 2 Continued):**
 - Check/checkmate/stalemate detection

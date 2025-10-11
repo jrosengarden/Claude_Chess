@@ -12,6 +12,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @AppStorage("boardThemeId") private var boardThemeId = "classic"
     @AppStorage("showPossibleMoves") private var showPossibleMoves: Bool = true
+    @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
 
     // Custom color storage
     @AppStorage("customLightRed") private var customLightRed: Double = 0.93
@@ -27,10 +28,18 @@ struct SettingsView: View {
                 // Game Options Section
                 Section {
                     Toggle("Show Possible Moves", isOn: $showPossibleMoves)
+
+                    #if os(iOS)
+                    Toggle("Haptic Feedback", isOn: $hapticFeedbackEnabled)
+                    #endif
                 } header: {
                     Text("Game Options")
                 } footer: {
+                    #if os(iOS)
+                    Text("Show Possible Moves: Legal moves are automatically highlighted when you select a piece.\n\nHaptic Feedback: Vibration feedback for piece selection, moves, and invalid actions (iOS only).")
+                    #else
                     Text("When enabled, legal moves are automatically highlighted when you select a piece. You can still preview moves for any piece by double-tapping it.")
+                    #endif
                 }
 
                 // Board Settings Section
@@ -122,6 +131,10 @@ struct BoardColorThemePickerView: View {
                         darkBlue: $customDarkBlue,
                         selectedThemeId: $selectedThemeId
                     )
+                    .onAppear {
+                        // Set theme to custom when user taps into custom color picker
+                        selectedThemeId = "custom"
+                    }
                 } label: {
                     HStack {
                         // Theme preview with current custom colors

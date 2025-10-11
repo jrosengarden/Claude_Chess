@@ -216,31 +216,34 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (14 total as of Oct 10, 2025):**
+**Current TODO Inventory (21 total as of Oct 11, 2025):**
 
-**Phase 2 - Move Validation & Game Logic (1 TODO):**
+**Phase 2 - Move Validation & Game Logic (3 TODOs):**
+- `ChessGame.swift` - Update check status (Phase 2 - check detection)
+- `MoveValidator.swift` - Add check detection to prevent castling while in check
+- `MoveValidator.swift` - Add is_square_attacked() checks for squares king moves through
+
+**Phase 2 - UI & Display (3 TODOs):**
 - `HintView.swift:36` - Implement actual hint functionality
+- `ContentView.swift` - Implement captured pieces calculation
+- `ScoreView.swift` - Display current position evaluation
+- `ScoreView.swift` - Display game statistics
 
-**Phase 2 - Captured Pieces Calculation (1 TODO):**
-- `ContentView.swift:285` - Implement captured pieces calculation
-
-**Phase 2 - Score Display (2 TODOs):**
-- `ScoreView.swift:21` - Display current position evaluation
-- `ScoreView.swift:29` - Display game statistics
-
-**Phase 3 - Game Management (9 TODOs):**
-- `GameMenuView.swift:24` - New game action
-- `GameMenuView.swift:30` - Save game action
-- `GameMenuView.swift:36` - Load game action
-- `GameMenuView.swift:64` - Undo move action
-- `GameMenuView.swift:77` - Import FEN action
-- `GameMenuView.swift:83` - Export FEN action
-- `GameMenuView.swift:89` - Import PGN action
-- `GameMenuView.swift:95` - Export PGN action
-- `GameMenuView.swift:103` - Resign action
+**Phase 3 - Game Management (12 TODOs):**
+- `ChessGame.swift` - Track captured pieces for display
+- `GameMenuView.swift` - Save game action
+- `GameMenuView.swift` - Load game action
+- `GameMenuView.swift` - Undo move action (2 locations: GameMenuView + QuickGameMenuView)
+- `GameMenuView.swift` - Import FEN action
+- `GameMenuView.swift` - Export FEN action
+- `GameMenuView.swift` - Import PGN action
+- `GameMenuView.swift` - Export PGN action
+- `GameMenuView.swift` - Resign action (2 locations: GameMenuView + QuickGameMenuView)
+- `QuickGameMenuView.swift` - FEN display implementation
+- `QuickGameMenuView.swift` - PGN display implementation
 
 **Future/Optional (1 TODO):**
-- `AboutView.swift:97` - Add any other third-party libraries used
+- `AboutView.swift` - Add any other third-party libraries used
   (appropriate placeholder for future dependencies)
 
 **Active Maintenance Protocol (MANDATORY):**
@@ -714,6 +717,19 @@ with Settings
 - Verified castling working correctly (allowed/disallowed based on
   king/rook movement)
 - All core move execution logic now validated and working
+
+**Session 9: Oct 11, 2025** - UX Polish: Drag-and-Drop & Haptic Feedback
+- Implemented device-adaptive button scaling (iPad/macOS 1.5x larger
+  header buttons)
+- Added comprehensive haptic feedback system (light/medium/heavy/warning
+  types)
+- Implemented drag-and-drop piece movement with ghost piece visual
+  feedback
+- Added user-controllable haptic toggle in Settings
+- Fixed Custom Color theme selection bug (now sets theme on navigation)
+- Refined haptic scope: enabled for board interactions, main screen
+  shortcuts, Quick Menu; disabled for Settings and Game Menu
+- Ghost piece offset optimization for visibility during drag
 
 ### Key Decisions
 

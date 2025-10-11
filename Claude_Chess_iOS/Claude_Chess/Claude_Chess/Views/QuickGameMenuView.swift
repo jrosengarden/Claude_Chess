@@ -16,11 +16,22 @@ struct QuickGameMenuView: View {
     @State private var showingFEN = false
     @State private var showingPGN = false
 
+    // Haptic feedback
+    @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
+    #if os(iOS)
+    private let lightHaptic = UIImpactFeedbackGenerator(style: .light)
+    #endif
+
     var body: some View {
         NavigationStack {
             List {
                 Section("Game Actions") {
                     Button {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            lightHaptic.impactOccurred()
+                        }
+                        #endif
                         showingHint = true
                     } label: {
                         HStack {
@@ -31,6 +42,11 @@ struct QuickGameMenuView: View {
                     }
 
                     Button {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            lightHaptic.impactOccurred()
+                        }
+                        #endif
                         // TODO: Implement undo move action
                     } label: {
                         HStack {
@@ -41,6 +57,11 @@ struct QuickGameMenuView: View {
                     }
 
                     Button(role: .destructive) {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            lightHaptic.impactOccurred()
+                        }
+                        #endif
                         // TODO: Implement resign action
                     } label: {
                         HStack {
@@ -52,6 +73,11 @@ struct QuickGameMenuView: View {
 
                 Section("Position Info") {
                     Button {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            lightHaptic.impactOccurred()
+                        }
+                        #endif
                         showingFEN = true
                     } label: {
                         HStack {
@@ -62,6 +88,11 @@ struct QuickGameMenuView: View {
                     }
 
                     Button {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            lightHaptic.impactOccurred()
+                        }
+                        #endif
                         showingPGN = true
                     } label: {
                         HStack {

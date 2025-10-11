@@ -10,6 +10,14 @@ import SwiftUI
 /// Visual representation of a chess board with alternating light/dark squares
 /// and piece placement. Handles touch interaction for move selection and preview.
 struct ChessBoardView: View {
+    // MARK: - Haptic Feedback Generators
+
+    #if os(iOS)
+    private let lightHaptic = UIImpactFeedbackGenerator(style: .light)
+    private let mediumHaptic = UIImpactFeedbackGenerator(style: .medium)
+    private let heavyHaptic = UIImpactFeedbackGenerator(style: .heavy)
+    private let warningHaptic = UINotificationFeedbackGenerator()
+    #endif
     // Chess board dimensions
     private let rows = 8
     private let columns = 8
@@ -23,8 +31,13 @@ struct ChessBoardView: View {
     @State private var legalMoveSquares: [Position] = []    // Empty squares piece can move to
     @State private var capturablePositions: [Position] = [] // Enemy pieces that can be captured
 
+    // Drag state
+    @State private var draggedPiece: Position?              // Position of piece being dragged
+    @State private var dragOffset: CGSize = .zero           // Current drag offset from original position
+
     // User preferences
     @AppStorage("showPossibleMoves") private var showPossibleMoves: Bool = true
+    @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
 
     // Color theme (persisted via AppStorage)
     @AppStorage("boardThemeId") private var boardThemeId = "classic"
@@ -57,43 +70,82 @@ struct ChessBoardView: View {
             // Calculate square size to fit the board in available space
             let squareSize = min(geometry.size.width, geometry.size.height) / 8
 
-            VStack(spacing: 0) {
-                // Iterate through rows (rank 8 to rank 1)
-                ForEach(0..<rows, id: \.self) { row in
-                    HStack(spacing: 0) {
-                        // Iterate through columns (file a to file h)
-                        ForEach(0..<columns, id: \.self) { col in
-                            let position = Position(row: row, col: col)
-                            ChessSquareView(
-                                position: position,
-                                piece: game.board[row][col],
-                                isLight: isLightSquare(row: row, col: col),
-                                lightColor: currentTheme.lightSquare.color,
-                                darkColor: currentTheme.darkSquare.color,
-                                isSelected: selectedSquare == position,
-                                isPreviewed: previewSquare == position,
-                                isLegalMove: legalMoveSquares.contains(position),
-                                isCapturable: capturablePositions.contains(position)
-                            )
-                            .frame(width: squareSize, height: squareSize)
-                            .onTapGesture(count: 2) {
-                                handleDoubleTap(at: position)
-                            }
-                            .onTapGesture(count: 1) {
-                                handleSingleTap(at: position)
+            ZStack {
+                // Chess board
+                VStack(spacing: 0) {
+                    // Iterate through rows (rank 8 to rank 1)
+                    ForEach(0..<rows, id: \.self) { row in
+                        HStack(spacing: 0) {
+                            // Iterate through columns (file a to file h)
+                            ForEach(0..<columns, id: \.self) { col in
+                                let position = Position(row: row, col: col)
+                                ChessSquareView(
+                                    position: position,
+                                    piece: game.board[row][col],
+                                    isLight: isLightSquare(row: row, col: col),
+                                    lightColor: currentTheme.lightSquare.color,
+                                    darkColor: currentTheme.darkSquare.color,
+                                    isSelected: selectedSquare == position,
+                                    isPreviewed: previewSquare == position,
+                                    isLegalMove: legalMoveSquares.contains(position),
+                                    isCapturable: capturablePositions.contains(position),
+                                    isDragging: draggedPiece == position
+                                )
+                                .frame(width: squareSize, height: squareSize)
+                                .onTapGesture(count: 2) {
+                                    handleDoubleTap(at: position)
+                                }
+                                .onTapGesture(count: 1) {
+                                    handleSingleTap(at: position)
+                                }
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { value in
+                                            handleDragChanged(at: position, translation: value.translation, squareSize: squareSize)
+                                        }
+                                        .onEnded { value in
+                                            handleDragEnded(at: position, translation: value.translation, squareSize: squareSize, geometry: geometry)
+                                        }
+                                )
                             }
                         }
                     }
                 }
+                .frame(
+                    width: squareSize * CGFloat(columns),
+                    height: squareSize * CGFloat(rows)
+                )
+                .position(
+                    x: geometry.size.width / 2,
+                    y: geometry.size.height / 2
+                )
+
+                // Dragged piece overlay
+                if let draggedPos = draggedPiece {
+                    let piece = game.getPiece(at: draggedPos)
+                    if piece.type != .empty {
+                        // Calculate the actual screen position of the dragged piece
+                        let boardSize = squareSize * 8
+                        let boardOriginX = (geometry.size.width - boardSize) / 2
+                        let boardOriginY = (geometry.size.height - boardSize) / 2
+                        let pieceStartX = boardOriginX + CGFloat(draggedPos.col) * squareSize + squareSize / 2
+                        let pieceStartY = boardOriginY + CGFloat(draggedPos.row) * squareSize + squareSize / 2
+
+                        // Offset the ghost piece so it's visible (up and to the right of finger)
+                        let visualOffset = squareSize * 0.6
+
+                        Image(piece.assetName)
+                            .resizable()
+                            .frame(width: squareSize * 0.9, height: squareSize * 0.9)
+                            .position(
+                                x: pieceStartX + dragOffset.width + visualOffset,
+                                y: pieceStartY + dragOffset.height - visualOffset
+                            )
+                            .shadow(radius: 10)
+                            .allowsHitTesting(false)
+                    }
+                }
             }
-            .frame(
-                width: squareSize * CGFloat(columns),
-                height: squareSize * CGFloat(rows)
-            )
-            .position(
-                x: geometry.size.width / 2,
-                y: geometry.size.height / 2
-            )
         }
     }
 
@@ -109,6 +161,98 @@ struct ChessBoardView: View {
 
     // MARK: - Gesture Handlers
 
+    /// Handle drag gesture started/changed
+    private func handleDragChanged(at position: Position, translation: CGSize, squareSize: CGFloat) {
+        let piece = game.getPiece(at: position)
+
+        // Only allow dragging current player's pieces
+        guard piece.type != .empty && piece.color == game.currentPlayer else {
+            return
+        }
+
+        // If this is the first drag movement, start the drag
+        if draggedPiece == nil {
+            draggedPiece = position
+
+            // Light haptic feedback when starting drag
+            #if os(iOS)
+            if hapticFeedbackEnabled {
+                lightHaptic.impactOccurred()
+            }
+            #endif
+
+            // Show legal moves if enabled
+            if showPossibleMoves {
+                updateLegalMoves(for: position)
+            }
+        }
+
+        // Update drag offset if we're dragging this piece
+        if draggedPiece == position {
+            dragOffset = translation
+        }
+    }
+
+    /// Handle drag gesture ended
+    private func handleDragEnded(at position: Position, translation: CGSize, squareSize: CGFloat, geometry: GeometryProxy) {
+        guard draggedPiece == position else { return }
+
+        // Calculate which square the piece was dropped on
+        let boardSize = squareSize * 8
+        let boardOriginX = (geometry.size.width - boardSize) / 2
+        let boardOriginY = (geometry.size.height - boardSize) / 2
+
+        // Calculate starting position of dragged piece
+        let startX = boardOriginX + CGFloat(position.col) * squareSize + squareSize / 2
+        let startY = boardOriginY + CGFloat(position.row) * squareSize + squareSize / 2
+
+        // Calculate drop position
+        let dropX = startX + translation.width
+        let dropY = startY + translation.height
+
+        // Convert to board coordinates
+        let dropCol = Int((dropX - boardOriginX) / squareSize)
+        let dropRow = Int((dropY - boardOriginY) / squareSize)
+
+        // Check if dropped on valid square
+        if dropRow >= 0 && dropRow < 8 && dropCol >= 0 && dropCol < 8 {
+            let dropPosition = Position(row: dropRow, col: dropCol)
+
+            // Attempt to execute the move
+            if MoveValidator.isValidMove(game: game, from: position, to: dropPosition) {
+                let targetPiece = game.getPiece(at: dropPosition)
+                let isCapture = targetPiece.type != .empty
+
+                let success = game.makeMove(from: position, to: dropPosition)
+                if success {
+                    // Heavy haptic feedback for successful move
+                    #if os(iOS)
+                    if hapticFeedbackEnabled {
+                        heavyHaptic.impactOccurred()
+                    }
+                    #endif
+
+                    let moveNotation = isCapture ? "\(position.algebraic) x \(dropPosition.algebraic)" : "\(position.algebraic) to \(dropPosition.algebraic)"
+                    print("Move executed (drag): \(moveNotation)")
+                }
+            } else {
+                // Invalid move - warning notification haptic
+                #if os(iOS)
+                if hapticFeedbackEnabled {
+                    warningHaptic.notificationOccurred(.warning)
+                }
+                #endif
+                print("Invalid drag move: \(position.algebraic) to \(dropPosition.algebraic)")
+            }
+        }
+
+        // Reset drag state
+        draggedPiece = nil
+        dragOffset = .zero
+        legalMoveSquares = []
+        capturablePositions = []
+    }
+
     /// Handle double-tap on a square (preview mode toggle)
     private func handleDoubleTap(at position: Position) {
         // If single-tap selection is active, ignore double-taps completely
@@ -120,6 +264,13 @@ struct ChessBoardView: View {
 
         // Ignore double-tap on empty squares
         guard piece.type != .empty else { return }
+
+        // Medium haptic feedback for double-tap preview
+        #if os(iOS)
+        if hapticFeedbackEnabled {
+            mediumHaptic.impactOccurred()
+        }
+        #endif
 
         // Toggle preview: if already previewing this piece, clear it
         if previewSquare == position {
@@ -155,6 +306,13 @@ struct ChessBoardView: View {
                 // Execute the move with full game state updates
                 let success = game.makeMove(from: selected, to: position)
                 if success {
+                    // Heavy haptic feedback for successful move
+                    #if os(iOS)
+                    if hapticFeedbackEnabled {
+                        heavyHaptic.impactOccurred()
+                    }
+                    #endif
+
                     let moveNotation = isCapture ? "\(selected.algebraic) x \(position.algebraic)" : "\(selected.algebraic) to \(position.algebraic)"
                     print("Move executed: \(moveNotation)")
                     print("  Halfmove clock: \(game.halfmoveClock), Fullmove: \(game.fullmoveNumber)")
@@ -172,6 +330,13 @@ struct ChessBoardView: View {
                     selectPiece(at: position)
                 } else {
                     // Tapped empty square or opponent piece (illegal move)
+                    // Warning notification haptic for invalid move
+                    #if os(iOS)
+                    if hapticFeedbackEnabled {
+                        warningHaptic.notificationOccurred(.warning)
+                    }
+                    #endif
+
                     print("Illegal move: \(selected.algebraic) to \(position.algebraic)")
                     clearSelection()
                 }
@@ -192,6 +357,13 @@ struct ChessBoardView: View {
 
     /// Select a piece for movement (single-tap mode)
     private func selectPiece(at position: Position) {
+        // Light haptic feedback for piece selection
+        #if os(iOS)
+        if hapticFeedbackEnabled {
+            lightHaptic.impactOccurred()
+        }
+        #endif
+
         selectedSquare = position
 
         // Only show moves if setting is enabled
@@ -237,6 +409,7 @@ struct ChessSquareView: View {
     let isPreviewed: Bool
     let isLegalMove: Bool
     let isCapturable: Bool
+    let isDragging: Bool
 
     @State private var blinkOpacity: Double = 1.0
 
@@ -255,8 +428,8 @@ struct ChessSquareView: View {
                                height: geometry.size.height * 0.2)
                 }
 
-                // Piece (if present)
-                if let piece = piece {
+                // Piece (if present) - hide if being dragged
+                if let piece = piece, !isDragging {
                     Image(piece.assetName)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
