@@ -42,11 +42,18 @@ struct ChessBoardView: View {
     // Game-ending alerts
     @State private var showingCheckmate = false
     @State private var showingStalemate = false
+    @State private var showingFiftyMoveDraw = false
     @State private var winnerColor: Color?
 
     // Check indicator
     @State private var showingCheckAlert = false
     @State private var kingInCheckPosition: Position?
+
+    // Pawn promotion
+    @State private var showingPromotionPicker = false
+    @State private var promotionFrom: Position?
+    @State private var promotionTo: Position?
+    @State private var promotionColor: Color?
 
     // Color theme (persisted via AppStorage)
     @AppStorage("boardThemeId") private var boardThemeId = "classic"
@@ -185,12 +192,42 @@ struct ChessBoardView: View {
         } message: {
             Text("The game is a draw.")
         }
+        .alert("50-Move Rule Draw!", isPresented: $showingFiftyMoveDraw) {
+            Button("New Game") {
+                game.resetGame()
+                resetBoardState()
+            }
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("The game is a draw. 50 moves have been made without a pawn move or capture.")
+        }
         .alert("Check!", isPresented: $showingCheckAlert) {
             Button("OK", role: .cancel) {
                 // Keep king highlighted for visual feedback
             }
         } message: {
             Text("\(game.currentPlayer.displayName) is in check!")
+        }
+        .overlay {
+            if showingPromotionPicker,
+               let from = promotionFrom,
+               let to = promotionTo,
+               let color = promotionColor {
+                ZStack {
+                    // Semi-transparent background
+                    SwiftUI.Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            // Prevent dismissing by tapping background
+                            // User must make a choice
+                        }
+
+                    // Promotion picker dialog
+                    PromotionPiecePickerView(color: color) { selectedPiece in
+                        handlePromotionSelection(from: from, to: to, piece: selectedPiece)
+                    }
+                }
+            }
         }
     }
 
@@ -265,23 +302,34 @@ struct ChessBoardView: View {
 
             // Attempt to execute the move
             if MoveValidator.isValidMove(game: game, from: position, to: dropPosition) {
-                let targetPiece = game.getPiece(at: dropPosition)
-                let isCapture = targetPiece.type != .empty
+                // Check if this is a promotion move
+                if game.isPromotionMove(from: position, to: dropPosition) {
+                    // Show promotion picker instead of executing move immediately
+                    let movingPiece = game.getPiece(at: position)
+                    promotionFrom = position
+                    promotionTo = dropPosition
+                    promotionColor = movingPiece.color
+                    showingPromotionPicker = true
+                } else {
+                    // Regular move execution
+                    let targetPiece = game.getPiece(at: dropPosition)
+                    let isCapture = targetPiece.type != .empty
 
-                let success = game.makeMove(from: position, to: dropPosition)
-                if success {
-                    // Heavy haptic feedback for successful move
-                    #if os(iOS)
-                    if hapticFeedbackEnabled {
-                        heavyHaptic.impactOccurred()
+                    let success = game.makeMove(from: position, to: dropPosition)
+                    if success {
+                        // Heavy haptic feedback for successful move
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            heavyHaptic.impactOccurred()
+                        }
+                        #endif
+
+                        let moveNotation = isCapture ? "\(position.algebraic) x \(dropPosition.algebraic)" : "\(position.algebraic) to \(dropPosition.algebraic)"
+                        print("Move executed (drag): \(moveNotation)")
+
+                        // Check for game-ending conditions
+                        checkGameEnd()
                     }
-                    #endif
-
-                    let moveNotation = isCapture ? "\(position.algebraic) x \(dropPosition.algebraic)" : "\(position.algebraic) to \(dropPosition.algebraic)"
-                    print("Move executed (drag): \(moveNotation)")
-
-                    // Check for game-ending conditions
-                    checkGameEnd()
                 }
             } else {
                 // Invalid move - warning notification haptic
@@ -347,32 +395,45 @@ struct ChessBoardView: View {
 
             // Check if this is a legal move (validate against actual game rules, not just visual arrays)
             if MoveValidator.isValidMove(game: game, from: selected, to: position) {
-                // Check if this is a capture for display purposes
-                let targetPiece = game.getPiece(at: position)
-                let isCapture = targetPiece.type != .empty
-
-                // Execute the move with full game state updates
-                let success = game.makeMove(from: selected, to: position)
-                if success {
-                    // Heavy haptic feedback for successful move
-                    #if os(iOS)
-                    if hapticFeedbackEnabled {
-                        heavyHaptic.impactOccurred()
-                    }
-                    #endif
-
-                    let moveNotation = isCapture ? "\(selected.algebraic) x \(position.algebraic)" : "\(selected.algebraic) to \(position.algebraic)"
-                    print("Move executed: \(moveNotation)")
-                    print("  Halfmove clock: \(game.halfmoveClock), Fullmove: \(game.fullmoveNumber)")
-                    print("  White King: \(game.whiteKingPos.algebraic), Black King: \(game.blackKingPos.algebraic)")
-                    print("  Current player: \(game.currentPlayer.displayName)")
+                // Check if this is a promotion move
+                if game.isPromotionMove(from: selected, to: position) {
+                    // Show promotion picker instead of executing move immediately
+                    let movingPiece = game.getPiece(at: selected)
+                    promotionFrom = selected
+                    promotionTo = position
+                    promotionColor = movingPiece.color
+                    showingPromotionPicker = true
                     clearSelection()
                     clearPreview()
-
-                    // Check for game-ending conditions
-                    checkGameEnd()
                 } else {
-                    print("Move execution failed: \(selected.algebraic) to \(position.algebraic)")
+                    // Regular move execution
+                    // Check if this is a capture for display purposes
+                    let targetPiece = game.getPiece(at: position)
+                    let isCapture = targetPiece.type != .empty
+
+                    // Execute the move with full game state updates
+                    let success = game.makeMove(from: selected, to: position)
+                    if success {
+                        // Heavy haptic feedback for successful move
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            heavyHaptic.impactOccurred()
+                        }
+                        #endif
+
+                        let moveNotation = isCapture ? "\(selected.algebraic) x \(position.algebraic)" : "\(selected.algebraic) to \(position.algebraic)"
+                        print("Move executed: \(moveNotation)")
+                        print("  Halfmove clock: \(game.halfmoveClock), Fullmove: \(game.fullmoveNumber)")
+                        print("  White King: \(game.whiteKingPos.algebraic), Black King: \(game.blackKingPos.algebraic)")
+                        print("  Current player: \(game.currentPlayer.displayName)")
+                        clearSelection()
+                        clearPreview()
+
+                        // Check for game-ending conditions
+                        checkGameEnd()
+                    } else {
+                        print("Move execution failed: \(selected.algebraic) to \(position.algebraic)")
+                    }
                 }
             } else {
                 // Invalid move attempted
@@ -466,8 +527,47 @@ struct ChessBoardView: View {
         winnerColor = nil
     }
 
-    /// Check for game-ending conditions (checkmate, stalemate, check) after a move
+    // MARK: - Pawn Promotion Handler
+
+    /// Handle promotion piece selection
+    /// Ported from terminal project chess.c:make_promotion_move()
+    /// Phase 3: Add AI engine check here for automatic piece selection
+    private func handlePromotionSelection(from: Position, to: Position, piece: PieceType) {
+        // Execute the promotion move
+        let success = game.makePromotionMove(from: from, to: to, promotionPiece: piece)
+
+        if success {
+            // Heavy haptic feedback for promotion
+            #if os(iOS)
+            if hapticFeedbackEnabled {
+                heavyHaptic.impactOccurred()
+            }
+            #endif
+
+            print("Promotion executed: \(from.algebraic) to \(to.algebraic), promoted to \(piece.displayName)")
+
+            // Check for game-ending conditions
+            checkGameEnd()
+        } else {
+            print("Promotion execution failed")
+        }
+
+        // Dismiss promotion picker
+        showingPromotionPicker = false
+        promotionFrom = nil
+        promotionTo = nil
+        promotionColor = nil
+    }
+
+    /// Check for game-ending conditions (checkmate, stalemate, 50-move rule, check) after a move
     private func checkGameEnd() {
+        // Check for 50-move rule draw (highest priority - automatic draw)
+        if game.isFiftyMoveRuleDraw() {
+            kingInCheckPosition = nil  // Clear check indicator
+            showingFiftyMoveDraw = true
+            return
+        }
+
         // Check if current player is in checkmate
         if GameStateChecker.isCheckmate(game: game, color: game.currentPlayer) {
             winnerColor = game.currentPlayer.opposite

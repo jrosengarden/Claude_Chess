@@ -425,4 +425,92 @@ class ChessGame: ObservableObject {
 
         return true
     }
+
+    // MARK: - Draw Rules
+
+    /// Check if 50-move rule applies (automatic draw)
+    /// Ported from terminal project chess.c:is_fifty_move_rule_draw()
+    /// - Returns: True if 100 halfmoves have been made without pawn move or capture
+    func isFiftyMoveRuleDraw() -> Bool {
+        return halfmoveClock >= 100
+    }
+
+    // MARK: - Pawn Promotion
+
+    /// Check if a move would result in pawn promotion
+    /// Ported from terminal project chess.c:is_promotion_move()
+    /// - Parameters:
+    ///   - from: Starting position
+    ///   - to: Destination position
+    /// - Returns: True if this is a promotion move (pawn reaching opposite end)
+    func isPromotionMove(from: Position, to: Position) -> Bool {
+        guard let piece = board[from.row][from.col] else { return false }
+        guard piece.type == .pawn else { return false }
+
+        // White pawns promote on row 0 (rank 8)
+        // Black pawns promote on row 7 (rank 1)
+        let promotionRow = piece.color == .white ? 0 : 7
+        return to.row == promotionRow
+    }
+
+    /// Execute pawn promotion move with specified piece
+    /// Ported from terminal project chess.c:make_promotion_move()
+    /// - Parameters:
+    ///   - from: Starting position of pawn
+    ///   - to: Destination position (promotion square)
+    ///   - promotionPiece: Piece type to promote to (Queen, Rook, Bishop, or Knight)
+    /// - Returns: True if promotion was executed successfully
+    @discardableResult
+    func makePromotionMove(from: Position, to: Position, promotionPiece: PieceType) -> Bool {
+        // Validate this is actually a promotion move
+        guard isPromotionMove(from: from, to: to) else {
+            print("ERROR: makePromotionMove called on non-promotion move")
+            return false
+        }
+
+        // Validate promotion piece (only Queen, Rook, Bishop, Knight allowed)
+        guard [.queen, .rook, .bishop, .knight].contains(promotionPiece) else {
+            print("ERROR: Invalid promotion piece: \(promotionPiece)")
+            return false
+        }
+
+        // Validate move is legal
+        guard MoveValidator.isValidMove(game: self, from: from, to: to) else {
+            return false
+        }
+
+        // Get moving pawn and check for capture
+        guard let movingPawn = board[from.row][from.col] else { return false }
+        let capturedPiece = board[to.row][to.col]
+        let isCapture = capturedPiece != nil
+
+        // Move the pawn to destination
+        board[to.row][to.col] = movingPawn
+        board[from.row][from.col] = nil
+
+        // Replace pawn with promoted piece
+        board[to.row][to.col] = Piece(type: promotionPiece, color: movingPawn.color)
+
+        // Update FEN counters
+        // Pawn moves always reset halfmove clock
+        halfmoveClock = 0
+
+        // Fullmove number increments after Black's move
+        if currentPlayer == .black {
+            fullmoveNumber += 1
+        }
+
+        // Clear en passant (promotion can't create en passant)
+        enPassantTarget = nil
+
+        // Switch current player
+        currentPlayer = currentPlayer.opposite
+
+        print("Promotion: \(movingPawn.color.displayName) pawn at \(from.algebraic) promoted to \(promotionPiece.displayName) at \(to.algebraic)")
+        if isCapture {
+            print("  Captured: \(capturedPiece?.type.displayName ?? "unknown")")
+        }
+
+        return true
+    }
 }

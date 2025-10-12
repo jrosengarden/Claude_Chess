@@ -118,6 +118,9 @@ struct GameMenuView: View {
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
                 Button("Setup") {
+                    // TODO: Phase 3 - Add "Save current game?" prompt before setup
+                    // if board is not in starting position. Check if current position
+                    // differs from standard starting FEN before proceeding.
                     if game.setupFromFEN(fenInput) {
                         fenError = ""
                         dismiss()

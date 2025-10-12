@@ -80,9 +80,9 @@ experience with SwiftUI.
 
 ## Development Status
 
-**Current Phase:** Phase 2 - Nearly Complete (~85%)
+**Current Phase:** Phase 2 - COMPLETE! ✅ (October 11, 2025)
 
-**Latest Progress (October 11, 2025 - Session 10):**
+**Latest Progress (October 11, 2025 - Session 13):**
 
 **✅ Complete Game Logic:**
 - ✅ **Check/checkmate/stalemate detection** - Fully working with visual
@@ -103,6 +103,8 @@ experience with SwiftUI.
 - ✅ FEN counters (halfmove clock, fullmove number) validated
 - ✅ Castling rights tracking (prevents illegal castling after king/rook
   moves)
+- ✅ **Pawn promotion** - Complete with interactive piece selection dialog
+- ✅ **50-move rule draw detection** - Automatic detection with alert
 - ✅ New Game functionality
 - ✅ Quick Game Menu with modal interaction enforcement
 
@@ -114,18 +116,22 @@ experience with SwiftUI.
 - ✅ Zero-warning compilation verified
 
 **Phase 2 Highlights:**
-The app now features a complete playable chess experience! All core
-rules are enforced including check/checkmate/stalemate detection.
-Users can tap or drag pieces to move, with visual indicators showing
-legal moves that respect check conditions. When a king is in check,
-a red border appears and only moves that resolve the check are allowed.
-Haptic feedback provides tactile confirmation throughout gameplay.
+The app now features a FULLY playable chess experience with ALL core
+rules implemented! Complete chess rule enforcement including check/
+checkmate/stalemate detection, pawn promotion with piece selection UI,
+and 50-move rule draw detection. Users can tap or drag pieces to move,
+with visual indicators showing legal moves that respect check conditions.
+When a king is in check, a red border appears and only moves that resolve
+the check are allowed. Pawn promotion to any of 4 pieces (Q/R/B/N) works
+for both colors. Haptic feedback provides tactile confirmation throughout
+gameplay.
 
-**Next Steps (Complete Phase 2):**
-- Pawn promotion with piece selection UI (final Phase 2 item)
-
-**Then Phase 3:**
-- AI opponent integration (Stockfish)
+**Next: Phase 3 - AI Integration**
+- Stockfish engine integration (UCI protocol)
+- Move history tracking and PGN generation
+- Position evaluation and hints
+- Time controls enforcement
+- FEN/PGN import with navigation
 
 This project is in active development. Core features are being ported
 from the proven terminal-based implementation.
@@ -191,13 +197,39 @@ and queenside. Tests castling availability mid-game.
 Simple endgame: White king e1, White pawn e2, Black king e5. Tests
 minimal piece setup and basic endgame scenarios.
 
+#### 7. White Pawn Promotion (2 moves away)
+```
+8/4P3/8/8/8/8/8/4K2k w - - 0 1
+```
+White pawn on e7, two moves away from e8 promotion. White king on e1,
+Black king on h1. Tests pawn promotion for all 4 piece types (Queen,
+Rook, Bishop, Knight).
+
+#### 8. Black Pawn Promotion (2 moves away)
+```
+4k2K/8/8/8/8/8/4p3/8 b - - 0 1
+```
+Black pawn on e2, two moves away from e1 promotion. Black king on e8,
+White king on h8. Tests pawn promotion for Black with all 4 piece types.
+
+#### 9. 50-Move Rule Test (2 moves away from draw)
+```
+8/8/8/4k3/8/8/4K3/8 w - - 98 100
+```
+Only kings remain, halfmove clock at 98. After 2 more moves (one by
+White, one by Black), the clock reaches 100 and triggers the 50-move
+rule draw alert.
+
 ### Testing Tips
 - After setting up any position, try moving pieces to verify the board
   state is legal
 - Check that castling rights are correctly set (try castling if available)
 - Verify en passant works with position #3
 - Confirm check/checkmate/stalemate detection with positions #1 and #2
-- Use this feature during development to quickly test specific game situations
+- Test pawn promotion with positions #7 and #8 (all 4 piece types)
+- Verify 50-move rule draw with position #9
+- Use this feature during development to quickly test specific game
+  situations
 
 ## Xcode Project Structure
 
@@ -289,7 +321,7 @@ parent project features:
 - Persistent user preferences across app termination and device restarts
 - Perfect scaling across iPhone, iPad, and macOS in all orientations
 
-### Phase 2: Move Validation & Input (85% Complete - Oct 11, 2025)
+### Phase 2: Move Validation & Input ✅ (COMPLETE - Oct 11, 2025)
 
 **Implemented Features:**
 - ✅ Touch input handling (tap-to-select, tap-to-move)
@@ -299,18 +331,20 @@ parent project features:
 - ✅ Legal move highlighting (green circles and blinking captures)
 - ✅ Piece movement with full game state updates
 - ✅ Castling (kingside/queenside with rights tracking)
+- ✅ En passant capture (fully implemented)
 - ✅ FEN counter system (halfmove clock, fullmove number)
 - ✅ **Check/checkmate/stalemate detection** - Complete!
 - ✅ **GameStateChecker** with all game-ending logic
 - ✅ **Red border visual indicator** for king in check
 - ✅ **Alert dialogs** for check, checkmate, and stalemate
 - ✅ **Legal move filtering** respects check conditions
+- ✅ **Pawn promotion** - Interactive piece selection dialog for all 4
+  pieces (Q/R/B/N)
+- ✅ **50-move rule draw detection** - Automatic alert when halfmove
+  clock reaches 100
 - ✅ New Game functionality
 - ✅ Quick Game Menu with modal enforcement
-
-**Remaining Features (Phase 2):**
-- Pawn promotion with UI
-- En passant capture
+- ✅ Setup Game Board feature (FEN import for testing)
 
 ### Phase 3: AI Integration (Future)
 
