@@ -172,6 +172,10 @@ struct ChessBoardView: View {
             // Also check game state whenever the current player changes (handles FEN setup)
             checkGameEnd()
         }
+        .onChange(of: game.resetTrigger) { oldValue, newValue in
+            // Clear UI state when New Game is created
+            resetBoardState()
+        }
         .alert("Checkmate!", isPresented: $showingCheckmate) {
             Button("New Game") {
                 game.resetGame()

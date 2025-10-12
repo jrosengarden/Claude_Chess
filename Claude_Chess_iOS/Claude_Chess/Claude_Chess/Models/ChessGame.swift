@@ -21,6 +21,9 @@ class ChessGame: ObservableObject {
     /// Current player to move
     @Published var currentPlayer: Color
 
+    /// Trigger for resetting UI state (increments when New Game is created)
+    @Published var resetTrigger: Int = 0
+
     // MARK: - Game State Properties
 
     /// Position of white king (for check detection)
@@ -133,6 +136,8 @@ class ChessGame: ObservableObject {
     /// Clears the board and reinitializes to standard chess starting position
     func resetGame() {
         setupInitialPosition()
+        // Increment reset trigger to notify UI to clear selection state
+        resetTrigger += 1
     }
 
     /// Setup board from FEN string
