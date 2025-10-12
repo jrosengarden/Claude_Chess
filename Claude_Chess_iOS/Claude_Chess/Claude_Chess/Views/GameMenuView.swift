@@ -17,6 +17,7 @@ struct GameMenuView: View {
     @State private var showingScore = false
     @State private var showingAbout = false
     @State private var showingFenSetup = false
+    @State private var showingFenError = false
     @State private var fenInput = ""
     @State private var fenError = ""
 
@@ -125,8 +126,8 @@ struct GameMenuView: View {
                         fenError = ""
                         dismiss()
                     } else {
-                        fenError = "Invalid FEN string"
-                        showingFenSetup = true
+                        fenError = "Invalid FEN string entered. Please check the format and try again."
+                        showingFenError = true
                     }
                 }
                 Button("Cancel", role: .cancel) {
@@ -134,11 +135,14 @@ struct GameMenuView: View {
                     fenError = ""
                 }
             } message: {
-                if fenError.isEmpty {
-                    Text("Enter a valid FEN string to set up the board position")
-                } else {
-                    Text(fenError)
+                Text("Enter a valid FEN string to set up the board position")
+            }
+            .alert("Invalid FEN String", isPresented: $showingFenError) {
+                Button("OK") {
+                    // Return to Game Menu (dismiss is called automatically)
                 }
+            } message: {
+                Text(fenError)
             }
         }
     }

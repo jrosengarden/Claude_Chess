@@ -28,18 +28,11 @@ struct SettingsView: View {
                 // Game Options Section
                 Section {
                     Toggle("Show Possible Moves", isOn: $showPossibleMoves)
-
-                    #if os(iOS)
                     Toggle("Haptic Feedback", isOn: $hapticFeedbackEnabled)
-                    #endif
                 } header: {
                     Text("Game Options")
                 } footer: {
-                    #if os(iOS)
-                    Text("Show Possible Moves: Legal moves are automatically highlighted when you select a piece.\n\nHaptic Feedback: Vibration feedback for piece selection, moves, and invalid actions (iOS only).")
-                    #else
-                    Text("When enabled, legal moves are automatically highlighted when you select a piece. You can still preview moves for any piece by double-tapping it.")
-                    #endif
+                    Text("Show Possible Moves: Legal moves are automatically highlighted when you select a piece.\n\nHaptic Feedback: Vibration feedback for piece selection, moves, and invalid actions. Note: Haptic feedback is only functional on iPhone and iPad devices.")
                 }
 
                 // Board Settings Section
