@@ -135,6 +135,114 @@ class ChessGame: ObservableObject {
         setupInitialPosition()
     }
 
+    /// Setup board from FEN string
+    /// Ported from terminal project chess.c:setup_board_from_fen()
+    /// - Parameter fen: Standard FEN notation string
+    /// - Returns: True if FEN was valid and board was set up, false otherwise
+    func setupFromFEN(_ fen: String) -> Bool {
+        let trimmedFen = fen.trimmingCharacters(in: .whitespacesAndNewlines)
+        let components = trimmedFen.split(separator: " ", maxSplits: 5, omittingEmptySubsequences: false)
+
+        // FEN requires at least 6 components: pieces, player, castling, en passant, halfmove, fullmove
+        guard components.count >= 6 else { return false }
+
+        // Clear board
+        for row in 0..<8 {
+            for col in 0..<8 {
+                board[row][col] = nil
+            }
+        }
+
+        // Parse piece placement (component 0)
+        let ranks = components[0].split(separator: "/")
+        guard ranks.count == 8 else { return false }
+
+        var foundWhiteKing = false
+        var foundBlackKing = false
+
+        for (rankIndex, rankStr) in ranks.enumerated() {
+            var file = 0
+            for char in rankStr {
+                if char.isNumber {
+                    // Empty squares
+                    guard let skipCount = Int(String(char)), skipCount >= 1 && skipCount <= 8 else { return false }
+                    file += skipCount
+                } else {
+                    // Piece
+                    guard file < 8 else { return false }
+                    guard let piece = Piece.fromFENCharacter(char) else { return false }
+
+                    board[rankIndex][file] = piece
+
+                    // Track king positions
+                    if piece.type == .king {
+                        let kingPos = Position(row: rankIndex, col: file)
+                        if piece.color == .white {
+                            whiteKingPos = kingPos
+                            foundWhiteKing = true
+                        } else {
+                            blackKingPos = kingPos
+                            foundBlackKing = true
+                        }
+                    }
+
+                    file += 1
+                }
+            }
+            guard file == 8 else { return false } // Each rank must have exactly 8 squares
+        }
+
+        // Verify both kings are present
+        guard foundWhiteKing && foundBlackKing else { return false }
+
+        // Parse active color (component 1)
+        if components[1] == "w" {
+            currentPlayer = .white
+        } else if components[1] == "b" {
+            currentPlayer = .black
+        } else {
+            return false
+        }
+
+        // Parse castling rights (component 2)
+        whiteKingMoved = true
+        blackKingMoved = true
+        whiteRookKingsideMoved = true
+        whiteRookQueensideMoved = true
+        blackRookKingsideMoved = true
+        blackRookQueensideMoved = true
+
+        if components[2] != "-" {
+            for char in components[2] {
+                switch char {
+                case "K": whiteKingMoved = false; whiteRookKingsideMoved = false
+                case "Q": whiteKingMoved = false; whiteRookQueensideMoved = false
+                case "k": blackKingMoved = false; blackRookKingsideMoved = false
+                case "q": blackKingMoved = false; blackRookQueensideMoved = false
+                default: return false
+                }
+            }
+        }
+
+        // Parse en passant target (component 3)
+        if components[3] == "-" {
+            enPassantTarget = nil
+        } else {
+            guard let pos = Position(algebraic: String(components[3])) else { return false }
+            enPassantTarget = pos
+        }
+
+        // Parse halfmove clock (component 4)
+        guard let halfmove = Int(components[4]) else { return false }
+        halfmoveClock = halfmove
+
+        // Parse fullmove number (component 5)
+        guard let fullmove = Int(components[5]) else { return false }
+        fullmoveNumber = fullmove
+
+        return true
+    }
+
     // MARK: - Helper Methods
 
     /// Check if position is within board bounds

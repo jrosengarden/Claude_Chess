@@ -66,10 +66,11 @@ xcodebuild clean -project Claude_Chess/Claude_Chess.xcodeproj \
 - `Models/Position.swift` - Position struct with row/col indices,
     algebraic notation parsing/generation, and validation
 - `Models/Piece.swift` - Piece struct combining type and color with
-    FEN parsing and asset name generation
+    FEN parsing and asset name generation, plus static
+    `fromFENCharacter()` helper
 - `Models/ChessGame.swift` - Complete game state management with
-    board position, castling rights, en passant tracking, and move
-    counters
+    board position, castling rights, en passant tracking, move
+    counters, and `setupFromFEN()` method for FEN string parsing
 - `Models/BoardColorTheme.swift` - Board color theme system with
     RGB color components, 6 preset themes, and custom color support
 - `Models/MoveValidator.swift` - Complete move validation with check
@@ -220,7 +221,7 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (20 total as of Oct 11, 2025):**
+**Current TODO Inventory (19 total as of Oct 11, 2025):**
 
 **Phase 2 - Move Validation & Game Logic (2 TODOs):**
 - `MoveValidator.swift` - Add check detection to prevent castling while in check
@@ -232,12 +233,11 @@ prevent accumulation of technical debt.
 - `ScoreView.swift` - Display current position evaluation
 - `ScoreView.swift` - Display game statistics
 
-**Phase 3 - Game Management (12 TODOs):**
+**Phase 3 - Game Management (11 TODOs):**
 - `ChessGame.swift` - Track captured pieces for display
 - `GameMenuView.swift` - Save game action
-- `GameMenuView.swift` - Load game action
 - `GameMenuView.swift` - Undo move action (2 locations: GameMenuView + QuickGameMenuView)
-- `GameMenuView.swift` - Import FEN action
+- `GameMenuView.swift` - Import FEN action (load .fen files with multiple positions)
 - `GameMenuView.swift` - Export FEN action
 - `GameMenuView.swift` - Import PGN action
 - `GameMenuView.swift` - Export PGN action
@@ -746,6 +746,17 @@ with Settings
 - New Game button now properly resets all state including check
   indicators
 
+**Session 11: Oct 11, 2025** - Setup Game Board (FEN Import for Testing)
+- Implemented "Setup Game Board" feature replacing "Load Game" menu item
+- Added complete FEN parser in ChessGame.setupFromFEN() method
+- Parses all 6 FEN components: pieces, player, castling, en passant,
+  halfmove, fullmove
+- Text input alert for pasting FEN strings
+- Automatic game state detection after FEN setup (checkmate/stalemate/check)
+- Added .onAppear and .onChange triggers in ChessBoardView for
+  non-move game state checks
+- Critical testing tool matching terminal project's SETUP function
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -802,7 +813,7 @@ dual discovery mechanisms respecting different user interaction styles.
 - Theme persistence using @AppStorage/UserDefaults
 - Zero-warning compilation
 
-**🔄 Phase 2 (In Progress - ~85% Complete):**
+**🔄 Phase 2 (In Progress - ~90% Complete):**
 - ✅ Touch input handling (tap to select/move pieces)
 - ✅ Drag-and-drop piece movement with ghost piece feedback
 - ✅ Haptic feedback system (user-controllable)
@@ -811,8 +822,9 @@ dual discovery mechanisms respecting different user interaction styles.
 - ✅ Piece movement with board state updates
 - ✅ Check/checkmate/stalemate detection with visual indicators
 - ✅ Game-start lock enforcement (time controls/skill level)
-- 📋 Pawn promotion with piece selection UI
-- 📋 En passant capture implementation
+- ✅ En passant capture (fully implemented and tested)
+- ✅ FEN parser and Setup Game Board feature (testing tool)
+- 📋 Pawn promotion with piece selection UI (final Phase 2 item)
 
 **📋 Phase 3 (Future):**
 - AI integration (Stockfish framework)
@@ -989,6 +1001,37 @@ representation.
 - Scale selection with @AppStorage persistence (default: "scaled")
 - Conversion chart view (appears only when Scaled format selected)
 - Complete centipawn mapping from terminal project
+
+### Setup Game Board System (FEN Import)
+
+**Architecture:** Complete FEN parser matching terminal project's SETUP command
+
+**Purpose:** Critical testing tool for development - allows immediate setup
+of any chess position without playing through moves to reach it.
+
+**Implementation:**
+- `ChessGame.setupFromFEN(_ fen: String) -> Bool` method parses complete FEN strings
+- Validates all 6 FEN components: pieces, active player, castling rights,
+  en passant target, halfmove clock, fullmove number
+- Text input alert in GameMenuView for pasting FEN strings
+- Automatic game state detection after setup (check/checkmate/stalemate)
+- `.onAppear` and `.onChange(of: game.currentPlayer)` triggers in
+  ChessBoardView detect non-move game states
+
+**FEN Components Parsed:**
+1. **Piece Placement**: 8 ranks separated by slashes, numbers = empty squares
+2. **Active Player**: 'w' = White, 'b' = Black
+3. **Castling Rights**: KQkq or dash (K=White kingside, Q=White queenside,
+   k=Black kingside, q=Black queenside)
+4. **En Passant Target**: Algebraic square or dash
+5. **Halfmove Clock**: Moves since last pawn move or capture (50-move rule)
+6. **Fullmove Number**: Full move count (increments after Black's move)
+
+**User Access:** Game Menu → "Setup Game Board" → paste FEN → immediate board update
+
+**Testing Value:** Essential for validating check/checkmate/stalemate, castling,
+en passant, and complex positions without manual move entry. Matches terminal
+project's SETUP function utility.
 
 ### Future Considerations
 - App Store deployment strategy

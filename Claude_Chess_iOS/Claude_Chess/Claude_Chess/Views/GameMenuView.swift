@@ -16,6 +16,9 @@ struct GameMenuView: View {
     @ObservedObject var game: ChessGame
     @State private var showingScore = false
     @State private var showingAbout = false
+    @State private var showingFenSetup = false
+    @State private var fenInput = ""
+    @State private var fenError = ""
 
     var body: some View {
         NavigationView {
@@ -35,9 +38,11 @@ struct GameMenuView: View {
                     }
 
                     Button(action: {
-                        // TODO: Load game action
+                        fenInput = ""
+                        fenError = ""
+                        showingFenSetup = true
                     }) {
-                        Label("Load Game", systemImage: "square.and.arrow.up")
+                        Label("Setup Game Board", systemImage: "square.grid.3x3")
                     }
 
                     NavigationLink(destination: ScoreView()) {
@@ -115,6 +120,30 @@ struct GameMenuView: View {
                     Button("Done") {
                         dismiss()
                     }
+                }
+            }
+            .alert("Setup Game Board", isPresented: $showingFenSetup) {
+                TextField("Paste FEN string", text: $fenInput)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                Button("Setup") {
+                    if game.setupFromFEN(fenInput) {
+                        fenError = ""
+                        dismiss()
+                    } else {
+                        fenError = "Invalid FEN string"
+                        showingFenSetup = true
+                    }
+                }
+                Button("Cancel", role: .cancel) {
+                    fenInput = ""
+                    fenError = ""
+                }
+            } message: {
+                if fenError.isEmpty {
+                    Text("Enter a valid FEN string to set up the board position")
+                } else {
+                    Text(fenError)
                 }
             }
         }

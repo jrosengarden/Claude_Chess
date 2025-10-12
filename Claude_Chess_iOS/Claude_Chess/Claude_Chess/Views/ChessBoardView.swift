@@ -157,6 +157,14 @@ struct ChessBoardView: View {
                 }
             }
         }
+        .onAppear {
+            // Check game state when view first appears (handles FEN setup scenarios)
+            checkGameEnd()
+        }
+        .onChange(of: game.currentPlayer) { oldValue, newValue in
+            // Also check game state whenever the current player changes (handles FEN setup)
+            checkGameEnd()
+        }
         .alert("Checkmate!", isPresented: $showingCheckmate) {
             Button("New Game") {
                 game.resetGame()

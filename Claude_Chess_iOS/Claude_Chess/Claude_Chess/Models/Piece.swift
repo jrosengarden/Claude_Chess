@@ -66,4 +66,11 @@ struct Piece: Equatable, Hashable, Codable {
     var assetName: String {
         type.assetName(for: color)
     }
+
+    /// Static helper to create a piece from a FEN character
+    /// - Parameter character: FEN character (uppercase = white, lowercase = black)
+    /// - Returns: Piece if valid FEN character, nil otherwise
+    static func fromFENCharacter(_ character: Character) -> Piece? {
+        return Piece(fenCharacter: character)
+    }
 }

@@ -122,14 +122,82 @@ a red border appears and only moves that resolve the check are allowed.
 Haptic feedback provides tactile confirmation throughout gameplay.
 
 **Next Steps (Complete Phase 2):**
-- Pawn promotion with piece selection UI
-- En passant capture implementation
+- Pawn promotion with piece selection UI (final Phase 2 item)
 
 **Then Phase 3:**
 - AI opponent integration (Stockfish)
 
 This project is in active development. Core features are being ported
 from the proven terminal-based implementation.
+
+## Setup Game Board Feature (Testing Tool)
+
+The "Setup Game Board" feature allows you to set up any chess position
+by pasting a FEN (Forsyth-Edwards Notation) string. This is invaluable
+for testing specific scenarios, studying positions, or starting games
+from non-standard positions.
+
+### How to Use
+1. Tap the hamburger menu (☰) in the top-left corner
+2. Select "Game Menu"
+3. Tap "Setup Game Board"
+4. Paste a valid FEN string
+5. Tap "Setup" - the board immediately updates to that position
+
+The app automatically detects check, checkmate, and stalemate conditions
+after setting up the position.
+
+### Sample FEN Strings for Testing
+
+#### 1. Scholar's Mate (Checkmate Position)
+```
+r1bqkb1r/pppp1Qpp/2n2n2/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4
+```
+Black is in checkmate. Tests checkmate detection with immediate alert.
+
+#### 2. Stalemate Position
+```
+7k/8/6Q1/8/8/8/8/K7 b - - 0 1
+```
+Black king on h8, White king on a1, White queen on g6. Black has no
+legal moves but isn't in check = stalemate draw.
+
+#### 3. En Passant Opportunity
+```
+rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3
+```
+White pawn on e5, Black pawn just moved to f5. White can capture en
+passant on f6 by moving the e5 pawn diagonally to f6.
+
+#### 4. Castling Rights Test (No Castling Available)
+```
+r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w - - 0 1
+```
+Kings and rooks in position but no castling rights (dash after w).
+Tests that castling is properly disabled even when pieces are in
+starting squares.
+
+#### 5. Midgame Position with Castling Available
+```
+r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 4 5
+```
+Italian Game opening position. Both sides can still castle kingside
+and queenside. Tests castling availability mid-game.
+
+#### 6. Endgame - King and Pawn vs King
+```
+8/8/8/4k3/8/8/4P3/4K3 w - - 0 1
+```
+Simple endgame: White king e1, White pawn e2, Black king e5. Tests
+minimal piece setup and basic endgame scenarios.
+
+### Testing Tips
+- After setting up any position, try moving pieces to verify the board
+  state is legal
+- Check that castling rights are correctly set (try castling if available)
+- Verify en passant works with position #3
+- Confirm check/checkmate/stalemate detection with positions #1 and #2
+- Use this feature during development to quickly test specific game situations
 
 ## Xcode Project Structure
 
