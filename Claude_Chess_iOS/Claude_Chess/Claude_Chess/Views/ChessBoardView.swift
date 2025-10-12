@@ -39,6 +39,15 @@ struct ChessBoardView: View {
     @AppStorage("showPossibleMoves") private var showPossibleMoves: Bool = true
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
 
+    // Game-ending alerts
+    @State private var showingCheckmate = false
+    @State private var showingStalemate = false
+    @State private var winnerColor: Color?
+
+    // Check indicator
+    @State private var showingCheckAlert = false
+    @State private var kingInCheckPosition: Position?
+
     // Color theme (persisted via AppStorage)
     @AppStorage("boardThemeId") private var boardThemeId = "classic"
 
@@ -89,7 +98,8 @@ struct ChessBoardView: View {
                                     isPreviewed: previewSquare == position,
                                     isLegalMove: legalMoveSquares.contains(position),
                                     isCapturable: capturablePositions.contains(position),
-                                    isDragging: draggedPiece == position
+                                    isDragging: draggedPiece == position,
+                                    isKingInCheck: kingInCheckPosition == position
                                 )
                                 .frame(width: squareSize, height: squareSize)
                                 .onTapGesture(count: 2) {
@@ -146,6 +156,33 @@ struct ChessBoardView: View {
                     }
                 }
             }
+        }
+        .alert("Checkmate!", isPresented: $showingCheckmate) {
+            Button("New Game") {
+                game.resetGame()
+                resetBoardState()
+            }
+            Button("OK", role: .cancel) { }
+        } message: {
+            if let winner = winnerColor {
+                Text("\(winner.displayName) wins!")
+            }
+        }
+        .alert("Stalemate!", isPresented: $showingStalemate) {
+            Button("New Game") {
+                game.resetGame()
+                resetBoardState()
+            }
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("The game is a draw.")
+        }
+        .alert("Check!", isPresented: $showingCheckAlert) {
+            Button("OK", role: .cancel) {
+                // Keep king highlighted for visual feedback
+            }
+        } message: {
+            Text("\(game.currentPlayer.displayName) is in check!")
         }
     }
 
@@ -234,6 +271,9 @@ struct ChessBoardView: View {
 
                     let moveNotation = isCapture ? "\(position.algebraic) x \(dropPosition.algebraic)" : "\(position.algebraic) to \(dropPosition.algebraic)"
                     print("Move executed (drag): \(moveNotation)")
+
+                    // Check for game-ending conditions
+                    checkGameEnd()
                 }
             } else {
                 // Invalid move - warning notification haptic
@@ -320,6 +360,9 @@ struct ChessBoardView: View {
                     print("  Current player: \(game.currentPlayer.displayName)")
                     clearSelection()
                     clearPreview()
+
+                    // Check for game-ending conditions
+                    checkGameEnd()
                 } else {
                     print("Move execution failed: \(selected.algebraic) to \(position.algebraic)")
                 }
@@ -376,11 +419,17 @@ struct ChessBoardView: View {
     }
 
     /// Update legal moves and capturable positions for a piece
+    /// Only shows moves that are truly legal (don't leave king in check)
     private func updateLegalMoves(for position: Position) {
-        let moves = MoveValidator.getPossibleMovesWithCaptures(game: game, from: position)
+        let pseudoLegalMoves = MoveValidator.getPossibleMovesWithCaptures(game: game, from: position)
 
-        legalMoveSquares = moves.filter { !$0.isCapture }.map { $0.destination }
-        capturablePositions = moves.filter { $0.isCapture }.map { $0.destination }
+        // Filter to only show moves that are actually legal (don't leave king in check)
+        let legalMoves = pseudoLegalMoves.filter { moveInfo in
+            MoveValidator.isValidMove(game: game, from: position, to: moveInfo.destination)
+        }
+
+        legalMoveSquares = legalMoves.filter { !$0.isCapture }.map { $0.destination }
+        capturablePositions = legalMoves.filter { $0.isCapture }.map { $0.destination }
     }
 
     /// Clear preview mode
@@ -396,6 +445,46 @@ struct ChessBoardView: View {
         legalMoveSquares = []
         capturablePositions = []
     }
+
+    /// Reset all board UI state (called when starting new game)
+    private func resetBoardState() {
+        selectedSquare = nil
+        previewSquare = nil
+        legalMoveSquares = []
+        capturablePositions = []
+        draggedPiece = nil
+        dragOffset = .zero
+        kingInCheckPosition = nil
+        winnerColor = nil
+    }
+
+    /// Check for game-ending conditions (checkmate, stalemate, check) after a move
+    private func checkGameEnd() {
+        // Check if current player is in checkmate
+        if GameStateChecker.isCheckmate(game: game, color: game.currentPlayer) {
+            winnerColor = game.currentPlayer.opposite
+            kingInCheckPosition = nil  // Clear check indicator
+            showingCheckmate = true
+            return
+        }
+
+        // Check if current player is in stalemate
+        if GameStateChecker.isStalemate(game: game, color: game.currentPlayer) {
+            kingInCheckPosition = nil  // Clear check indicator
+            showingStalemate = true
+            return
+        }
+
+        // Check if current player is in check
+        if GameStateChecker.isInCheck(game: game, color: game.currentPlayer) {
+            // Set king position for visual indicator (red border)
+            kingInCheckPosition = game.currentPlayer == .white ? game.whiteKingPos : game.blackKingPos
+            showingCheckAlert = true
+        } else {
+            // Clear check indicator if not in check
+            kingInCheckPosition = nil
+        }
+    }
 }
 
 /// Individual chess board square with optional piece
@@ -410,6 +499,7 @@ struct ChessSquareView: View {
     let isLegalMove: Bool
     let isCapturable: Bool
     let isDragging: Bool
+    let isKingInCheck: Bool
 
     @State private var blinkOpacity: Double = 1.0
 
@@ -449,8 +539,16 @@ struct ChessSquareView: View {
                         }
                 }
 
-                // Dual-layer border for selected/previewed pieces
-                if isSelected {
+                // Dual-layer border for selected/previewed/check pieces
+                // Priority: Check indicator (red) > Selected (blue) > Previewed (yellow)
+                if isKingInCheck {
+                    // Red border for king in check (highest priority - always shows)
+                    RoundedRectangle(cornerRadius: 0)
+                        .strokeBorder(SwiftUI.Color.white, lineWidth: 6)
+                    RoundedRectangle(cornerRadius: 0)
+                        .strokeBorder(SwiftUI.Color.red, lineWidth: 3)
+                        .padding(3)
+                } else if isSelected {
                     RoundedRectangle(cornerRadius: 0)
                         .strokeBorder(SwiftUI.Color.white, lineWidth: 6)
                     RoundedRectangle(cornerRadius: 0)

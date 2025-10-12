@@ -313,9 +313,7 @@ class ChessGame: ObservableObject {
         // Switch current player
         currentPlayer = currentPlayer.opposite
 
-        // TODO: Update check status (Phase 2 - check detection)
-        // game.inCheck[.white] = isInCheck(color: .white)
-        // game.inCheck[.black] = isInCheck(color: .black)
+        // Check status now handled by GameStateChecker after move execution
 
         return true
     }

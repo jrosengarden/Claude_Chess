@@ -69,10 +69,56 @@ class MoveValidator {
     ///   - game: Current game state
     ///   - from: Starting position
     ///   - to: Destination position
-    /// - Returns: True if move is legal
+    /// - Returns: True if move is legal (doesn't leave own king in check)
+    /// Ported from terminal project chess.c:876-887
     static func isValidMove(game: ChessGame, from: Position, to: Position) -> Bool {
+        // First check if the move is pseudo-legal (valid piece movement)
         let possibleMoves = getPossibleMovesWithCaptures(game: game, from: from)
-        return possibleMoves.contains { $0.destination == to }
+        guard possibleMoves.contains(where: { $0.destination == to }) else {
+            return false
+        }
+
+        // Check if move would leave king in check
+        return !wouldBeInCheckAfterMove(game: game, from: from, to: to)
+    }
+
+    /// Simulate a move and check if it would leave the moving player's king in check
+    /// Ported from terminal project chess.c:834-863
+    ///
+    /// NOTE: This creates a temporary test board to avoid triggering @Published updates
+    /// on the original game during validation loops
+    private static func wouldBeInCheckAfterMove(game: ChessGame, from: Position, to: Position) -> Bool {
+        let movingPiece = game.getPiece(at: from)
+
+        // Create a temporary copy of the board for testing
+        var testBoard = game.board
+        var testWhiteKingPos = game.whiteKingPos
+        var testBlackKingPos = game.blackKingPos
+
+        // Simulate the move on the test board
+        testBoard[to.row][to.col] = movingPiece
+        testBoard[from.row][from.col] = Piece(type: .empty, color: .white)
+
+        // Update king position if king moved
+        if movingPiece.type == .king {
+            if movingPiece.color == .white {
+                testWhiteKingPos = to
+            } else {
+                testBlackKingPos = to
+            }
+        }
+
+        // Check if this leaves the king in check by temporarily creating a test game state
+        // We need to check without modifying the original game's @Published properties
+        let testGame = ChessGame()
+        testGame.board = testBoard
+        testGame.whiteKingPos = testWhiteKingPos
+        testGame.blackKingPos = testBlackKingPos
+        testGame.currentPlayer = game.currentPlayer
+
+        let inCheck = GameStateChecker.isInCheck(game: testGame, color: movingPiece.color)
+
+        return inCheck
     }
 
     // MARK: - Piece-Specific Move Generation
@@ -289,5 +335,42 @@ class MoveValidator {
         }
 
         return moves
+    }
+
+    /// Generate king moves WITHOUT castling logic
+    /// Used by GameStateChecker to prevent infinite recursion when checking if squares are attacked
+    /// Ported from terminal project chess.c get_king_moves_no_castling()
+    static func getKingMovesNoCastling(game: ChessGame, from: Position) -> [MoveInfo] {
+        var moves: [Position] = []
+        let piece = game.getPiece(at: from)
+
+        // All eight adjacent squares
+        let offsets = [
+            (-1, -1), (-1, 0), (-1, 1),
+            (0, -1),           (0, 1),
+            (1, -1),  (1, 0),  (1, 1)
+        ]
+
+        for (dRow, dCol) in offsets {
+            let pos = Position(row: from.row + dRow, col: from.col + dCol)
+            if game.isValidPosition(pos) {
+                let targetPiece = game.getPiece(at: pos)
+                // Can move to empty square or capture opponent piece
+                if targetPiece.type == .empty || targetPiece.color != piece.color {
+                    moves.append(pos)
+                }
+            }
+        }
+
+        // Convert to MoveInfo with capture detection
+        return moves.map { destination in
+            let targetPiece = game.getPiece(at: destination)
+            let isCapture = targetPiece.type != .empty
+            return MoveInfo(
+                destination: destination,
+                isCapture: isCapture,
+                capturedPiece: isCapture ? targetPiece : nil
+            )
+        }
     }
 }

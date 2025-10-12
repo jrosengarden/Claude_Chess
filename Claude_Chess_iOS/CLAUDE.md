@@ -58,7 +58,7 @@ xcodebuild clean -project Claude_Chess/Claude_Chess.xcodeproj \
 - `ContentView.swift` - Main UI with chess board, game menu, and
     settings access
 
-### Models (Implemented - Phase 1)
+### Models (Implemented)
 - `Models/Color.swift` - Color enum (white/black) with opposite
     property and display formatting
 - `Models/PieceType.swift` - PieceType enum (6 piece types) with
@@ -72,6 +72,10 @@ xcodebuild clean -project Claude_Chess/Claude_Chess.xcodeproj \
     counters
 - `Models/BoardColorTheme.swift` - Board color theme system with
     RGB color components, 6 preset themes, and custom color support
+- `Models/MoveValidator.swift` - Complete move validation with check
+    detection (Phase 2)
+- `Models/GameStateChecker.swift` - Check/checkmate/stalemate
+    detection system (Phase 2)
 
 ### Views (Implemented - Phase 1)
 - `Views/ChessBoardView.swift` - Visual 8x8 chess board with
@@ -216,15 +220,14 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (21 total as of Oct 11, 2025):**
+**Current TODO Inventory (20 total as of Oct 11, 2025):**
 
-**Phase 2 - Move Validation & Game Logic (3 TODOs):**
-- `ChessGame.swift` - Update check status (Phase 2 - check detection)
+**Phase 2 - Move Validation & Game Logic (2 TODOs):**
 - `MoveValidator.swift` - Add check detection to prevent castling while in check
 - `MoveValidator.swift` - Add is_square_attacked() checks for squares king moves through
 
-**Phase 2 - UI & Display (3 TODOs):**
-- `HintView.swift:36` - Implement actual hint functionality
+**Phase 2 - UI & Display (4 TODOs):**
+- `HintView.swift` - Implement actual hint functionality
 - `ContentView.swift` - Implement captured pieces calculation
 - `ScoreView.swift` - Display current position evaluation
 - `ScoreView.swift` - Display game statistics
@@ -731,6 +734,18 @@ with Settings
   shortcuts, Quick Menu; disabled for Settings and Game Menu
 - Ghost piece offset optimization for visibility during drag
 
+**Session 10: Oct 11, 2025** - Check/Checkmate/Stalemate Detection
+- Created GameStateChecker.swift with complete game-ending detection
+- Ported isSquareAttacked(), isInCheck(), hasLegalMoves(),
+  isCheckmate(), isStalemate() from terminal project
+- Added wouldBeInCheckAfterMove() validation to prevent illegal moves
+- Integrated check/checkmate/stalemate alerts in ChessBoardView
+- Implemented red border visual indicator for king in check
+- Fixed legal move filtering to respect check conditions
+- Resolved @Published update issues during move validation
+- New Game button now properly resets all state including check
+  indicators
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -787,19 +802,24 @@ dual discovery mechanisms respecting different user interaction styles.
 - Theme persistence using @AppStorage/UserDefaults
 - Zero-warning compilation
 
-**🔄 Phase 2 (Next):**
-- Touch input handling (tap to select/move pieces)
-- Move validation logic (port from terminal project)
-- Legal move highlighting
-- Piece movement with board state updates
-- Game-start lock enforcement (time controls/skill level)
+**🔄 Phase 2 (In Progress - ~85% Complete):**
+- ✅ Touch input handling (tap to select/move pieces)
+- ✅ Drag-and-drop piece movement with ghost piece feedback
+- ✅ Haptic feedback system (user-controllable)
+- ✅ Move validation logic (ported from terminal project)
+- ✅ Legal move highlighting (respects check conditions)
+- ✅ Piece movement with board state updates
+- ✅ Check/checkmate/stalemate detection with visual indicators
+- ✅ Game-start lock enforcement (time controls/skill level)
+- 📋 Pawn promotion with piece selection UI
+- 📋 En passant capture implementation
 
 **📋 Phase 3 (Future):**
 - AI integration (Stockfish framework)
 - Move history and undo functionality
-- Check/checkmate/stalemate detection
 - FEN/PGN import/export
 - Captured pieces calculation
+- Game save/load
 
 ### Board Color Theme System
 

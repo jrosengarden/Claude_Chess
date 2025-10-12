@@ -80,11 +80,17 @@ experience with SwiftUI.
 
 ## Development Status
 
-**Current Phase:** Phase 2 In Progress - Move System ✅
+**Current Phase:** Phase 2 - Nearly Complete (~85%)
 
-**Latest Progress (October 11, 2025):**
-- ✅ **Phase 1 Complete**: Visual chess board with all UI elements
-- ✅ **Phase 2 In Progress**: Move execution + UX polish
+**Latest Progress (October 11, 2025 - Session 10):**
+
+**✅ Complete Game Logic:**
+- ✅ **Check/checkmate/stalemate detection** - Fully working with visual
+  indicators
+- ✅ **Red border indicator** when king is in check
+- ✅ **Game-ending alerts** with checkmate winner announcement
+- ✅ **Legal move validation** respects check conditions
+- ✅ **Comprehensive move validation** preventing illegal moves
 - ✅ Touch input handling (tap-to-select, tap-to-move)
 - ✅ **Drag-and-drop piece movement** with ghost piece visual feedback
 - ✅ **Comprehensive haptic feedback** (light/medium/heavy/warning types)
@@ -95,28 +101,32 @@ experience with SwiftUI.
 - ✅ Full move execution with game state updates
 - ✅ Castling (kingside and queenside) working correctly
 - ✅ FEN counters (halfmove clock, fullmove number) validated
-- ✅ Castling rights tracking (prevents illegal castling after king/rook moves)
+- ✅ Castling rights tracking (prevents illegal castling after king/rook
+  moves)
 - ✅ New Game functionality
 - ✅ Quick Game Menu with modal interaction enforcement
+
+**Core Foundation:**
 - ✅ Core data models: Color, PieceType, Position, Piece, ChessGame
 - ✅ Professional Cburnett SVG chess pieces from Wikimedia Commons
 - ✅ Board color theme system with 7 presets + custom picker
 - ✅ Device-adaptive scaling and orientation control
 - ✅ Zero-warning compilation verified
 
-**Phase 2 UX Highlights:**
-The app now features polished touch interactions! Users can either tap
-pieces to select and move, or drag pieces directly to their destination.
-The ghost piece follows your finger during drag with smart offset
-positioning for visibility. Haptic feedback provides tactile confirmation
-for piece selection, successful moves, and invalid move attempts. All
-haptics can be toggled on/off in Settings.
+**Phase 2 Highlights:**
+The app now features a complete playable chess experience! All core
+rules are enforced including check/checkmate/stalemate detection.
+Users can tap or drag pieces to move, with visual indicators showing
+legal moves that respect check conditions. When a king is in check,
+a red border appears and only moves that resolve the check are allowed.
+Haptic feedback provides tactile confirmation throughout gameplay.
 
-**Next Steps (Phase 2 Continued):**
-- Check/checkmate/stalemate detection
+**Next Steps (Complete Phase 2):**
 - Pawn promotion with piece selection UI
 - En passant capture implementation
-- Move history tracking
+
+**Then Phase 3:**
+- AI opponent integration (Stockfish)
 
 This project is in active development. Core features are being ported
 from the proven terminal-based implementation.
@@ -211,23 +221,28 @@ parent project features:
 - Persistent user preferences across app termination and device restarts
 - Perfect scaling across iPhone, iPad, and macOS in all orientations
 
-### Phase 2: Move Validation & Input (In Progress - Oct 10, 2025)
+### Phase 2: Move Validation & Input (85% Complete - Oct 11, 2025)
 
 **Implemented Features:**
 - ✅ Touch input handling (tap-to-select, tap-to-move)
+- ✅ Drag-and-drop piece movement with ghost piece feedback
+- ✅ Haptic feedback system (user-controllable in Settings)
 - ✅ Move validation logic ported from terminal project (MoveValidator)
 - ✅ Legal move highlighting (green circles and blinking captures)
 - ✅ Piece movement with full game state updates
 - ✅ Castling (kingside/queenside with rights tracking)
 - ✅ FEN counter system (halfmove clock, fullmove number)
+- ✅ **Check/checkmate/stalemate detection** - Complete!
+- ✅ **GameStateChecker** with all game-ending logic
+- ✅ **Red border visual indicator** for king in check
+- ✅ **Alert dialogs** for check, checkmate, and stalemate
+- ✅ **Legal move filtering** respects check conditions
 - ✅ New Game functionality
 - ✅ Quick Game Menu with modal enforcement
 
-**Upcoming Features:**
-- Check/checkmate/stalemate detection
+**Remaining Features (Phase 2):**
 - Pawn promotion with UI
 - En passant capture
-- Move history tracking
 
 ### Phase 3: AI Integration (Future)
 
