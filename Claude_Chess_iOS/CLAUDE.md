@@ -221,7 +221,7 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (19 total as of Oct 11, 2025):**
+**Current TODO Inventory (20 total as of Oct 11, 2025):**
 
 **Phase 2 - Move Validation & Game Logic (2 TODOs):**
 - `MoveValidator.swift` - Add check detection to prevent castling while in check
@@ -233,15 +233,17 @@ prevent accumulation of technical debt.
 - `ScoreView.swift` - Display current position evaluation
 - `ScoreView.swift` - Display game statistics
 
-**Phase 3 - Game Management (11 TODOs):**
+**Phase 3 - Game Management (12 TODOs):**
 - `ChessGame.swift` - Track captured pieces for display
-- `GameMenuView.swift` - Save game action
+- `ChessGame.swift` - Track move history for PGN generation
 - `GameMenuView.swift` - Undo move action (2 locations: GameMenuView + QuickGameMenuView)
-- `GameMenuView.swift` - Import FEN action (load .fen files with multiple positions)
-- `GameMenuView.swift` - Export FEN action
-- `GameMenuView.swift` - Import PGN action
-- `GameMenuView.swift` - Export PGN action
+- `GameMenuView.swift` - Import FEN action (load .fen files with position navigation + save prompt)
+- `GameMenuView.swift` - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
+- `GameMenuView.swift` - Share Game action (mid-game sharing via iOS share sheet)
 - `GameMenuView.swift` - Resign action (2 locations: GameMenuView + QuickGameMenuView)
+- `SettingsView.swift` - Auto-save FEN toggle (replaces manual save)
+- `SettingsView.swift` - Auto-save PGN toggle (replaces manual save)
+- `SettingsView.swift` - Save location picker
 - `QuickGameMenuView.swift` - FEN display implementation
 - `QuickGameMenuView.swift` - PGN display implementation
 
@@ -297,10 +299,17 @@ Reference: `../CLAUDE.md` sections on chess implementation
 ### Game Management Features
 Reference: `../CLAUDE.md` sections on LOAD system, FEN/PGN
 
-- [ ] FEN import/export with validation
-- [ ] PGN import/export with full move history
-- [ ] Game save/load with position navigation
-- [ ] Opening library integration (24 validated positions)
+- [ ] **FEN import with navigation** - Load .fen files, navigate through
+  positions with swipe/buttons, preview on board, save current game option,
+  play from selected position (matches terminal LOAD FEN)
+- [ ] **PGN import with navigation** - Load .pgn files, navigate move-by-move,
+  preview on board, save current game option, play from selected position
+  (matches terminal LOAD PGN)
+- [ ] **Auto-save FEN on game end** - Toggle in Settings (matches FENON/FENOFF)
+- [ ] **Auto-save PGN on game end** - Toggle in Settings (matches PGNON/PGNOFF)
+- [ ] **Save location picker** - Choose Files/iCloud destination
+- [ ] **Share Game button** - Mid-game sharing via iOS share sheet
+- [ ] Opening library integration (24 validated positions from terminal project)
 - [ ] Captured pieces calculation and display
 - [ ] Move history with undo functionality
 
@@ -369,7 +378,7 @@ and testing terminal version.
 - [ ] Game history and navigation
 - [ ] FEN/PGN import/export
 - [ ] Opening library integration
-- [ ] Save/load game functionality
+- [ ] Auto-save and file management (see Auto-Save & File Management System section)
 
 ### Phase 4 - iOS Polish
 - [ ] Drag-and-drop piece movement
@@ -757,6 +766,16 @@ with Settings
   non-move game state checks
 - Critical testing tool matching terminal project's SETUP function
 
+**Session 12: Oct 11, 2025** - Auto-Save System & Menu Cleanup
+- Documented comprehensive Auto-Save & File Management System (Phase 3)
+- Auto-save FEN/PGN toggles in Settings (matches terminal FENON/FENOFF,
+  PGNON/PGNOFF)
+- Save location picker for Files/iCloud destination
+- Share Game feature replaces Export FEN/Export PGN buttons
+- Removed "Load Game" menu item (redundant with Import FEN/Import PGN)
+- Renamed section header: "Import/Export" → "Import Games"
+- Updated TODO tracking (20 total with auto-save items)
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -829,9 +848,11 @@ dual discovery mechanisms respecting different user interaction styles.
 **📋 Phase 3 (Future):**
 - AI integration (Stockfish framework)
 - Move history and undo functionality
-- FEN/PGN import/export
+- **FEN/PGN import with position navigation** (matches terminal LOAD FEN/PGN)
+- FEN/PGN export
+- **"Save current game" prompts before loading positions**
 - Captured pieces calculation
-- Game save/load
+- Game save/load (iOS document picker)
 
 ### Board Color Theme System
 
@@ -1002,12 +1023,69 @@ representation.
 - Conversion chart view (appears only when Scaled format selected)
 - Complete centipawn mapping from terminal project
 
-### Setup Game Board System (FEN Import)
+### FEN/PGN Navigation System (Phase 3 - Planned)
+
+**Critical Feature:** Matches terminal project's LOAD FEN and LOAD PGN commands
+
+**Terminal Project Reference (`../CLAUDE.md`):**
+- LOAD FEN - Browse .fen files, 20-line pagination, arrow key navigation
+- LOAD PGN - Browse .pgn files, move-by-move navigation with arrows
+- FENNavigator structure with positions[], count, current index
+- User navigates forward/backward, then cancels or continues from position
+
+**iOS Implementation Plan:**
+
+**UI Components:**
+1. **File Picker** - iOS document picker for .fen/.pgn files
+2. **PositionNavigatorView** - Modal view with:
+   - Live chess board preview (updates as you navigate)
+   - Position counter (e.g., "5 of 18")
+   - Navigation controls (swipe gestures + buttons)
+   - "Save Current Game" prompt before loading
+   - "Play from Here" and "Cancel" buttons
+
+**Navigation Controls:**
+- Swipe right = Next position
+- Swipe left = Previous position
+- Slider = Jump to any position instantly
+- Buttons = Prev/Next for non-swipe users
+
+**User Flow:**
+1. Tap "Import FEN" or "Import PGN" in Game Menu
+2. iOS document picker appears → select file
+3. **"Save current game?"** alert appears (Yes/No/Cancel)
+4. PositionNavigatorView modal opens
+5. User navigates through positions (board updates live)
+6. User taps "Play from Here" → loads that position, dismisses
+7. OR user taps "Cancel" → dismisses without changes
+
+**Educational Value (Critical!):**
+- Study master games move-by-move
+- Analyze opening sequences position by position
+- Review your own games
+- Learn from tactical positions
+- **Superior to terminal:** Graphical board vs ASCII art
+
+**Data Structure:**
+```swift
+struct PositionNavigator {
+    var positions: [String]    // FEN strings
+    var count: Int              // Total positions
+    var currentIndex: Int       // Current position
+    var metadata: String?       // PGN headers, game info
+}
+```
+
+### Setup Game Board System (FEN Import - Testing Tool)
 
 **Architecture:** Complete FEN parser matching terminal project's SETUP command
 
 **Purpose:** Critical testing tool for development - allows immediate setup
 of any chess position without playing through moves to reach it.
+
+**NOTE:** This is different from "Import FEN" - SETUP takes a single FEN
+string for immediate testing, while Import FEN loads multi-position files
+with navigation.
 
 **Implementation:**
 - `ChessGame.setupFromFEN(_ fen: String) -> Bool` method parses complete FEN strings
@@ -1032,6 +1110,147 @@ of any chess position without playing through moves to reach it.
 **Testing Value:** Essential for validating check/checkmate/stalemate, castling,
 en passant, and complex positions without manual move entry. Matches terminal
 project's SETUP function utility.
+
+### Auto-Save & File Management System (Phase 3 - Planned)
+
+**Terminal Project Parity:**
+- Terminal app auto-creates .fen and .pgn files on game exit
+- User controls via PGNON/PGNOFF and FENON/FENOFF command line options
+- Files saved to configured directories
+- Filename format: `chess_game_YYYYMMDD_HHMMSS.fen/pgn`
+
+**iOS Implementation Strategy:**
+
+**Settings Configuration (SettingsView):**
+
+1. **Auto-Save Toggles** (independent controls):
+   ```
+   Settings → File Management
+     ☑ Auto-save FEN on game end (default: ON)
+     ☑ Auto-save PGN on game end (default: ON)
+   ```
+   - Matches terminal FENON/FENOFF and PGNON/PGNOFF behavior
+   - User can enable FEN only, PGN only, both, or neither
+   - Persisted via @AppStorage
+
+2. **Save Location Picker:**
+   ```
+   Settings → File Management → Save Location
+     ○ On My iPhone
+     ○ iCloud Drive
+   ```
+   - iOS document picker for selecting folder
+   - Defaults to app's Documents directory
+   - Persisted path via @AppStorage
+   - Future: Allow user to browse and select any Files app location
+
+**Auto-Save on Game End:**
+
+**Trigger Points:**
+- Checkmate detected
+- Stalemate detected
+- Player resigns
+- 50-move rule draw accepted
+
+**Behavior:**
+1. Game ends with result determined
+2. If "Auto-save FEN" enabled:
+   - Generate FEN string for final position
+   - Save to: `{location}/position_YYYYMMDD_HHMMSS.fen`
+3. If "Auto-save PGN" enabled:
+   - Generate PGN with headers and full move history
+   - Save to: `{location}/game_YYYYMMDD_HHMMSS.pgn`
+4. Show brief toast notification: "Game saved to Files" (or "Game saved to iCloud")
+5. Continue with game-end alert (checkmate/stalemate message)
+
+**PGN File Format:**
+```
+[Event "iPhone Game"]
+[Site "Claude Chess iOS"]
+[Date "2025.10.11"]
+[Round "1"]
+[White "Player"]
+[Black "Stockfish Level 5"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. Qxf7# 1-0
+```
+
+**Share Game Feature (Mid-Game Sharing):**
+
+**Location:** Game Menu → "Share Game" (replaces Export FEN/Export PGN)
+
+**Functionality:**
+1. User taps "Share Game" during active game
+2. Alert presents options:
+   - Share FEN (current position only)
+   - Share PGN (full game history to this point)
+   - Share Both
+3. iOS share sheet appears with:
+   - AirDrop
+   - Messages
+   - Email
+   - Copy to clipboard
+   - Save to Files (manual save, not auto-save)
+4. User selects destination
+
+**Use Cases:**
+- Send position to friend for analysis
+- Share game-in-progress via email
+- Copy FEN to paste into chess analysis tool
+- AirDrop game to iPad for larger screen
+
+**Implementation Requirements:**
+
+**Data Tracking (New Requirements):**
+- Move history array: `[(from: Position, to: Position, piece: Piece, captured: Piece?)]`
+- Algebraic notation generator: Convert Position pairs to "e2e4", "Nf3", etc.
+- Game metadata: start time, player names, result
+- Move timestamps (for PGN comments)
+
+**File Operations:**
+```swift
+// Settings persistence
+@AppStorage("autoSaveFEN") var autoSaveFEN = true
+@AppStorage("autoSavePGN") var autoSavePGN = true
+@AppStorage("saveLocation") var saveLocation = "Documents"
+
+// File generation
+func generateFEN() -> String { /* ... */ }
+func generatePGN() -> String { /* ... */ }
+
+// Save to Files app
+func saveFile(content: String, filename: String, location: URL) {
+    // iOS FileManager operations
+}
+
+// Share sheet
+func shareGame(fen: String?, pgn: String?) {
+    let activityVC = UIActivityViewController(...)
+}
+```
+
+**iOS Files App Integration:**
+- Files appear in "On My iPhone" → "Claude Chess" folder
+- Or in "iCloud Drive" → "Claude Chess" folder (if iCloud enabled)
+- User can browse/manage saved games in Files app
+- Files automatically available for Import FEN/Import PGN
+
+**Error Handling:**
+- Save location not accessible → alert user, fall back to Documents
+- iCloud not enabled → alert user, offer Files alternative
+- Disk space insufficient → alert user
+- Write permission denied → alert user
+
+**Phase 3 Implementation Order:**
+1. Add move history tracking to ChessGame model
+2. Implement algebraic notation generator
+3. Create FEN/PGN string generation functions
+4. Add Settings toggles and location picker
+5. Implement auto-save on game end
+6. Add "Share Game" button and iOS share sheet
+7. Test file saving to Files app and iCloud
+8. Verify round-trip (save → import → play)
 
 ### Future Considerations
 - App Store deployment strategy

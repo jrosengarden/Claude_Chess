@@ -10,7 +10,7 @@
 import SwiftUI
 
 /// Game menu providing access to chess-specific commands and features
-/// - New Game, Load/Save, Time Controls, Undo, Hint, Resign, etc.
+/// - New Game, Setup Board, Import Games, Time Controls, Undo, Hint, Resign, etc.
 struct GameMenuView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var game: ChessGame
@@ -31,11 +31,8 @@ struct GameMenuView: View {
                         Label("New Game", systemImage: "plus.circle")
                     }
 
-                    Button(action: {
-                        // TODO: Save game action
-                    }) {
-                        Label("Save Game", systemImage: "square.and.arrow.down")
-                    }
+                    // Note: Manual save removed - replaced by auto-save on game end (Settings toggles)
+                    // and Share Game for mid-game sharing
 
                     Button(action: {
                         fenInput = ""
@@ -79,29 +76,23 @@ struct GameMenuView: View {
                     }
                 }
 
-                Section(header: Text("Import/Export")) {
+                Section(header: Text("Import Games")) {
                     Button(action: {
-                        // TODO: Import FEN action
+                        // TODO: Import FEN action (load .fen files with position navigation + save prompt)
                     }) {
                         Label("Import FEN", systemImage: "square.and.arrow.down.on.square")
                     }
 
                     Button(action: {
-                        // TODO: Export FEN action
-                    }) {
-                        Label("Export FEN", systemImage: "square.and.arrow.up.on.square")
-                    }
-
-                    Button(action: {
-                        // TODO: Import PGN action
+                        // TODO: Import PGN action (load .pgn files with move-by-move navigation + save prompt)
                     }) {
                         Label("Import PGN", systemImage: "arrow.up.doc")
                     }
 
                     Button(action: {
-                        // TODO: Export PGN action
+                        // TODO: Share Game action (mid-game sharing via iOS share sheet)
                     }) {
-                        Label("Export PGN", systemImage: "arrow.down.doc")
+                        Label("Share Game", systemImage: "square.and.arrow.up")
                     }
                 }
 
