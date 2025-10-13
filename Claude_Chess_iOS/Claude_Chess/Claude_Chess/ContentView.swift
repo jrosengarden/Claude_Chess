@@ -396,6 +396,22 @@ struct ContentView: View {
             // Re-initialize time controls whenever game is reset
             initializeTimeControls()
         }
+        .onChange(of: whiteMinutes) { oldValue, newValue in
+            // Re-initialize time controls when settings change
+            initializeTimeControls()
+        }
+        .onChange(of: whiteIncrement) { oldValue, newValue in
+            // Re-initialize time controls when settings change
+            initializeTimeControls()
+        }
+        .onChange(of: blackMinutes) { oldValue, newValue in
+            // Re-initialize time controls when settings change
+            initializeTimeControls()
+        }
+        .onChange(of: blackIncrement) { oldValue, newValue in
+            // Re-initialize time controls when settings change
+            initializeTimeControls()
+        }
         .alert("Time Forfeit!", isPresented: $showingTimeForfeitAlert) {
             Button("OK") {
                 // Reset game after time forfeit (onChange will re-initialize time controls)

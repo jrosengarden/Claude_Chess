@@ -295,42 +295,50 @@ class MoveValidator {
         }
 
         // Castling moves (ported from terminal project chess.c:682-726)
-        // TODO Phase 3: Add check detection to prevent castling while in check
-        // TODO Phase 3: Add is_square_attacked() checks for squares king moves through
+        // Cannot castle while in check (terminal project line 688)
+        if !GameStateChecker.isInCheck(game: game, color: piece.color) {
+            if piece.color == .white {
+                // White kingside castling (king moves to g1)
+                if !game.whiteKingMoved && !game.whiteRookKingsideMoved &&
+                   from.row == 7 && from.col == 4 && // King is on e1
+                   game.getPiece(at: Position(row: 7, col: 5)).type == .empty && // f1 empty
+                   game.getPiece(at: Position(row: 7, col: 6)).type == .empty && // g1 empty
+                   !GameStateChecker.isSquareAttacked(game: game, position: Position(row: 7, col: 5), byColor: .black) && // f1 not attacked
+                   !GameStateChecker.isSquareAttacked(game: game, position: Position(row: 7, col: 6), byColor: .black) { // g1 not attacked
+                    moves.append(Position(row: 7, col: 6)) // g1
+                }
 
-        if piece.color == .white {
-            // White kingside castling (king moves to g1)
-            if !game.whiteKingMoved && !game.whiteRookKingsideMoved &&
-               from.row == 7 && from.col == 4 && // King is on e1
-               game.getPiece(at: Position(row: 7, col: 5)).type == .empty && // f1 empty
-               game.getPiece(at: Position(row: 7, col: 6)).type == .empty {  // g1 empty
-                moves.append(Position(row: 7, col: 6)) // g1
-            }
+                // White queenside castling (king moves to c1)
+                if !game.whiteKingMoved && !game.whiteRookQueensideMoved &&
+                   from.row == 7 && from.col == 4 && // King is on e1
+                   game.getPiece(at: Position(row: 7, col: 1)).type == .empty && // b1 empty
+                   game.getPiece(at: Position(row: 7, col: 2)).type == .empty && // c1 empty
+                   game.getPiece(at: Position(row: 7, col: 3)).type == .empty && // d1 empty
+                   !GameStateChecker.isSquareAttacked(game: game, position: Position(row: 7, col: 2), byColor: .black) && // c1 not attacked
+                   !GameStateChecker.isSquareAttacked(game: game, position: Position(row: 7, col: 3), byColor: .black) { // d1 not attacked
+                    moves.append(Position(row: 7, col: 2)) // c1
+                }
+            } else { // BLACK
+                // Black kingside castling (king moves to g8)
+                if !game.blackKingMoved && !game.blackRookKingsideMoved &&
+                   from.row == 0 && from.col == 4 && // King is on e8
+                   game.getPiece(at: Position(row: 0, col: 5)).type == .empty && // f8 empty
+                   game.getPiece(at: Position(row: 0, col: 6)).type == .empty && // g8 empty
+                   !GameStateChecker.isSquareAttacked(game: game, position: Position(row: 0, col: 5), byColor: .white) && // f8 not attacked
+                   !GameStateChecker.isSquareAttacked(game: game, position: Position(row: 0, col: 6), byColor: .white) { // g8 not attacked
+                    moves.append(Position(row: 0, col: 6)) // g8
+                }
 
-            // White queenside castling (king moves to c1)
-            if !game.whiteKingMoved && !game.whiteRookQueensideMoved &&
-               from.row == 7 && from.col == 4 && // King is on e1
-               game.getPiece(at: Position(row: 7, col: 1)).type == .empty && // b1 empty
-               game.getPiece(at: Position(row: 7, col: 2)).type == .empty && // c1 empty
-               game.getPiece(at: Position(row: 7, col: 3)).type == .empty {  // d1 empty
-                moves.append(Position(row: 7, col: 2)) // c1
-            }
-        } else { // BLACK
-            // Black kingside castling (king moves to g8)
-            if !game.blackKingMoved && !game.blackRookKingsideMoved &&
-               from.row == 0 && from.col == 4 && // King is on e8
-               game.getPiece(at: Position(row: 0, col: 5)).type == .empty && // f8 empty
-               game.getPiece(at: Position(row: 0, col: 6)).type == .empty {  // g8 empty
-                moves.append(Position(row: 0, col: 6)) // g8
-            }
-
-            // Black queenside castling (king moves to c8)
-            if !game.blackKingMoved && !game.blackRookQueensideMoved &&
-               from.row == 0 && from.col == 4 && // King is on e8
-               game.getPiece(at: Position(row: 0, col: 1)).type == .empty && // b8 empty
-               game.getPiece(at: Position(row: 0, col: 2)).type == .empty && // c8 empty
-               game.getPiece(at: Position(row: 0, col: 3)).type == .empty {  // d8 empty
-                moves.append(Position(row: 0, col: 2)) // c8
+                // Black queenside castling (king moves to c8)
+                if !game.blackKingMoved && !game.blackRookQueensideMoved &&
+                   from.row == 0 && from.col == 4 && // King is on e8
+                   game.getPiece(at: Position(row: 0, col: 1)).type == .empty && // b8 empty
+                   game.getPiece(at: Position(row: 0, col: 2)).type == .empty && // c8 empty
+                   game.getPiece(at: Position(row: 0, col: 3)).type == .empty && // d8 empty
+                   !GameStateChecker.isSquareAttacked(game: game, position: Position(row: 0, col: 2), byColor: .white) && // c8 not attacked
+                   !GameStateChecker.isSquareAttacked(game: game, position: Position(row: 0, col: 3), byColor: .white) { // d8 not attacked
+                    moves.append(Position(row: 0, col: 2)) // c8
+                }
             }
         }
 

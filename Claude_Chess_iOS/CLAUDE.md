@@ -225,11 +225,10 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (14 total as of Oct 13, 2025 - Session 15):**
+**Current TODO Inventory (12 total as of Oct 13, 2025 - Session 15):**
 
-**Phase 3 - Move Validation & Game Logic (2 TODOs):**
-- `MoveValidator.swift` - Add check detection to prevent castling while in check
-- `MoveValidator.swift` - Add is_square_attacked() checks for squares king moves through
+**Phase 3 - Move Validation & Game Logic (0 TODOs):**
+- ✅ All validation complete
 
 **Phase 3 - UI & Display (3 TODOs):**
 - `HintView.swift` - Implement actual hint functionality
