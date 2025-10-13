@@ -90,6 +90,11 @@ struct ContentView: View {
         isLargeDevice ? .system(size: 32) : .title2
     }
 
+    /// Dynamic font for app title
+    private var titleFont: Font {
+        isLargeDevice ? .largeTitle : .title2
+    }
+
     /// Get the dark square color from current board theme
     private var boardDarkColor: SwiftUI.Color {
         let customLight = BoardColorTheme.ColorComponents(red: customLightRed, green: customLightGreen, blue: customLightBlue)
@@ -103,7 +108,7 @@ struct ContentView: View {
             // Header with title and action buttons
             HStack {
                 Text("Claude Chess")
-                    .font(.largeTitle)
+                    .font(titleFont)
                     .fontWeight(.bold)
 
                 Spacer()
