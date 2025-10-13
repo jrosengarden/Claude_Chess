@@ -156,12 +156,8 @@ class ChessGame: ObservableObject {
         // FEN requires at least 6 components: pieces, player, castling, en passant, halfmove, fullmove
         guard components.count >= 6 else { return false }
 
-        // Clear board
-        for row in 0..<8 {
-            for col in 0..<8 {
-                board[row][col] = nil
-            }
-        }
+        // Create temporary board to validate FEN before modifying game state
+        var tempBoard: [[Piece?]] = Array(repeating: Array(repeating: nil, count: 8), count: 8)
 
         // Parse piece placement (component 0)
         let ranks = components[0].split(separator: "/")
@@ -169,6 +165,8 @@ class ChessGame: ObservableObject {
 
         var foundWhiteKing = false
         var foundBlackKing = false
+        var tempWhiteKingPos: Position?
+        var tempBlackKingPos: Position?
 
         for (rankIndex, rankStr) in ranks.enumerated() {
             var file = 0
@@ -182,16 +180,16 @@ class ChessGame: ObservableObject {
                     guard file < 8 else { return false }
                     guard let piece = Piece.fromFENCharacter(char) else { return false }
 
-                    board[rankIndex][file] = piece
+                    tempBoard[rankIndex][file] = piece
 
                     // Track king positions
                     if piece.type == .king {
                         let kingPos = Position(row: rankIndex, col: file)
                         if piece.color == .white {
-                            whiteKingPos = kingPos
+                            tempWhiteKingPos = kingPos
                             foundWhiteKing = true
                         } else {
-                            blackKingPos = kingPos
+                            tempBlackKingPos = kingPos
                             foundBlackKing = true
                         }
                     }
@@ -203,52 +201,69 @@ class ChessGame: ObservableObject {
         }
 
         // Verify both kings are present
-        guard foundWhiteKing && foundBlackKing else { return false }
+        guard foundWhiteKing && foundBlackKing,
+              let tempWhiteKing = tempWhiteKingPos,
+              let tempBlackKing = tempBlackKingPos else { return false }
 
-        // Parse active color (component 1)
+        // Parse active color (component 1) into temp variable
+        let tempPlayer: Color
         if components[1] == "w" {
-            currentPlayer = .white
+            tempPlayer = .white
         } else if components[1] == "b" {
-            currentPlayer = .black
+            tempPlayer = .black
         } else {
             return false
         }
 
-        // Parse castling rights (component 2)
-        whiteKingMoved = true
-        blackKingMoved = true
-        whiteRookKingsideMoved = true
-        whiteRookQueensideMoved = true
-        blackRookKingsideMoved = true
-        blackRookQueensideMoved = true
+        // Parse castling rights (component 2) into temp variables
+        var tempWhiteKingMoved = true
+        var tempBlackKingMoved = true
+        var tempWhiteRookKingsideMoved = true
+        var tempWhiteRookQueensideMoved = true
+        var tempBlackRookKingsideMoved = true
+        var tempBlackRookQueensideMoved = true
 
         if components[2] != "-" {
             for char in components[2] {
                 switch char {
-                case "K": whiteKingMoved = false; whiteRookKingsideMoved = false
-                case "Q": whiteKingMoved = false; whiteRookQueensideMoved = false
-                case "k": blackKingMoved = false; blackRookKingsideMoved = false
-                case "q": blackKingMoved = false; blackRookQueensideMoved = false
+                case "K": tempWhiteKingMoved = false; tempWhiteRookKingsideMoved = false
+                case "Q": tempWhiteKingMoved = false; tempWhiteRookQueensideMoved = false
+                case "k": tempBlackKingMoved = false; tempBlackRookKingsideMoved = false
+                case "q": tempBlackKingMoved = false; tempBlackRookQueensideMoved = false
                 default: return false
                 }
             }
         }
 
-        // Parse en passant target (component 3)
+        // Parse en passant target (component 3) into temp variable
+        let tempEnPassant: Position?
         if components[3] == "-" {
-            enPassantTarget = nil
+            tempEnPassant = nil
         } else {
             guard let pos = Position(algebraic: String(components[3])) else { return false }
-            enPassantTarget = pos
+            tempEnPassant = pos
         }
 
-        // Parse halfmove clock (component 4)
-        guard let halfmove = Int(components[4]) else { return false }
-        halfmoveClock = halfmove
+        // Parse halfmove clock (component 4) into temp variable
+        guard let tempHalfmove = Int(components[4]) else { return false }
 
-        // Parse fullmove number (component 5)
-        guard let fullmove = Int(components[5]) else { return false }
-        fullmoveNumber = fullmove
+        // Parse fullmove number (component 5) into temp variable
+        guard let tempFullmove = Int(components[5]) else { return false }
+
+        // ALL VALIDATION PASSED - Now apply changes to actual game state
+        board = tempBoard
+        currentPlayer = tempPlayer
+        whiteKingPos = tempWhiteKing
+        blackKingPos = tempBlackKing
+        whiteKingMoved = tempWhiteKingMoved
+        blackKingMoved = tempBlackKingMoved
+        whiteRookKingsideMoved = tempWhiteRookKingsideMoved
+        whiteRookQueensideMoved = tempWhiteRookQueensideMoved
+        blackRookKingsideMoved = tempBlackRookKingsideMoved
+        blackRookQueensideMoved = tempBlackRookQueensideMoved
+        enPassantTarget = tempEnPassant
+        halfmoveClock = tempHalfmove
+        fullmoveNumber = tempFullmove
 
         return true
     }
