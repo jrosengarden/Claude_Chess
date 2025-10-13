@@ -27,6 +27,25 @@ struct QuickGameMenuView: View {
         NavigationStack {
             List {
                 Section("Game Actions") {
+                    // Start Game button - only enabled before game starts
+                    Button {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            lightHaptic.impactOccurred()
+                        }
+                        #endif
+                        game.gameInProgress = true
+                        game.startMoveTimer()
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Image(systemName: "play.fill")
+                                .foregroundColor(.green)
+                            Text("Start Game")
+                        }
+                    }
+                    .disabled(game.gameInProgress)
+
                     Button {
                         #if os(iOS)
                         if hapticFeedbackEnabled {

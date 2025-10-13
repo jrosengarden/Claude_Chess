@@ -15,6 +15,9 @@ import SwiftUI
 /// - Increment: Seconds added after each move (0-60 seconds)
 /// - Setting both players to 0/0 disables time controls
 struct TimeControlsView: View {
+    // Game state to check if game has started
+    @ObservedObject var game: ChessGame
+
     // White player time controls
     @AppStorage("whiteMinutes") private var whiteMinutes = 30
     @AppStorage("whiteIncrement") private var whiteIncrement = 10
@@ -23,8 +26,37 @@ struct TimeControlsView: View {
     @AppStorage("blackMinutes") private var blackMinutes = 5
     @AppStorage("blackIncrement") private var blackIncrement = 0
 
+    /// Check if game has started and time controls should be locked
+    /// Time controls are locked when:
+    /// - Any moves have been made, OR
+    /// - Time controls were disabled by undo (remains locked until new game)
+    private var gameStarted: Bool {
+        return !game.moveHistory.isEmpty || game.timeControlsDisabledByUndo
+    }
+
     var body: some View {
         List {
+            // Game-start lock warning
+            if gameStarted {
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: "lock.fill")
+                            .foregroundColor(.orange)
+                            .font(.title2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Time Controls Locked")
+                                .font(.headline)
+                                .foregroundColor(.orange)
+                            Text("Time controls cannot be changed after the game has started. Start a new game to adjust settings, or use Undo to disable time controls for the remainder of this game.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+
             // Time controls status - now selectable
             Section {
                 Picker("Status", selection: Binding(
@@ -51,6 +83,7 @@ struct TimeControlsView: View {
                     Text("Disabled").tag(false)
                 }
                 .pickerStyle(.segmented)
+                .disabled(gameStarted)
             }
 
             // White player section
@@ -70,6 +103,7 @@ struct TimeControlsView: View {
                             get: { Double(whiteMinutes) },
                             set: { whiteMinutes = Int($0) }
                         ), in: 0...60, step: 1)
+                        .disabled(gameStarted)
                     }
 
                     // Increment slider
@@ -86,6 +120,7 @@ struct TimeControlsView: View {
                             get: { Double(whiteIncrement) },
                             set: { whiteIncrement = Int($0) }
                         ), in: 0...60, step: 1)
+                        .disabled(gameStarted)
                     }
                 }
             }
@@ -107,6 +142,7 @@ struct TimeControlsView: View {
                             get: { Double(blackMinutes) },
                             set: { blackMinutes = Int($0) }
                         ), in: 0...60, step: 1)
+                        .disabled(gameStarted)
                     }
 
                     // Increment slider
@@ -123,6 +159,7 @@ struct TimeControlsView: View {
                             get: { Double(blackIncrement) },
                             set: { blackIncrement = Int($0) }
                         ), in: 0...60, step: 1)
+                        .disabled(gameStarted)
                     }
                 }
             }
@@ -135,6 +172,7 @@ struct TimeControlsView: View {
                     blackMinutes = 5
                     blackIncrement = 0
                 }
+                .disabled(gameStarted)
 
                 Button("Rapid (10 min + 5 sec)") {
                     whiteMinutes = 10
@@ -142,6 +180,7 @@ struct TimeControlsView: View {
                     blackMinutes = 10
                     blackIncrement = 5
                 }
+                .disabled(gameStarted)
 
                 Button("Classical (30 min + 10 sec)") {
                     whiteMinutes = 30
@@ -149,6 +188,7 @@ struct TimeControlsView: View {
                     blackMinutes = 30
                     blackIncrement = 10
                 }
+                .disabled(gameStarted)
 
                 Button("Terminal Default (30/10 vs 5/0)") {
                     whiteMinutes = 30
@@ -156,6 +196,7 @@ struct TimeControlsView: View {
                     blackMinutes = 5
                     blackIncrement = 0
                 }
+                .disabled(gameStarted)
             }
 
             // About time controls
@@ -199,7 +240,7 @@ struct TimeControlsView: View {
 
 #Preview {
     NavigationView {
-        TimeControlsView()
+        TimeControlsView(game: ChessGame())
     }
 }
 

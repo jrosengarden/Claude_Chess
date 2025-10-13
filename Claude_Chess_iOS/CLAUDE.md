@@ -27,12 +27,13 @@ logic, features, and behavior.**
 
 ## Project Status
 
-**Current Phase:** Phase 3 IN PROGRESS 🔄 - Move History & Undo Complete
+**Current Phase:** Phase 3 IN PROGRESS 🔄 - Time Controls Complete
 **Created:** September 30, 2025
-**Last Updated:** October 13, 2025
+**Last Updated:** October 13, 2025 (Session 15)
 **Development Stage:** Fully playable chess game with all core rules
 (promotion, 50-move rule, check/checkmate/stalemate), touch/drag input,
-complete move validation, undo system, and captured pieces display
+complete move validation, undo system, captured pieces display, and
+complete time controls enforcement
 
 ## Build System
 
@@ -224,18 +225,18 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (15 total as of Oct 13, 2025 - Session 14):**
+**Current TODO Inventory (14 total as of Oct 13, 2025 - Session 15):**
 
 **Phase 3 - Move Validation & Game Logic (2 TODOs):**
 - `MoveValidator.swift` - Add check detection to prevent castling while in check
 - `MoveValidator.swift` - Add is_square_attacked() checks for squares king moves through
 
-**Phase 3 - UI & Display (2 TODOs):**
+**Phase 3 - UI & Display (3 TODOs):**
 - `HintView.swift` - Implement actual hint functionality
 - `ScoreView.swift` - Display current position evaluation
 - `ScoreView.swift` - Display game statistics
 
-**Phase 3 - Game Management (10 TODOs):**
+**Phase 3 - Game Management (8 TODOs):**
 - `GameMenuView.swift` - Import FEN action (load .fen files with position navigation + save prompt)
 - `GameMenuView.swift` - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
 - `GameMenuView.swift` - Share Game action (mid-game sharing via iOS share sheet)
@@ -289,8 +290,8 @@ native format.
 **Reference**: `../CLAUDE.md` for complete terminal project specifications
 
 ### Summary Status
-- **✅ Fully Implemented:** 17 features
-- **🔄 Partially Implemented:** 5 features
+- **✅ Fully Implemented:** 18 features
+- **🔄 Partially Implemented:** 4 features
 - **❌ Missing/Not Planned:** 12 features
 - **📋 iOS-Specific Adaptations Needed:** 6 features
 
@@ -359,25 +360,21 @@ native format.
 
 ### 4. TIME CONTROLS
 
-**✅ iOS UI Ready (Not Enforced):**
+**✅ Fully Implemented in iOS (Session 15):**
 - ✅ Time control configuration UI (White/Black separate settings)
-- ✅ Quick presets (Blitz, Rapid, Classical)
-- ✅ Time display in ContentView header
+- ✅ Quick presets (Blitz, Rapid, Classical, Terminal Default)
+- ✅ Time display in ContentView header with MM:SS formatting
 - ✅ Enable/Disable toggle
+- ✅ **Active timer countdown** - Live updates every second via Combine
+- ✅ **Time increment system** - Adds seconds after each move (White/Black separate)
+- ✅ **Time forfeit detection** - Automatic game-end alert when time expires
+- ✅ **Undo disables time** - Time controls disabled for remainder of game after undo
+- ✅ **Game-start lock enforcement** - Prevents changes after first move OR after undo
+- ✅ **"Start Game" button** - User-controlled timer start (fixes terminal UX weakness)
 
-**❌ Terminal Features Not Yet in iOS:**
-- ❌ **Active timer countdown** - Terminal tracks time in real-time
-  during moves
-- ❌ **Time increment system** - Terminal adds seconds after each move
-- ❌ **Time forfeit detection** - Terminal has `check_time_forfeit()`
-  with automatic loss
-- ❌ **Time display formatting** - Terminal shows MM:SS format
+**❌ Not Yet Implemented:**
 - ❌ **Timer integration with AI** - Terminal uses 1/20th of remaining
-  time for AI moves
-- ❌ **Undo disables time** - Terminal disables time controls after
-  undo
-- ❌ **Game-start lock enforcement** - Terminal prevents TIME command
-  after first move
+  time for AI moves (requires AI integration first)
 
 ---
 
@@ -549,27 +546,28 @@ All core chess rules now fully implemented:
    - Prevent pondering during human turns
    - Search mode selection (depth vs time-based)
 
-**Priority 2: Move History System**
+**Priority 2: Move History System ✅ COMPLETE (Session 14)**
 2. **Move History & Undo**
-   - Track all moves in array with notation
-   - Display move history list
-   - Enable undo functionality with stack
-   - Support PGN generation from history
-   - Algebraic notation converter (Position → "e2e4", "Nf3", etc.)
+   - ✅ Track all moves in array with notation
+   - 📋 Display move history list (Phase 4)
+   - ✅ Enable undo functionality with stack
+   - 📋 Support PGN generation from history (requires algebraic notation)
+   - 📋 Algebraic notation converter (Position → "e2e4", "Nf3", etc.)
 
-**Priority 3: Core Game Features**
+**Priority 3: Core Game Features ✅ COMPLETE (Sessions 14-15)**
 3. **Captured Pieces Calculation**
-   - Compare current board to starting position
-   - Display captured pieces for each side
-   - Update display after each move
+   - ✅ Compare current board to starting position
+   - ✅ Display captured pieces for each side
+   - ✅ Update display after each move
 
 4. **Time Controls Enforcement**
-   - Active timer countdown during turns
-   - Time increment after each move
-   - Time forfeit detection with automatic loss
-   - MM:SS display formatting
-   - Integration with AI move timing (1/20th remaining time)
-   - Undo disables time controls
+   - ✅ Active timer countdown during turns
+   - ✅ Time increment after each move
+   - ✅ Time forfeit detection with automatic loss
+   - ✅ MM:SS display formatting
+   - ✅ Undo disables time controls
+   - ✅ User-controlled game start (Start Game button)
+   - 📋 Integration with AI move timing (1/20th remaining time) - requires AI first
 
 **Priority 4: File Management**
 5. **FEN/PGN Import with Navigation**
@@ -1091,6 +1089,20 @@ with Settings
 - Fixed Unicode symbol sizing issues by using professional SVG pieces
 - TODO count reduced from 18 to 15 (removed completed items)
 
+**Session 15: Oct 13, 2025** - Time Controls Enforcement & Start Game UX
+- Implemented complete time controls system with live countdown
+- Added timer state properties to ChessGame (@Published for UI reactivity)
+- Integrated Combine framework for Timer.publish() every-second updates
+- Time increment system applies seconds after each move (White/Black separate)
+- Time forfeit detection with automatic game-end alert
+- Undo disables time controls for remainder of game (terminal parity)
+- Game-start lock prevents time control changes after first move OR after undo
+- **Major UX improvement:** Added "Start Game" button in Quick Menu
+- Timer no longer starts automatically (fixes terminal app weakness)
+- Updated captured pieces display to use tappable overlay (Session 14 refinement)
+- Fixed iOS 17 onChange deprecation warning
+- TODO count remains at 14 (no feature completion)
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -1172,7 +1184,9 @@ refactoring for Stockfish/Lichess/Chess.com engines.
 **🔄 Phase 3 IN PROGRESS (Started Oct 13, 2025):**
 - ✅ **Move history tracking** (MoveRecord with complete state capture)
 - ✅ **Undo functionality** (perfect state restoration including special moves)
-- ✅ **Captured pieces display** (calculated from move history)
+- ✅ **Captured pieces display** (calculated from move history, tappable overlay)
+- ✅ **Time controls enforcement** (live countdown, increment, forfeit detection)
+- ✅ **Start Game UX** (user-controlled timer start, fixes terminal weakness)
 - 📋 AI integration (Stockfish framework) - NEXT PRIORITY
 - 📋 **FEN/PGN import with position navigation** (matches terminal LOAD FEN/PGN)
 - 📋 FEN/PGN export

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct ContentView: View {
     // Game state
@@ -17,6 +18,15 @@ struct ContentView: View {
     @State private var showingSettings = false
     @State private var showingTimeControls = false
     @State private var showingOpponentSettings = false
+    @State private var showingWhiteCaptured = false
+    @State private var showingBlackCaptured = false
+
+    // Timer for countdown updates
+    @State private var timerCancellable: AnyCancellable?
+
+    // Track if time forfeit alert is showing
+    @State private var showingTimeForfeitAlert = false
+    @State private var timeForfeitWinner: Color?
 
     // Opponent settings
     @AppStorage("selectedEngine") private var selectedEngine = "stockfish"
@@ -189,17 +199,18 @@ struct ContentView: View {
                         .font(playerNameFont)
                         .fontWeight(.semibold)
 
-                    Text("Captured:")
-                        .font(capturedFont)
-                        .foregroundColor(.secondary)
-
-                    // Display captured pieces as SVG images
-                    HStack(spacing: 2) {
-                        ForEach(capturedPiecesArray(for: .white), id: \.self) { piece in
-                            Image(piece.assetName)
-                                .resizable()
-                                .frame(width: pieceIconSize, height: pieceIconSize)
+                    // Captured pieces count - tappable to show details
+                    Button(action: {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            lightHaptic.impactOccurred()
                         }
+                        #endif
+                        showingWhiteCaptured = true
+                    }) {
+                        Text("Captured: \(game.capturedByWhite.count)")
+                            .font(capturedFont)
+                            .foregroundColor(.blue)
                     }
 
                     Spacer()
@@ -214,7 +225,7 @@ struct ContentView: View {
                             #endif
                             showingTimeControls = true
                         }) {
-                            Text(formatTime(whiteMinutes * 60))
+                            Text(formatTime(game.getCurrentTime(for: .white)))
                                 .font(timeFont)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.blue)
@@ -232,17 +243,18 @@ struct ContentView: View {
                         .font(playerNameFont)
                         .fontWeight(.semibold)
 
-                    Text("Captured:")
-                        .font(capturedFont)
-                        .foregroundColor(.secondary)
-
-                    // Display captured pieces as SVG images
-                    HStack(spacing: 2) {
-                        ForEach(capturedPiecesArray(for: .black), id: \.self) { piece in
-                            Image(piece.assetName)
-                                .resizable()
-                                .frame(width: pieceIconSize, height: pieceIconSize)
+                    // Captured pieces count - tappable to show details
+                    Button(action: {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            lightHaptic.impactOccurred()
                         }
+                        #endif
+                        showingBlackCaptured = true
+                    }) {
+                        Text("Captured: \(game.capturedByBlack.count)")
+                            .font(capturedFont)
+                            .foregroundColor(.blue)
                     }
 
                     Spacer()
@@ -257,7 +269,7 @@ struct ContentView: View {
                             #endif
                             showingTimeControls = true
                         }) {
-                            Text(formatTime(blackMinutes * 60))
+                            Text(formatTime(game.getCurrentTime(for: .black)))
                                 .font(timeFont)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.blue)
@@ -297,6 +309,23 @@ struct ContentView: View {
 
             Spacer()
         }
+        .overlay {
+            // Captured pieces overlay (positioned at top, covering White/Black info lines)
+            if showingWhiteCaptured || showingBlackCaptured {
+                VStack {
+                    CapturedPiecesOverlay(
+                        player: showingWhiteCaptured ? .white : .black,
+                        capturedPieces: showingWhiteCaptured ?
+                            capturedPiecesArray(for: .white) :
+                            capturedPiecesArray(for: .black),
+                        isPresented: showingWhiteCaptured ? $showingWhiteCaptured : $showingBlackCaptured
+                    )
+                    .padding(.top, 8)
+
+                    Spacer()
+                }
+            }
+        }
         .sheet(isPresented: $showingQuickGame) {
             QuickGameMenuView(game: game)
         }
@@ -308,7 +337,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingTimeControls) {
             NavigationView {
-                TimeControlsView()
+                TimeControlsView(game: game)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") {
@@ -340,6 +369,41 @@ struct ContentView: View {
                         }
                     }
                 }
+            }
+        }
+        .onAppear {
+            // Initialize time controls from settings on app start
+            initializeTimeControls()
+
+            // Timer doesn't start automatically - user must tap "Start Game" in Quick Menu
+
+            // Start timer publisher for live countdown display
+            timerCancellable = Timer.publish(every: 1, on: .main, in: .common)
+                .autoconnect()
+                .sink { _ in
+                    // Update timer every second
+                    game.updateTimer()
+
+                    // Check for time forfeit
+                    if game.checkTimeForfeit() {
+                        // Determine winner (opposite of current player who ran out of time)
+                        timeForfeitWinner = game.currentPlayer == .white ? .black : .white
+                        showingTimeForfeitAlert = true
+                    }
+                }
+        }
+        .onChange(of: game.resetTrigger) { oldValue, newValue in
+            // Re-initialize time controls whenever game is reset
+            initializeTimeControls()
+        }
+        .alert("Time Forfeit!", isPresented: $showingTimeForfeitAlert) {
+            Button("OK") {
+                // Reset game after time forfeit (onChange will re-initialize time controls)
+                game.resetGame()
+            }
+        } message: {
+            if let winner = timeForfeitWinner {
+                Text("\(winner == .white ? "White" : "Black") wins by time forfeit!")
             }
         }
     }
@@ -375,10 +439,13 @@ struct ContentView: View {
         }
     }
 
-    /// Check if time controls are enabled
-    /// Time controls are disabled when both players have 0 minutes and 0 increment
+    /// Check if time controls are enabled and should be displayed
+    /// Time controls are disabled when:
+    /// - Both players have 0 minutes and 0 increment (disabled in settings)
+    /// - OR user has used Undo which disables them for remainder of game
     private var isTimeControlsEnabled: Bool {
-        return !(whiteMinutes == 0 && whiteIncrement == 0 && blackMinutes == 0 && blackIncrement == 0)
+        let settingsEnabled = !(whiteMinutes == 0 && whiteIncrement == 0 && blackMinutes == 0 && blackIncrement == 0)
+        return settingsEnabled && game.timeControlsEnabled && !game.timeControlsDisabledByUndo
     }
 
     /// Format time in seconds to MM:SS format
@@ -387,6 +454,16 @@ struct ContentView: View {
         let minutes = seconds / 60
         let remainingSeconds = seconds % 60
         return String(format: "%d:%02d", minutes, remainingSeconds)
+    }
+
+    /// Initialize time controls from current settings
+    private func initializeTimeControls() {
+        game.initializeTimeControls(
+            whiteMinutes: whiteMinutes,
+            whiteIncrement: whiteIncrement,
+            blackMinutes: blackMinutes,
+            blackIncrement: blackIncrement
+        )
     }
 }
 

@@ -60,7 +60,7 @@ struct GameMenuView: View {
                             .foregroundColor(.accentColor)
                     }
 
-                    NavigationLink(destination: TimeControlsView()) {
+                    NavigationLink(destination: TimeControlsView(game: game)) {
                         Label("Time Controls", systemImage: "clock")
                             .foregroundColor(.accentColor)
                     }

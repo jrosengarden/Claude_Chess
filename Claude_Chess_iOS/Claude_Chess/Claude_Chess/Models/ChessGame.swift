@@ -55,6 +55,33 @@ class ChessGame: ObservableObject {
     /// Complete move history for undo and PGN generation
     @Published var moveHistory: [MoveRecord] = []
 
+    // MARK: - Time Controls
+
+    /// Time remaining for White in seconds
+    @Published var whiteTimeSeconds: Int = 0
+
+    /// Time remaining for Black in seconds
+    @Published var blackTimeSeconds: Int = 0
+
+    /// When the current move timer started
+    var moveStartTime: Date?
+
+    /// Whether time controls are active for this game
+    var timeControlsEnabled: Bool = false
+
+    /// Whether time controls were disabled due to undo
+    var timeControlsDisabledByUndo: Bool = false
+
+    /// Time increment for White (seconds added after each move)
+    var whiteIncrement: Int = 0
+
+    /// Time increment for Black (seconds added after each move)
+    var blackIncrement: Int = 0
+
+    /// Whether the game has been explicitly started by the user
+    /// Timer doesn't run until user taps "Start Game"
+    @Published var gameInProgress: Bool = false
+
     // MARK: - Initialization
 
     /// Initialize a new chess game with standard starting position
@@ -141,6 +168,12 @@ class ChessGame: ObservableObject {
     /// Clears the board and reinitializes to standard chess starting position
     func resetGame() {
         setupInitialPosition()
+        // Clear move history (captured pieces tracking)
+        moveHistory.removeAll()
+        // Reset timer state
+        moveStartTime = nil
+        timeControlsDisabledByUndo = false
+        gameInProgress = false  // User must explicitly start game
         // Increment reset trigger to notify UI to clear selection state
         resetTrigger += 1
     }
@@ -342,6 +375,92 @@ class ChessGame: ObservableObject {
         }
     }
 
+    // MARK: - Time Control Management
+
+    /// Initialize time controls from settings
+    func initializeTimeControls(whiteMinutes: Int, whiteIncrement: Int, blackMinutes: Int, blackIncrement: Int) {
+        // Check if time controls are enabled (not 0/0)
+        timeControlsEnabled = !(whiteMinutes == 0 && whiteIncrement == 0 && blackMinutes == 0 && blackIncrement == 0)
+
+        if timeControlsEnabled {
+            whiteTimeSeconds = whiteMinutes * 60
+            blackTimeSeconds = blackMinutes * 60
+            self.whiteIncrement = whiteIncrement
+            self.blackIncrement = blackIncrement
+            timeControlsDisabledByUndo = false
+        }
+    }
+
+    /// Start the timer for the current player's move
+    /// Only starts if game has been explicitly started by user
+    func startMoveTimer() {
+        guard timeControlsEnabled && !timeControlsDisabledByUndo && gameInProgress else { return }
+        moveStartTime = Date()
+    }
+
+    /// Stop the timer and apply time deduction + increment
+    /// Should be called BEFORE switching players (so currentPlayer is the player who just moved)
+    func stopMoveTimer() {
+        guard timeControlsEnabled && !timeControlsDisabledByUndo else { return }
+        guard let startTime = moveStartTime else { return }
+
+        // Calculate elapsed time
+        let elapsed = Int(Date().timeIntervalSince(startTime))
+
+        // Deduct time from the player who just moved (BEFORE switching)
+        // and add their increment
+        if currentPlayer == .white {
+            whiteTimeSeconds -= elapsed
+            whiteTimeSeconds += whiteIncrement
+        } else {
+            blackTimeSeconds -= elapsed
+            blackTimeSeconds += blackIncrement
+        }
+
+        moveStartTime = nil
+    }
+
+    /// Update timer countdown (called every second)
+    func updateTimer() {
+        guard timeControlsEnabled && !timeControlsDisabledByUndo else { return }
+        guard moveStartTime != nil else { return }
+
+        // Trigger UI refresh to update the live countdown display
+        // getCurrentTime() will calculate the current remaining time on each call
+        objectWillChange.send()
+    }
+
+    /// Check if current player has run out of time
+    func checkTimeForfeit() -> Bool {
+        guard timeControlsEnabled && !timeControlsDisabledByUndo else { return false }
+        guard let startTime = moveStartTime else { return false }
+
+        let elapsed = Int(Date().timeIntervalSince(startTime))
+
+        if currentPlayer == .white {
+            return (whiteTimeSeconds - elapsed) <= 0
+        } else {
+            return (blackTimeSeconds - elapsed) <= 0
+        }
+    }
+
+    /// Get current time remaining for a player (accounting for elapsed time)
+    func getCurrentTime(for player: Color) -> Int {
+        guard timeControlsEnabled && !timeControlsDisabledByUndo else {
+            return player == .white ? whiteTimeSeconds : blackTimeSeconds
+        }
+
+        let baseTime = player == .white ? whiteTimeSeconds : blackTimeSeconds
+
+        // If it's this player's turn and timer is running, subtract elapsed time
+        if player == currentPlayer, let startTime = moveStartTime {
+            let elapsed = Int(Date().timeIntervalSince(startTime))
+            return max(0, baseTime - elapsed)
+        }
+
+        return baseTime
+    }
+
     // MARK: - Move Execution
 
     /// Execute a chess move with full game state updates
@@ -488,6 +607,9 @@ class ChessGame: ObservableObject {
             enPassantTarget = Position(row: targetRow, col: to.col)
         }
 
+        // Stop timer for player who just moved (BEFORE switching players)
+        stopMoveTimer()
+
         // Create move record for history (BEFORE switching player)
         let moveRecord = MoveRecord(
             from: from,
@@ -509,6 +631,9 @@ class ChessGame: ObservableObject {
 
         // Switch current player
         currentPlayer = currentPlayer.opposite
+
+        // Start timer for the new player
+        startMoveTimer()
 
         // Append to move history
         moveHistory.append(moveRecord)
@@ -609,6 +734,9 @@ class ChessGame: ObservableObject {
         // Clear en passant (promotion can't create en passant)
         enPassantTarget = nil
 
+        // Stop timer for player who just moved (BEFORE switching players)
+        stopMoveTimer()
+
         // Create move record for history (BEFORE switching player)
         let moveRecord = MoveRecord(
             from: from,
@@ -631,6 +759,9 @@ class ChessGame: ObservableObject {
         // Switch current player
         currentPlayer = currentPlayer.opposite
 
+        // Start timer for the new player
+        startMoveTimer()
+
         // Append to move history
         moveHistory.append(moveRecord)
 
@@ -652,6 +783,12 @@ class ChessGame: ObservableObject {
         // Check if there are any moves to undo
         guard !moveHistory.isEmpty else {
             return false
+        }
+
+        // Disable time controls after undo (matches terminal project)
+        if timeControlsEnabled && !timeControlsDisabledByUndo {
+            timeControlsDisabledByUndo = true
+            moveStartTime = nil
         }
 
         // Pop the last move from history

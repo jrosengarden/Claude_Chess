@@ -57,11 +57,15 @@ experience with SwiftUI.
 - FEN/PGN import and export
 - Opening library integration
 
-### Time Controls
-- Configurable time limits
-- Separate allocations for White and Black
-- Visual timer display
-- Time forfeit detection
+### Time Controls ✅ (Session 15 Complete)
+- ✅ Configurable time limits (0-60 minutes, 0-60 second increment)
+- ✅ Separate allocations for White and Black
+- ✅ Visual timer display with live MM:SS countdown
+- ✅ Time forfeit detection with automatic game-end alert
+- ✅ Quick presets (Blitz, Rapid, Classical, Terminal Default)
+- ✅ User-controlled game start ("Start Game" button)
+- ✅ Game-start lock (prevents changes mid-game)
+- ✅ Undo disables time controls for remainder of game
 
 ### iOS Features
 - Drag-and-drop piece movement
@@ -82,14 +86,29 @@ experience with SwiftUI.
 
 **Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 13, 2025)
 
-**Latest Progress (October 13, 2025 - Session 14):**
+**Latest Progress (October 13, 2025 - Session 15):**
+
+**✅ Time Controls Enforcement (Terminal Parity):**
+- ✅ **Live timer countdown** - Updates every second with MM:SS display
+- ✅ **Time increment system** - Adds seconds after each move (White/Black
+  separate)
+- ✅ **Time forfeit detection** - Automatic game-end alert when time expires
+- ✅ **Undo disables time** - Time controls disabled after undo (like
+  terminal app)
+- ✅ **Game-start lock** - Can't change time controls after first move OR
+  after undo
+- ✅ **"Start Game" button** - User controls when timer starts (fixes
+  terminal weakness!)
+- ✅ **Captured pieces overlay** - Tappable display showing captured pieces
+  (Session 14 refinement)
+
+**Previous Session (October 13, 2025 - Session 14):**
 
 **✅ Move History & Undo System:**
 - ✅ **MoveRecord structure** - Complete move and game state capture
 - ✅ **Full undo functionality** - Perfect state restoration including
   castling, en passant, and promotion moves
-- ✅ **Captured pieces display** - Calculated from move history and
-  displayed using professional SVG assets
+- ✅ **Captured pieces display** - Calculated from move history
 - ✅ **Undo button** - Always visible in header with dynamic board theme
   coloring
 - ✅ **Move history tracking** - All moves recorded with complete game
@@ -139,14 +158,18 @@ the check are allowed. Pawn promotion to any of 4 pieces (Q/R/B/N) works
 for both colors. Haptic feedback provides tactile confirmation throughout
 gameplay.
 
-**Phase 3 Progress: Move History & Undo ✅ (Session 14 Complete)**
+**Phase 3 Progress:**
 - ✅ **Move history tracking** - All moves recorded with state snapshots
-- ✅ **Undo functionality** - Complete state restoration
-- ✅ **Captured pieces display** - Calculated from history
+  (Session 14)
+- ✅ **Undo functionality** - Complete state restoration (Session 14)
+- ✅ **Captured pieces display** - Calculated from history, tappable overlay
+  (Sessions 14-15)
+- ✅ **Time controls enforcement** - Live countdown, increment, forfeit,
+  game-start lock (Session 15)
+- ✅ **Start Game UX** - User-controlled timer start (Session 15)
 - 📋 Stockfish engine integration (UCI protocol) - NEXT PRIORITY
 - 📋 PGN generation from move history
 - 📋 Position evaluation and hints
-- 📋 Time controls enforcement
 - 📋 FEN/PGN import with navigation
 
 This project is in active development. Core features are being ported
@@ -364,11 +387,18 @@ parent project features:
 
 ### Phase 3: AI Integration & Advanced Features (IN PROGRESS - Oct 13, 2025)
 
-**✅ Completed (Session 14):**
+**✅ Completed (Sessions 14-15):**
 - ✅ **Move history tracking** - MoveRecord with complete state capture
+  (Session 14)
 - ✅ **Undo functionality** - Perfect restoration of all special moves
+  (Session 14)
 - ✅ **Captured pieces display** - Calculated from move history using SVG
-  assets
+  assets, tappable overlay (Sessions 14-15)
+- ✅ **Time controls enforcement** - Live countdown every second, separate
+  White/Black time and increment, forfeit detection, undo disables time,
+  game-start lock (Session 15)
+- ✅ **Start Game button** - User-controlled timer start in Quick Menu,
+  fixes terminal app UX weakness (Session 15)
 
 **📋 Next Priority:**
 - Stockfish engine integration or cloud-based AI
@@ -380,12 +410,12 @@ parent project features:
 ### Phase 4: Advanced Features (Future)
 
 **Planned Features:**
-- Time controls
-- Check/checkmate/stalemate detection
-- FEN/PGN import/export
+- FEN/PGN import/export with navigation
 - Game save/load
 - Opening library integration
-- Sound effects and haptic feedback
+- Sound effects
+- Move history display
+- Algebraic notation display
 
 ## Documentation
 
