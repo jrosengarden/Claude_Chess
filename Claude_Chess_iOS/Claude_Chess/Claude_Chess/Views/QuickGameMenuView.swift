@@ -89,7 +89,7 @@ struct QuickGameMenuView: View {
                     }
                 }
             }
-            .navigationTitle("Quick Game")
+            .navigationTitle("Quick Game Actions")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
