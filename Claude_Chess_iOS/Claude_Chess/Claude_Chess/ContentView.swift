@@ -34,6 +34,15 @@ struct ContentView: View {
     private let lightHaptic = UIImpactFeedbackGenerator(style: .light)
     #endif
 
+    // Board theme for dynamic button colors
+    @AppStorage("boardThemeId") private var boardThemeId = "classic"
+    @AppStorage("customLightRed") private var customLightRed = 0.93
+    @AppStorage("customLightGreen") private var customLightGreen = 0.87
+    @AppStorage("customLightBlue") private var customLightBlue = 0.73
+    @AppStorage("customDarkRed") private var customDarkRed = 0.72
+    @AppStorage("customDarkGreen") private var customDarkGreen = 0.53
+    @AppStorage("customDarkBlue") private var customDarkBlue = 0.31
+
     // Detect device type for adaptive text sizing
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -81,6 +90,14 @@ struct ContentView: View {
         isLargeDevice ? .system(size: 32) : .title2
     }
 
+    /// Get the dark square color from current board theme
+    private var boardDarkColor: SwiftUI.Color {
+        let customLight = BoardColorTheme.ColorComponents(red: customLightRed, green: customLightGreen, blue: customLightBlue)
+        let customDark = BoardColorTheme.ColorComponents(red: customDarkRed, green: customDarkGreen, blue: customDarkBlue)
+        let theme = BoardColorTheme.theme(withId: boardThemeId, customLight: customLight, customDark: customDark)
+        return SwiftUI.Color(red: theme.darkSquare.red, green: theme.darkSquare.green, blue: theme.darkSquare.blue)
+    }
+
     var body: some View {
         VStack {
             // Header with title and action buttons
@@ -90,6 +107,23 @@ struct ContentView: View {
                     .fontWeight(.bold)
 
                 Spacer()
+
+                // Undo button (always visible, disabled when no moves to undo)
+                Button {
+                    #if os(iOS)
+                    if hapticFeedbackEnabled {
+                        lightHaptic.impactOccurred()
+                    }
+                    #endif
+                    game.undoLastMove()
+                } label: {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(headerButtonFont)
+                        .foregroundColor(boardDarkColor)
+                }
+                .disabled(game.moveHistory.isEmpty)
+                .opacity(game.moveHistory.isEmpty ? 0.3 : 1.0)
+                .padding(.trailing, 8)
 
                 // Quick Game button (lightning bolt icon)
                 Button {
@@ -102,7 +136,7 @@ struct ContentView: View {
                 } label: {
                     Image(systemName: "bolt.fill")
                         .font(headerButtonFont)
-                        .foregroundColor(.yellow)
+                        .foregroundColor(boardDarkColor)
                 }
                 .padding(.trailing, 8)
 
@@ -154,9 +188,14 @@ struct ContentView: View {
                         .font(capturedFont)
                         .foregroundColor(.secondary)
 
-                    Text(capturedPiecesText(for: .white))
-                        .font(capturedFont)
-                        .foregroundColor(.secondary)
+                    // Display captured pieces as SVG images
+                    HStack(spacing: 2) {
+                        ForEach(capturedPiecesArray(for: .white), id: \.self) { piece in
+                            Image(piece.assetName)
+                                .resizable()
+                                .frame(width: pieceIconSize, height: pieceIconSize)
+                        }
+                    }
 
                     Spacer()
 
@@ -192,9 +231,14 @@ struct ContentView: View {
                         .font(capturedFont)
                         .foregroundColor(.secondary)
 
-                    Text(capturedPiecesText(for: .black))
-                        .font(capturedFont)
-                        .foregroundColor(.secondary)
+                    // Display captured pieces as SVG images
+                    HStack(spacing: 2) {
+                        ForEach(capturedPiecesArray(for: .black), id: \.self) { piece in
+                            Image(piece.assetName)
+                                .resizable()
+                                .frame(width: pieceIconSize, height: pieceIconSize)
+                        }
+                    }
 
                     Spacer()
 
@@ -249,7 +293,7 @@ struct ContentView: View {
             Spacer()
         }
         .sheet(isPresented: $showingQuickGame) {
-            QuickGameMenuView()
+            QuickGameMenuView(game: game)
         }
         .sheet(isPresented: $showingGameMenu) {
             GameMenuView(game: game)
@@ -310,14 +354,20 @@ struct ContentView: View {
         }
     }
 
-    /// Calculate captured pieces text for a given color
-    /// Returns list of captured opponent pieces (e.g., "♟♟♞♝")
+    /// Calculate captured pieces array for a given color
+    /// Returns list of captured opponent pieces as Piece objects for display
     /// Matches terminal project's captured pieces calculation logic
-    private func capturedPiecesText(for color: Color) -> String {
-        // TODO: Implement captured pieces calculation
-        // This will count pieces missing from the board for the opponent
-        // For now, return placeholder
-        return "None"
+    private func capturedPiecesArray(for color: Color) -> [Piece] {
+        // Get captured pieces from game's move history
+        let capturedPieces = (color == .white) ? game.capturedByWhite : game.capturedByBlack
+
+        // Sort pieces by value for consistent display (Queen, Rook, Bishop, Knight, Pawn)
+        return capturedPieces.sorted { piece1, piece2 in
+            let order: [PieceType] = [.queen, .rook, .bishop, .knight, .pawn]
+            let index1 = order.firstIndex(of: piece1.type) ?? 99
+            let index2 = order.firstIndex(of: piece2.type) ?? 99
+            return index1 < index2
+        }
     }
 
     /// Check if time controls are enabled

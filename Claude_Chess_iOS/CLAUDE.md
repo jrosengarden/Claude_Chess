@@ -27,12 +27,12 @@ logic, features, and behavior.**
 
 ## Project Status
 
-**Current Phase:** Phase 2 COMPLETE ✅ - Ready for Phase 3 (AI Integration)
+**Current Phase:** Phase 3 IN PROGRESS 🔄 - Move History & Undo Complete
 **Created:** September 30, 2025
-**Last Updated:** October 11, 2025
+**Last Updated:** October 13, 2025
 **Development Stage:** Fully playable chess game with all core rules
 (promotion, 50-move rule, check/checkmate/stalemate), touch/drag input,
-and complete move validation
+complete move validation, undo system, and captured pieces display
 
 ## Build System
 
@@ -224,30 +224,27 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (18 total as of Oct 11, 2025 - Session 13):**
+**Current TODO Inventory (15 total as of Oct 13, 2025 - Session 14):**
 
 **Phase 3 - Move Validation & Game Logic (2 TODOs):**
 - `MoveValidator.swift` - Add check detection to prevent castling while in check
 - `MoveValidator.swift` - Add is_square_attacked() checks for squares king moves through
 
-**Phase 3 - UI & Display (4 TODOs):**
+**Phase 3 - UI & Display (2 TODOs):**
 - `HintView.swift` - Implement actual hint functionality
-- `ContentView.swift` - Implement captured pieces calculation
 - `ScoreView.swift` - Display current position evaluation
 - `ScoreView.swift` - Display game statistics
 
-**Phase 3 - Game Management (13 TODOs):**
-- `ChessGame.swift` - Track captured pieces for display
-- `ChessGame.swift` - Track move history for PGN generation
-- `GameMenuView.swift` - Undo move action (2 locations: GameMenuView + QuickGameMenuView)
+**Phase 3 - Game Management (10 TODOs):**
 - `GameMenuView.swift` - Import FEN action (load .fen files with position navigation + save prompt)
 - `GameMenuView.swift` - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
 - `GameMenuView.swift` - Share Game action (mid-game sharing via iOS share sheet)
 - `GameMenuView.swift` - Setup Game Board save prompt (check if board differs from starting position)
-- `GameMenuView.swift` - Resign action (2 locations: GameMenuView + QuickGameMenuView)
+- `GameMenuView.swift` - Resign action
 - `SettingsView.swift` - Auto-save FEN toggle (replaces manual save)
 - `SettingsView.swift` - Auto-save PGN toggle (replaces manual save)
 - `SettingsView.swift` - Save location picker
+- `QuickGameMenuView.swift` - Resign action
 - `QuickGameMenuView.swift` - FEN display implementation
 - `QuickGameMenuView.swift` - PGN display implementation
 
@@ -390,10 +387,7 @@ native format.
 - ✅ New Game functionality
 - ✅ Setup Game Board (FEN import for testing)
 - ✅ Game state persistence in @Published properties
-
-**🔄 Partially Implemented:**
-- 🔄 **Undo system** - Terminal has full undo with move history
-  stack; iOS has TODO placeholder
+- ✅ **Undo system** - Full undo with move history stack (Session 14)
 
 **❌ Terminal Features Not Yet in iOS:**
 - ❌ **Resign functionality** - Terminal allows either player to
@@ -482,10 +476,9 @@ Terminal command-line flags require iOS Settings equivalents:
 
 ### 10. CAPTURED PIECES TRACKING
 
-**🔄 iOS Has UI, Missing Logic:**
-- 🔄 **UI ready** - ContentView has "Captured pieces" display area
-- ❌ **Missing logic** - Terminal calculates captured pieces from FEN
-  by comparing to starting position
+**✅ iOS Has:**
+- ✅ **UI ready** - ContentView has "Captured pieces" display area
+- ✅ **Logic implemented** - Calculated from move history (Session 14)
 
 ---
 
@@ -1085,6 +1078,19 @@ with Settings
 - **Phase 2 milestone achieved**: All core chess rules now fully
   implemented!
 
+**Session 14: Oct 13, 2025** - Move History, Undo, & Captured Pieces
+- Created MoveRecord.swift with complete move and game state capture
+- Implemented full undo system with perfect state restoration
+- Added move history tracking to ChessGame with @Published array
+- Updated makeMove() and makePromotionMove() to record all moves
+- Implemented undoLastMove() handling castling, en passant, promotion
+- Added capturedByWhite and capturedByBlack computed properties
+- Updated ContentView to display captured pieces using SVG assets
+- Moved undo button from menus to main header for instant visual feedback
+- Implemented dynamic button colors matching board theme
+- Fixed Unicode symbol sizing issues by using professional SVG pieces
+- TODO count reduced from 18 to 15 (removed completed items)
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -1163,14 +1169,15 @@ refactoring for Stockfish/Lichess/Chess.com engines.
 - ✅ **Pawn promotion with piece selection UI** (Q/R/B/N for both colors)
 - ✅ **50-move rule draw detection** (automatic alert at halfmove clock 100)
 
-**📋 Phase 3 (Next - AI Integration):**
-- AI integration (Stockfish framework)
-- Move history and undo functionality
-- **FEN/PGN import with position navigation** (matches terminal LOAD FEN/PGN)
-- FEN/PGN export
-- **"Save current game" prompts before loading positions**
-- Captured pieces calculation
-- Game save/load (iOS document picker)
+**🔄 Phase 3 IN PROGRESS (Started Oct 13, 2025):**
+- ✅ **Move history tracking** (MoveRecord with complete state capture)
+- ✅ **Undo functionality** (perfect state restoration including special moves)
+- ✅ **Captured pieces display** (calculated from move history)
+- 📋 AI integration (Stockfish framework) - NEXT PRIORITY
+- 📋 **FEN/PGN import with position navigation** (matches terminal LOAD FEN/PGN)
+- 📋 FEN/PGN export
+- 📋 **"Save current game" prompts before loading positions**
+- 📋 Game save/load (iOS document picker)
 
 ### Board Color Theme System
 

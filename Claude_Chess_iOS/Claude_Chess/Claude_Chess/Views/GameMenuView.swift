@@ -65,12 +65,6 @@ struct GameMenuView: View {
                             .foregroundColor(.accentColor)
                     }
 
-                    Button(action: {
-                        // TODO: Undo move action
-                    }) {
-                        Label("Undo Move", systemImage: "arrow.uturn.backward")
-                    }
-
                     NavigationLink(destination: HintView()) {
                         Label("Hint", systemImage: "lightbulb")
                             .foregroundColor(.accentColor)

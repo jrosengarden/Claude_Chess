@@ -50,6 +50,11 @@ class ChessGame: ObservableObject {
     /// Fullmove number (increments after Black's move)
     var fullmoveNumber: Int = 1
 
+    // MARK: - Move History
+
+    /// Complete move history for undo and PGN generation
+    @Published var moveHistory: [MoveRecord] = []
+
     // MARK: - Initialization
 
     /// Initialize a new chess game with standard starting position
@@ -298,6 +303,30 @@ class ChessGame: ObservableObject {
         return enPassantTarget != nil
     }
 
+    // MARK: - Captured Pieces
+
+    /// Get all pieces captured by White (from move history)
+    var capturedByWhite: [Piece] {
+        return moveHistory.compactMap { record in
+            // White captures when they move (player == .white)
+            if record.player == .white, let captured = record.capturedPiece {
+                return captured
+            }
+            return nil
+        }
+    }
+
+    /// Get all pieces captured by Black (from move history)
+    var capturedByBlack: [Piece] {
+        return moveHistory.compactMap { record in
+            // Black captures when they move (player == .black)
+            if record.player == .black, let captured = record.capturedPiece {
+                return captured
+            }
+            return nil
+        }
+    }
+
     // MARK: - Move Execution
 
     /// Execute a chess move with full game state updates
@@ -317,7 +346,14 @@ class ChessGame: ObservableObject {
         // Get moving piece and captured piece
         let movingPiece = getPiece(at: from)
         var capturedPiece = getPiece(at: to)
+        var capturedAt: Position? = nil
         var isEnPassantCapture = false
+        var isCastlingMove = false
+
+        // Check for castling move (king moves 2 squares)
+        if movingPiece.type == .king && abs(to.col - from.col) == 2 {
+            isCastlingMove = true
+        }
 
         // Check for en passant capture
         if movingPiece.type == .pawn && enPassantAvailable,
@@ -326,15 +362,29 @@ class ChessGame: ObservableObject {
            capturedPiece.type == .empty {
             // This is an en passant capture - remove the captured pawn
             let capturedPawnRow = (movingPiece.color == .white) ? to.row + 1 : to.row - 1
-            capturedPiece = getPiece(at: Position(row: capturedPawnRow, col: to.col))
-            setPiece(nil, at: Position(row: capturedPawnRow, col: to.col))
+            let capturedPawnPos = Position(row: capturedPawnRow, col: to.col)
+            capturedPiece = getPiece(at: capturedPawnPos)
+            capturedAt = capturedPawnPos
+            setPiece(nil, at: capturedPawnPos)
             isEnPassantCapture = true
         }
 
-        // TODO: Track captured pieces for display (Phase 3)
-        // if capturedPiece.type != .empty {
-        //     // Add to captured pieces array
-        // }
+        // Capture game state BEFORE making move (for undo and history)
+        let previousState = CastlingRights(
+            whiteKingMoved: whiteKingMoved,
+            whiteRookKingsideMoved: whiteRookKingsideMoved,
+            whiteRookQueensideMoved: whiteRookQueensideMoved,
+            blackKingMoved: blackKingMoved,
+            blackRookKingsideMoved: blackRookKingsideMoved,
+            blackRookQueensideMoved: blackRookQueensideMoved
+        )
+        let previousEnPassantTarget = enPassantTarget
+        let previousEnPassantAvailable = enPassantAvailable
+        let previousHalfmoveClock = halfmoveClock
+        let previousFullmoveNumber = fullmoveNumber
+
+        // Determine captured piece for history (nil if empty square)
+        let historyCapturedPiece = (capturedPiece.type != .empty) ? capturedPiece : nil
 
         // Move the piece
         setPiece(movingPiece, at: to)
@@ -423,8 +473,30 @@ class ChessGame: ObservableObject {
             enPassantTarget = Position(row: targetRow, col: to.col)
         }
 
+        // Create move record for history (BEFORE switching player)
+        let moveRecord = MoveRecord(
+            from: from,
+            to: to,
+            piece: movingPiece,
+            capturedPiece: historyCapturedPiece,
+            capturedAt: capturedAt,
+            wasCastling: isCastlingMove,
+            wasEnPassant: isEnPassantCapture,
+            wasPromotion: false,
+            promotedTo: nil,
+            previousCastlingRights: previousState,
+            previousEnPassantTarget: previousEnPassantTarget,
+            previousEnPassantAvailable: previousEnPassantAvailable,
+            previousHalfmoveClock: previousHalfmoveClock,
+            previousFullmoveNumber: previousFullmoveNumber,
+            player: currentPlayer  // Record who made the move (before switching)
+        )
+
         // Switch current player
         currentPlayer = currentPlayer.opposite
+
+        // Append to move history
+        moveHistory.append(moveRecord)
 
         // Check status now handled by GameStateChecker after move execution
 
@@ -489,6 +561,20 @@ class ChessGame: ObservableObject {
         let capturedPiece = board[to.row][to.col]
         let isCapture = capturedPiece != nil
 
+        // Capture game state BEFORE making move (for undo and history)
+        let previousState = CastlingRights(
+            whiteKingMoved: whiteKingMoved,
+            whiteRookKingsideMoved: whiteRookKingsideMoved,
+            whiteRookQueensideMoved: whiteRookQueensideMoved,
+            blackKingMoved: blackKingMoved,
+            blackRookKingsideMoved: blackRookKingsideMoved,
+            blackRookQueensideMoved: blackRookQueensideMoved
+        )
+        let previousEnPassantTarget = enPassantTarget
+        let previousEnPassantAvailable = enPassantAvailable
+        let previousHalfmoveClock = halfmoveClock
+        let previousFullmoveNumber = fullmoveNumber
+
         // Move the pawn to destination
         board[to.row][to.col] = movingPawn
         board[from.row][from.col] = nil
@@ -508,8 +594,30 @@ class ChessGame: ObservableObject {
         // Clear en passant (promotion can't create en passant)
         enPassantTarget = nil
 
+        // Create move record for history (BEFORE switching player)
+        let moveRecord = MoveRecord(
+            from: from,
+            to: to,
+            piece: movingPawn,
+            capturedPiece: capturedPiece,
+            capturedAt: nil,  // Promotion captures happen at destination square
+            wasCastling: false,
+            wasEnPassant: false,
+            wasPromotion: true,
+            promotedTo: promotionPiece,
+            previousCastlingRights: previousState,
+            previousEnPassantTarget: previousEnPassantTarget,
+            previousEnPassantAvailable: previousEnPassantAvailable,
+            previousHalfmoveClock: previousHalfmoveClock,
+            previousFullmoveNumber: previousFullmoveNumber,
+            player: currentPlayer  // Record who made the move (before switching)
+        )
+
         // Switch current player
         currentPlayer = currentPlayer.opposite
+
+        // Append to move history
+        moveHistory.append(moveRecord)
 
         print("Promotion: \(movingPawn.color.displayName) pawn at \(from.algebraic) promoted to \(promotionPiece.displayName) at \(to.algebraic)")
         if isCapture {
@@ -517,5 +625,108 @@ class ChessGame: ObservableObject {
         }
 
         return true
+    }
+
+    // MARK: - Undo System
+
+    /// Undo the last move, restoring complete game state
+    /// Ported from terminal project undo logic
+    /// - Returns: True if undo was successful, false if no moves to undo
+    @discardableResult
+    func undoLastMove() -> Bool {
+        // Check if there are any moves to undo
+        guard !moveHistory.isEmpty else {
+            return false
+        }
+
+        // Pop the last move from history
+        let lastMove = moveHistory.removeLast()
+
+        // Restore the moving piece to its original position
+        setPiece(lastMove.piece, at: lastMove.from)
+
+        // Handle different move types
+        if lastMove.wasPromotion {
+            // Promotion undo: Restore the pawn (not the promoted piece)
+            setPiece(lastMove.piece, at: lastMove.from)
+
+            // Restore captured piece if any
+            if let captured = lastMove.capturedPiece {
+                setPiece(captured, at: lastMove.to)
+            } else {
+                setPiece(nil, at: lastMove.to)
+            }
+        } else if lastMove.wasEnPassant {
+            // En passant undo: Restore captured pawn at special location
+            setPiece(nil, at: lastMove.to)  // Clear destination square
+            if let capturedAt = lastMove.capturedAt, let captured = lastMove.capturedPiece {
+                setPiece(captured, at: capturedAt)
+            }
+        } else if lastMove.wasCastling {
+            // Castling undo: Also move rook back
+            setPiece(nil, at: lastMove.to)  // Remove king from castled position
+
+            // Determine which rook to move back based on king's destination
+            let isKingside = lastMove.to.col > lastMove.from.col
+            let rookRow = lastMove.from.row
+
+            if isKingside {
+                // Kingside castling: rook at f-file, move back to h-file
+                if let rook = board[rookRow][5] {
+                    setPiece(rook, at: Position(row: rookRow, col: 7))
+                    setPiece(nil, at: Position(row: rookRow, col: 5))
+                }
+            } else {
+                // Queenside castling: rook at d-file, move back to a-file
+                if let rook = board[rookRow][3] {
+                    setPiece(rook, at: Position(row: rookRow, col: 0))
+                    setPiece(nil, at: Position(row: rookRow, col: 3))
+                }
+            }
+        } else {
+            // Normal move undo: Restore captured piece if any
+            if let captured = lastMove.capturedPiece {
+                setPiece(captured, at: lastMove.to)
+            } else {
+                setPiece(nil, at: lastMove.to)
+            }
+        }
+
+        // Restore all game state from the move record
+        whiteKingMoved = lastMove.previousCastlingRights.whiteKingMoved
+        whiteRookKingsideMoved = lastMove.previousCastlingRights.whiteRookKingsideMoved
+        whiteRookQueensideMoved = lastMove.previousCastlingRights.whiteRookQueensideMoved
+        blackKingMoved = lastMove.previousCastlingRights.blackKingMoved
+        blackRookKingsideMoved = lastMove.previousCastlingRights.blackRookKingsideMoved
+        blackRookQueensideMoved = lastMove.previousCastlingRights.blackRookQueensideMoved
+
+        enPassantTarget = lastMove.previousEnPassantTarget
+        halfmoveClock = lastMove.previousHalfmoveClock
+        fullmoveNumber = lastMove.previousFullmoveNumber
+
+        // Restore current player (switch back to who made the move)
+        currentPlayer = lastMove.player
+
+        // Update king positions manually (setPiece might not be called if king didn't move)
+        updateKingPositions()
+
+        return true
+    }
+
+    /// Update king position tracking by scanning the board
+    /// Used after undo operations to ensure king positions are accurate
+    private func updateKingPositions() {
+        for row in 0..<8 {
+            for col in 0..<8 {
+                if let piece = board[row][col], piece.type == .king {
+                    let pos = Position(row: row, col: col)
+                    if piece.color == .white {
+                        whiteKingPos = pos
+                    } else {
+                        blackKingPos = pos
+                    }
+                }
+            }
+        }
     }
 }

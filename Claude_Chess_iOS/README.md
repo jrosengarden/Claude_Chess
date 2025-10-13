@@ -80,9 +80,22 @@ experience with SwiftUI.
 
 ## Development Status
 
-**Current Phase:** Phase 2 - COMPLETE! ✅ (October 11, 2025)
+**Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 13, 2025)
 
-**Latest Progress (October 11, 2025 - Session 13):**
+**Latest Progress (October 13, 2025 - Session 14):**
+
+**✅ Move History & Undo System:**
+- ✅ **MoveRecord structure** - Complete move and game state capture
+- ✅ **Full undo functionality** - Perfect state restoration including
+  castling, en passant, and promotion moves
+- ✅ **Captured pieces display** - Calculated from move history and
+  displayed using professional SVG assets
+- ✅ **Undo button** - Always visible in header with dynamic board theme
+  coloring
+- ✅ **Move history tracking** - All moves recorded with complete game
+  state snapshots
+
+**Previous Session (October 11, 2025 - Session 13):**
 
 **✅ Complete Game Logic:**
 - ✅ **Check/checkmate/stalemate detection** - Fully working with visual
@@ -126,12 +139,15 @@ the check are allowed. Pawn promotion to any of 4 pieces (Q/R/B/N) works
 for both colors. Haptic feedback provides tactile confirmation throughout
 gameplay.
 
-**Next: Phase 3 - AI Integration**
-- Stockfish engine integration (UCI protocol)
-- Move history tracking and PGN generation
-- Position evaluation and hints
-- Time controls enforcement
-- FEN/PGN import with navigation
+**Phase 3 Progress: Move History & Undo ✅ (Session 14 Complete)**
+- ✅ **Move history tracking** - All moves recorded with state snapshots
+- ✅ **Undo functionality** - Complete state restoration
+- ✅ **Captured pieces display** - Calculated from history
+- 📋 Stockfish engine integration (UCI protocol) - NEXT PRIORITY
+- 📋 PGN generation from move history
+- 📋 Position evaluation and hints
+- 📋 Time controls enforcement
+- 📋 FEN/PGN import with navigation
 
 This project is in active development. Core features are being ported
 from the proven terminal-based implementation.
@@ -346,14 +362,20 @@ parent project features:
 - ✅ Quick Game Menu with modal enforcement
 - ✅ Setup Game Board feature (FEN import for testing)
 
-### Phase 3: AI Integration (Future)
+### Phase 3: AI Integration & Advanced Features (IN PROGRESS - Oct 13, 2025)
 
-**Planned Features:**
+**✅ Completed (Session 14):**
+- ✅ **Move history tracking** - MoveRecord with complete state capture
+- ✅ **Undo functionality** - Perfect restoration of all special moves
+- ✅ **Captured pieces display** - Calculated from move history using SVG
+  assets
+
+**📋 Next Priority:**
 - Stockfish engine integration or cloud-based AI
 - Multiple difficulty levels
 - Position evaluation
 - Move hints
-- Move history and undo
+- PGN generation from move history
 
 ### Phase 4: Advanced Features (Future)
 

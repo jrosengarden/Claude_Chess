@@ -12,6 +12,7 @@ import SwiftUI
 /// Accessed via lightning bolt icon in header
 struct QuickGameMenuView: View {
     @Environment(\.dismiss) var dismiss
+    @ObservedObject var game: ChessGame
     @State private var showingHint = false
     @State private var showingFEN = false
     @State private var showingPGN = false
@@ -38,21 +39,6 @@ struct QuickGameMenuView: View {
                             Image(systemName: "lightbulb.fill")
                                 .foregroundColor(.yellow)
                             Text("Hint")
-                        }
-                    }
-
-                    Button {
-                        #if os(iOS)
-                        if hapticFeedbackEnabled {
-                            lightHaptic.impactOccurred()
-                        }
-                        #endif
-                        // TODO: Implement undo move action
-                    } label: {
-                        HStack {
-                            Image(systemName: "arrow.uturn.backward")
-                                .foregroundColor(.blue)
-                            Text("Undo Move")
                         }
                     }
 
@@ -183,5 +169,5 @@ struct PGNDisplayView: View {
 // MARK: - Preview
 
 #Preview {
-    QuickGameMenuView()
+    QuickGameMenuView(game: ChessGame())
 }
