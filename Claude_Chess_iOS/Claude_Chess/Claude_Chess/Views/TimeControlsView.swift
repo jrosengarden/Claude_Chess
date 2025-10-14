@@ -28,10 +28,11 @@ struct TimeControlsView: View {
 
     /// Check if game has started and time controls should be locked
     /// Time controls are locked when:
+    /// - User tapped "Start Game" button, OR
     /// - Any moves have been made, OR
     /// - Time controls were disabled by undo (remains locked until new game)
     private var gameStarted: Bool {
-        return !game.moveHistory.isEmpty || game.timeControlsDisabledByUndo
+        return game.gameInProgress || !game.moveHistory.isEmpty || game.timeControlsDisabledByUndo
     }
 
     var body: some View {

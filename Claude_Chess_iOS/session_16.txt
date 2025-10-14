@@ -1,0 +1,27 @@
+Session 16 Bug Fix - Time Controls Lock Timing
+
+Bug: Time controls not locked immediately after "Start Game" button tapped
+- Time controls remained unlocked until first move was made
+- User could modify settings after game started but before first move
+
+Root Cause:
+- TimeControlsView.swift gameStarted computed property only checked:
+  * !game.moveHistory.isEmpty (requires at least one move)
+  * game.timeControlsDisabledByUndo (only set after undo)
+- Missing check for game.gameInProgress (set by "Start Game" button)
+
+Fix:
+- Added game.gameInProgress to gameStarted condition (line 35)
+- Updated documentation comment to reflect three lock conditions
+
+Files Modified:
+- TimeControlsView.swift
+
+Testing Verified:
+✅ Time controls lock immediately when "Start Game" tapped
+✅ Lock persists after first move
+✅ Lock persists throughout game
+✅ Lock releases on New Game
+✅ All slider and preset controls properly disabled when locked
+
+Status: Bug resolved. Zero warnings. Ready for commit.
