@@ -235,29 +235,28 @@ prevent accumulation of technical debt.
 **Current TODO Inventory (12 total as of Oct 14, 2025 - Session 16):**
 
 **Phase 3 - Move Validation & Game Logic (0 TODOs):**
-- ✅ All validation complete
+- ✅ All validation complete (2 castling TODOs removed in Session 15 post-session fixes)
 
 **Phase 3 - UI & Display (3 TODOs):**
-- `HintView.swift` - Implement actual hint functionality
-- `ScoreView.swift` - Display current position evaluation
-- `ScoreView.swift` - Display game statistics
+- `HintView.swift` (line 36) - Implement actual hint functionality
+- `ScoreView.swift` (line 21) - Display current position evaluation
+- `ScoreView.swift` (line 29) - Display game statistics
 
 **Phase 3 - Game Management (8 TODOs):**
-- `GameMenuView.swift` - Import FEN action (load .fen files with position navigation + save prompt)
-- `GameMenuView.swift` - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
-- `GameMenuView.swift` - Share Game action (mid-game sharing via iOS share sheet)
-- `GameMenuView.swift` - Setup Game Board save prompt (check if board differs from starting position)
-- `GameMenuView.swift` - Resign action
-- `SettingsView.swift` - Auto-save FEN toggle (replaces manual save)
-- `SettingsView.swift` - Auto-save PGN toggle (replaces manual save)
-- `SettingsView.swift` - Save location picker
-- `QuickGameMenuView.swift` - Resign action
-- `QuickGameMenuView.swift` - FEN display implementation
-- `QuickGameMenuView.swift` - PGN display implementation
+- `GameMenuView.swift` (line 76) - Import FEN action (load .fen files with position navigation + save prompt)
+- `GameMenuView.swift` (line 82) - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
+- `GameMenuView.swift` (line 88) - Share Game action (mid-game sharing via iOS share sheet)
+- `GameMenuView.swift` (line 96) - Resign action
+- `GameMenuView.swift` (line 116) - Setup Game Board save prompt (check if board differs from starting position)
+- `QuickGameMenuView.swift` (line 70) - Resign action
+- `QuickGameMenuView.swift` (line 166) - FEN display implementation
+- `QuickGameMenuView.swift` (line 180) - PGN display implementation
 
 **Future/Optional (1 TODO):**
-- `AboutView.swift` - Add any other third-party libraries used
+- `AboutView.swift` (line 97) - Add any other third-party libraries used
   (appropriate placeholder for future dependencies)
+
+**Note:** SettingsView.swift TODOs for auto-save toggles were counted in Session 12 but are not present in current codebase. Feature may have been deferred or documented differently.
 
 **Active Maintenance Protocol (MANDATORY):**
 
@@ -1108,6 +1107,12 @@ with Settings
 - Updated captured pieces display to use tappable overlay (Session 14 refinement)
 - Fixed iOS 17 onChange deprecation warning
 - TODO count remains at 14 (no feature completion)
+- **Post-Session Bug Fixes:**
+  - Fixed time controls display not updating when settings changed (added 4 .onChange() observers)
+  - Fixed castling validation missing two chess rules (cannot castle while in check, cannot castle through attacked squares)
+  - Added !isInCheck() and !isSquareAttacked() checks to MoveValidator.swift castling logic
+  - Removed 2 TODOs from MoveValidator.swift code
+  - TODO count reduced from 14 to 12
 
 **Session 16: Oct 14, 2025** - Stockfish Engine Integration Foundation
 - Added ChessKitEngine Swift Package (v0.7.0) via Xcode SPM

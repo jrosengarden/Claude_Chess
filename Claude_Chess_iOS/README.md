@@ -115,6 +115,12 @@ experience with SwiftUI.
 - ✅ **Captured pieces overlay** - Tappable display showing captured pieces
   (Session 14 refinement)
 
+**✅ Post-Session Bug Fixes:**
+- ✅ **Time display refresh** - Fixed settings changes not updating display
+  (added .onChange() observers)
+- ✅ **Castling validation rules** - Cannot castle while in check or through
+  attacked squares (terminal project parity)
+
 **Previous Session (October 13, 2025 - Session 14):**
 
 **✅ Move History & Undo System:**
