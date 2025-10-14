@@ -84,9 +84,22 @@ experience with SwiftUI.
 
 ## Development Status
 
-**Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 13, 2025)
+**Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 14, 2025)
 
-**Latest Progress (October 13, 2025 - Session 15):**
+**Latest Progress (October 14, 2025 - Session 16):**
+
+**🔄 Stockfish Engine Integration Foundation:**
+- ✅ **ChessKitEngine Swift Package** - Added v0.7.0 via SPM
+- ✅ **ChessEngine protocol** - Unified interface for all chess engines
+- ✅ **StockfishEngine implementation** - Complete UCI protocol via wrapper
+- ✅ **Neural network files** - Stockfish 17 NNUE files (71MB + 3.4MB)
+  integrated
+- ✅ **EngineTest utilities** - Comprehensive test functions ready
+- ✅ **Zero-warning build** - All engine code compiles cleanly
+- 📋 **Next:** Engine initialization testing, ChessGame integration, AI move
+  automation
+
+**Previous Session (October 13, 2025 - Session 15):**
 
 **✅ Time Controls Enforcement (Terminal Parity):**
 - ✅ **Live timer countdown** - Updates every second with MM:SS display
@@ -167,7 +180,10 @@ gameplay.
 - ✅ **Time controls enforcement** - Live countdown, increment, forfeit,
   game-start lock (Session 15)
 - ✅ **Start Game UX** - User-controlled timer start (Session 15)
-- 📋 Stockfish engine integration (UCI protocol) - NEXT PRIORITY
+- 🔄 **Stockfish engine foundation** - Protocol + implementation + tests
+  (Session 16)
+- 📋 Engine integration into ChessGame model
+- 📋 AI move automation in game flow
 - 📋 PGN generation from move history
 - 📋 Position evaluation and hints
 - 📋 FEN/PGN import with navigation
@@ -269,6 +285,53 @@ rule draw alert.
 - Verify 50-move rule draw with position #9
 - Use this feature during development to quickly test specific game
   situations
+  
+### Additional FEN Strings for Testing Castling Rules + King in Check Rules
+	(after adding restrictions not allowing King to castle thru check)
+	(or to move thru check)
+
+ Test 1: White in Check - Should NOT Allow Castling
+
+  r3k2r/8/8/8/8/8/8/R3K1qR w KQkq - 0 1
+  White king on e1, Black queen on g1 puts White in check. Castling should be BLOCKED 
+  (both kingside and queenside).
+
+  Test 2: White Kingside - Square King Moves Through is Attacked
+
+  r3k2r/8/8/8/8/5b2/8/R3K2R w KQkq - 0 1
+  White king on e1, Black bishop on f3 attacks f1 (square king moves through). Only 
+  kingside castling should be BLOCKED. Queenside should still work.
+  
+	Test #2 CORRECTED - Kingside blocked (f1 attacked):
+  	r3k2r/8/8/8/8/8/5q2/R3K2R w KQkq - 0 1
+  	Black queen on f2 attacks f1 (blocks kingside castling), but queenside should work!
+
+  Test 3: White Queenside - Square King Moves Through is Attacked
+
+  r3k2r/8/8/8/8/3b4/8/R3K2R w KQkq - 0 1
+  White king on e1, Black bishop on d3 attacks d1 (square king moves through). 
+  Only queenside castling should be BLOCKED. Kingside should still work.
+
+  Test 4: Black in Check - Should NOT Allow Castling
+
+  r3k2r/8/8/8/8/8/8/R3K1QR b KQkq - 0 1
+  Black king on e8, White queen on g8 puts Black in check. Castling should be 
+  BLOCKED (both sides).
+  
+	Test #4 CORRECTED - Black in Check (no castling at all):
+	r3k2r/8/8/8/4Q3/8/8/R3K2R b KQkq - 0 1
+  	White Queen on e4 puts Black king on e8 in check (vertical attack up column e). 
+  	Both castling directions should be BLOCKED.
+
+  Test 5: Both Sides Can Castle (Control Test)
+
+  r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1
+  No attacks, no check. BOTH players should be able to castle both directions. 
+  This verifies we didn't break normal castling.
+
+  Test in order - #5 first to confirm castling still works, then #1-4 to verify the 
+  new restrictions!
+
 
 ## Xcode Project Structure
 
