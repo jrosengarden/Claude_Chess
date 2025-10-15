@@ -2,7 +2,6 @@
 //  StockfishEngine.swift
 //  Claude_Chess
 //
-//  Created by Claude Code on 10/14/25.
 //
 
 import Foundation

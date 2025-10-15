@@ -2,7 +2,6 @@
 //  MoveRecord.swift
 //  Claude_Chess
 //
-//  Created by Claude Code on 10/13/25.
 //
 //  Move history tracking for undo functionality and PGN generation.
 //  Records complete move information and game state for perfect restoration.
