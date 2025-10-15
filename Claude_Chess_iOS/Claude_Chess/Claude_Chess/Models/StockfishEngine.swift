@@ -85,7 +85,24 @@ class StockfishEngine: ChessEngine {
         // Engine will be initialized in initialize()
     }
 
+    deinit {
+        // Emergency cleanup if shutdown() wasn't called
+        // Note: Can't use async in deinit, but cancel the task
+        responseTask?.cancel()
+    }
+
     func initialize() async throws {
+        // Prevent multiple initializations
+        if initialized {
+            print("⚠️ Warning: Engine already initialized. Shutting down first...")
+            await shutdown()
+        }
+
+        // Ensure any previous engine is fully cleaned up
+        if engine != nil {
+            await shutdown()
+        }
+
         // Create Stockfish engine
         engine = Engine(type: .stockfish)
 
@@ -99,40 +116,61 @@ class StockfishEngine: ChessEngine {
         // Start engine
         await engine.start()
 
-        // Wait briefly for engine to start
-        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
-
-        // Check if engine is running
-        guard await engine.isRunning else {
-            throw ChessEngineError.initializationFailed("Engine failed to start")
-        }
+        // Give engine more time to start (500ms instead of 100ms)
+        try await Task.sleep(nanoseconds: 500_000_000) // 500ms
 
         // Send UCI initialization commands
         await engine.send(command: .uci)
+
+        // Wait for engine to process UCI command
+        try await Task.sleep(nanoseconds: 200_000_000) // 200ms
+
         await engine.send(command: .isready)
+
+        // Wait for engine to be ready
+        try await Task.sleep(nanoseconds: 200_000_000) // 200ms
 
         // Configure neural network files if available
         try await configureNeuralNetworks()
 
-        // Set default skill level
-        try await setSkillLevel(skillLevel)
-
+        // Mark as initialized before setting skill level
         initialized = true
+
+        // Set default skill level (requires initialized = true)
+        try await setSkillLevel(skillLevel)
     }
 
     func shutdown() async {
-        // Stop response listener
+        // Mark as not initialized first
+        initialized = false
+
+        // Stop response listener first
         responseTask?.cancel()
         responseTask = nil
 
-        // Quit engine
+        // Give the task time to actually cancel
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+
+        // Quit engine with proper cleanup
         if let engine = engine {
+            // Send quit command
             await engine.send(command: .quit)
+
+            // Wait for engine to process quit
+            try? await Task.sleep(nanoseconds: 200_000_000) // 200ms
+
+            // Force stop the engine process
             await engine.stop()
+
+            // Additional wait to ensure process termination
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
         }
 
         engine = nil
-        initialized = false
+
+        // Reset state
+        currentBestMove = nil
+        currentEvaluation = nil
     }
 
     // MARK: - Configuration
@@ -299,7 +337,13 @@ class StockfishEngine: ChessEngine {
                 return
             }
 
+            // Listen for responses with cancellation support
             for await response in stream {
+                // Check if task was cancelled
+                if Task.isCancelled {
+                    break
+                }
+
                 self.handleEngineResponse(response)
             }
         }

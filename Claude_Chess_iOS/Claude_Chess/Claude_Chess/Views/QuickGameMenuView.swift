@@ -16,6 +16,9 @@ struct QuickGameMenuView: View {
     @State private var showingHint = false
     @State private var showingFEN = false
     @State private var showingPGN = false
+    @State private var showingEngineTest = false
+    @State private var engineTestResults = ""
+    @State private var isRunningEngineTest = false
 
     // Haptic feedback
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
@@ -60,6 +63,32 @@ struct QuickGameMenuView: View {
                             Text("Hint")
                         }
                     }
+                    
+                    Button {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            lightHaptic.impactOccurred()
+                        }
+                        #endif
+                        isRunningEngineTest = true
+                        Task {
+                            engineTestResults = await EngineTest.runEngineTest()
+                            isRunningEngineTest = false
+                            showingEngineTest = true
+                        }
+                    } label: {
+                        HStack {
+                            if isRunningEngineTest {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                            } else {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                            }
+                            Text("Stockfish Integration Tests")
+                        }
+                    }
+                    .disabled(isRunningEngineTest)
 
                     Button(role: .destructive) {
                         #if os(iOS)
@@ -154,6 +183,18 @@ struct QuickGameMenuView: View {
                     }
             }
         }
+        .sheet(isPresented: $showingEngineTest) {
+            NavigationView {
+                EngineTestResultsView(results: engineTestResults)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") {
+                                showingEngineTest = false
+                            }
+                        }
+                    }
+            }
+        }
     }
 }
 
@@ -181,6 +222,23 @@ struct PGNDisplayView: View {
                 .foregroundColor(.secondary)
         }
         .navigationTitle("PGN Notation")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Engine test results display view
+struct EngineTestResultsView: View {
+    let results: String
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(results)
+                    .font(.system(.body, design: .monospaced))
+                    .padding()
+            }
+        }
+        .navigationTitle("Stockfish Test Results")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -248,9 +248,9 @@ prevent accumulation of technical debt.
 - `GameMenuView.swift` (line 88) - Share Game action (mid-game sharing via iOS share sheet)
 - `GameMenuView.swift` (line 96) - Resign action
 - `GameMenuView.swift` (line 116) - Setup Game Board save prompt (check if board differs from starting position)
-- `QuickGameMenuView.swift` (line 70) - Resign action
-- `QuickGameMenuView.swift` (line 166) - FEN display implementation
-- `QuickGameMenuView.swift` (line 180) - PGN display implementation
+- `QuickGameMenuView.swift` (line 99) - Resign action
+- `QuickGameMenuView.swift` (line 207) - FEN display implementation
+- `QuickGameMenuView.swift` (line 221) - PGN display implementation
 
 **Future/Optional (1 TODO):**
 - `AboutView.swift` (line 97) - Add any other third-party libraries used
@@ -1121,7 +1121,19 @@ with Settings
 - Complete UCI protocol communication via ChessKitEngine wrapper
 - Downloaded and integrated Stockfish 17 neural network files (71MB + 3.4MB)
 - Created EngineTest.swift with comprehensive and quick test functions
-- Zero-warning clean build achieved with all engine code
+- Added "Stockfish Integration Tests" button to Quick Menu
+- Wired up test button with async/await and results display sheet
+- **Critical bug fixes for process management:**
+  - Fixed Stockfish process zombie/leak causing SIGPIPE crashes
+  - Enhanced shutdown() with proper cleanup delays (quit + stop + waits)
+  - Added Task.isCancelled check in response listener
+  - Prevented multiple initializations with cleanup guards
+  - Added deinit emergency cleanup
+- **Testing validation:** All 6 engine tests passing on macOS/iOS
+  simulators AND real iPhone 14 Pro
+- **Repeatability confirmed:** Tests work multiple times, standalone
+  mode, all platforms
+- Zero-warning clean build maintained
 
 ### Key Decisions
 
