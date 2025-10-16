@@ -39,6 +39,10 @@ struct ChessBoardView: View {
     @AppStorage("showPossibleMoves") private var showPossibleMoves: Bool = true
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
 
+    // Opponent settings for engine initialization
+    @AppStorage("selectedEngine") private var selectedEngine = "human"
+    @AppStorage("stockfishSkillLevel") private var skillLevel = 5
+
     // Game-ending alerts
     @State private var showingCheckmate = false
     @State private var showingStalemate = false
@@ -54,6 +58,9 @@ struct ChessBoardView: View {
     @State private var promotionFrom: Position?
     @State private var promotionTo: Position?
     @State private var promotionColor: Color?
+
+    // Board orientation (persisted via AppStorage)
+    @AppStorage("boardFlipped") private var boardFlipped: Bool = false
 
     // Color theme (persisted via AppStorage)
     @AppStorage("boardThemeId") private var boardThemeId = "classic"
@@ -154,6 +161,7 @@ struct ChessBoardView: View {
                         Image(piece.assetName)
                             .resizable()
                             .frame(width: squareSize * 0.9, height: squareSize * 0.9)
+                            .rotationEffect(.degrees(boardFlipped ? 180 : 0))
                             .position(
                                 x: pieceStartX + dragOffset.width + visualOffset,
                                 y: pieceStartY + dragOffset.height - visualOffset
@@ -163,6 +171,7 @@ struct ChessBoardView: View {
                     }
                 }
             }
+            .rotationEffect(.degrees(boardFlipped ? 180 : 0))
         }
         .onAppear {
             // Check game state when view first appears (handles FEN setup scenarios)
@@ -178,8 +187,10 @@ struct ChessBoardView: View {
         }
         .alert("Checkmate!", isPresented: $showingCheckmate) {
             Button("New Game") {
-                game.resetGame()
-                resetBoardState()
+                Task {
+                    await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel)
+                    resetBoardState()
+                }
             }
             Button("OK", role: .cancel) { }
         } message: {
@@ -189,8 +200,10 @@ struct ChessBoardView: View {
         }
         .alert("Stalemate!", isPresented: $showingStalemate) {
             Button("New Game") {
-                game.resetGame()
-                resetBoardState()
+                Task {
+                    await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel)
+                    resetBoardState()
+                }
             }
             Button("OK", role: .cancel) { }
         } message: {
@@ -198,8 +211,10 @@ struct ChessBoardView: View {
         }
         .alert("50-Move Rule Draw!", isPresented: $showingFiftyMoveDraw) {
             Button("New Game") {
-                game.resetGame()
-                resetBoardState()
+                Task {
+                    await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel)
+                    resetBoardState()
+                }
             }
             Button("OK", role: .cancel) { }
         } message: {
@@ -249,6 +264,11 @@ struct ChessBoardView: View {
 
     /// Handle drag gesture started/changed
     private func handleDragChanged(at position: Position, translation: CGSize, squareSize: CGFloat) {
+        // Prevent any moves until "Start Game" is tapped
+        guard game.gameInProgress else {
+            return
+        }
+
         let piece = game.getPiece(at: position)
 
         // Only allow dragging current player's pieces
@@ -333,6 +353,9 @@ struct ChessBoardView: View {
 
                         // Check for game-ending conditions
                         checkGameEnd()
+
+                        // Trigger AI move if playing against AI (terminal project parity)
+                        triggerAIMove()
                     }
                 }
             } else {
@@ -382,6 +405,11 @@ struct ChessBoardView: View {
 
     /// Handle single-tap on a square (selection/move)
     private func handleSingleTap(at position: Position) {
+        // Prevent any moves until "Start Game" is tapped
+        guard game.gameInProgress else {
+            return
+        }
+
         // If preview mode is active, ignore single-taps completely
         if previewSquare != nil {
             return
@@ -435,6 +463,9 @@ struct ChessBoardView: View {
 
                         // Check for game-ending conditions
                         checkGameEnd()
+
+                        // Trigger AI move if playing against AI (terminal project parity)
+                        triggerAIMove()
                     } else {
                         print("Move execution failed: \(selected.algebraic) to \(position.algebraic)")
                     }
@@ -535,7 +566,6 @@ struct ChessBoardView: View {
 
     /// Handle promotion piece selection
     /// Ported from terminal project chess.c:make_promotion_move()
-    /// Phase 3: Add AI engine check here for automatic piece selection
     private func handlePromotionSelection(from: Position, to: Position, piece: PieceType) {
         // Execute the promotion move
         let success = game.makePromotionMove(from: from, to: to, promotionPiece: piece)
@@ -552,6 +582,9 @@ struct ChessBoardView: View {
 
             // Check for game-ending conditions
             checkGameEnd()
+
+            // Trigger AI move if playing against AI (terminal project parity)
+            triggerAIMove()
         } else {
             print("Promotion execution failed")
         }
@@ -561,6 +594,59 @@ struct ChessBoardView: View {
         promotionFrom = nil
         promotionTo = nil
         promotionColor = nil
+    }
+
+    /// Trigger AI move response after human move
+    /// Ported from terminal project's AI move automation logic
+    private func triggerAIMove() {
+        // Debug output
+        print("DEBUG: triggerAIMove() called")
+        print("  game.selectedEngine = \(game.selectedEngine)")
+        print("  game.isAIOpponent = \(game.isAIOpponent)")
+        print("  game.engine = \(game.engine != nil ? "initialized" : "nil")")
+
+        // Only trigger if playing against AI engine
+        guard game.isAIOpponent else {
+            print("  SKIP: Not AI opponent")
+            return
+        }
+
+        // Only trigger if game is still in progress (not checkmate/stalemate)
+        guard !GameStateChecker.isCheckmate(game: game, color: game.currentPlayer) &&
+              !GameStateChecker.isStalemate(game: game, color: game.currentPlayer) &&
+              !game.isFiftyMoveRuleDraw() else {
+            print("  SKIP: Game ended")
+            return
+        }
+
+        // Request and execute AI move asynchronously
+        Task {
+            do {
+                // Get AI move from engine
+                guard let uciMove = try await game.getAIMove() else {
+                    print("ERROR: AI engine returned no move")
+                    return
+                }
+
+                print("AI selected move: \(uciMove)")
+
+                // Execute the AI move
+                let success = await game.executeAIMove(uciMove)
+
+                if success {
+                    print("AI move executed successfully")
+
+                    // Check for game-ending conditions after AI move
+                    await MainActor.run {
+                        checkGameEnd()
+                    }
+                } else {
+                    print("ERROR: Failed to execute AI move: \(uciMove)")
+                }
+            } catch {
+                print("ERROR: AI move request failed: \(error)")
+            }
+        }
     }
 
     /// Check for game-ending conditions (checkmate, stalemate, 50-move rule, check) after a move
@@ -614,6 +700,7 @@ struct ChessSquareView: View {
     let isKingInCheck: Bool
 
     @State private var blinkOpacity: Double = 1.0
+    @AppStorage("boardFlipped") private var boardFlipped: Bool = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -636,6 +723,7 @@ struct ChessSquareView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .padding(geometry.size.width * 0.1)
+                        .rotationEffect(.degrees(boardFlipped ? 180 : 0))
                         .opacity(isCapturable ? blinkOpacity : 1.0)
                         .onAppear {
                             if isCapturable {

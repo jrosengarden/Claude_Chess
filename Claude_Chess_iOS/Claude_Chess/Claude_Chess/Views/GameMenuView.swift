@@ -21,13 +21,19 @@ struct GameMenuView: View {
     @State private var fenInput = ""
     @State private var fenError = ""
 
+    // Opponent settings from @AppStorage for engine initialization
+    @AppStorage("selectedEngine") private var selectedEngine = "human"
+    @AppStorage("stockfishSkillLevel") private var skillLevel = 5
+
     var body: some View {
         NavigationView {
             List {
                 Section(header: Text("Game")) {
                     Button(action: {
-                        game.resetGame()
-                        dismiss()
+                        Task {
+                            await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel)
+                            dismiss()
+                        }
                     }) {
                         Label("New Game", systemImage: "plus.circle")
                     }
@@ -55,7 +61,7 @@ struct GameMenuView: View {
                 }
 
                 Section(header: Text("Game Controls")) {
-                    NavigationLink(destination: OpponentView()) {
+                    NavigationLink(destination: OpponentView(game: game)) {
                         Label("Opponent", systemImage: "cpu")
                             .foregroundColor(.accentColor)
                     }

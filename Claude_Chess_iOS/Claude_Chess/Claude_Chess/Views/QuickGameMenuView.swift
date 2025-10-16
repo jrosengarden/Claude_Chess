@@ -20,6 +20,13 @@ struct QuickGameMenuView: View {
     @State private var engineTestResults = ""
     @State private var isRunningEngineTest = false
 
+    // Board orientation (persisted across app restarts)
+    @AppStorage("boardFlipped") private var boardFlipped: Bool = false
+
+    // Opponent settings for engine initialization
+    @AppStorage("selectedEngine") private var selectedEngine = "human"
+    @AppStorage("stockfishSkillLevel") private var skillLevel = 5
+
     // Haptic feedback
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
     #if os(iOS)
@@ -37,6 +44,16 @@ struct QuickGameMenuView: View {
                             lightHaptic.impactOccurred()
                         }
                         #endif
+
+                        // Initialize AI engine if needed
+                        Task {
+                            do {
+                                try await game.initializeEngine(selectedEngine: selectedEngine, skillLevel: skillLevel)
+                            } catch {
+                                print("ERROR: Failed to initialize engine: \(error)")
+                            }
+                        }
+
                         game.gameInProgress = true
                         game.startMoveTimer()
                         dismiss()
@@ -48,6 +65,22 @@ struct QuickGameMenuView: View {
                         }
                     }
                     .disabled(game.gameInProgress)
+
+                    Button {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            lightHaptic.impactOccurred()
+                        }
+                        #endif
+                        boardFlipped.toggle()
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .foregroundColor(.blue)
+                            Text("Flip Board")
+                        }
+                    }
 
                     Button {
                         #if os(iOS)

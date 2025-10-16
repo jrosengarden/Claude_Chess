@@ -27,14 +27,13 @@ logic, features, and behavior.**
 
 ## Project Status
 
-**Current Phase:** Phase 3 IN PROGRESS 🔄 - Stockfish Integration Foundation
+**Current Phase:** Phase 3 IN PROGRESS 🔄 - AI Gameplay Complete
 **Created:** September 30, 2025
-**Last Updated:** October 14, 2025 (Session 16)
-**Development Stage:** Fully playable chess game with all core rules
-(promotion, 50-move rule, check/checkmate/stalemate), touch/drag input,
-complete move validation, undo system, captured pieces display, complete
-time controls enforcement, and Stockfish engine foundation ready for
-integration
+**Last Updated:** October 16, 2025 (Session 17)
+**Development Stage:** Fully playable chess game with all core rules,
+complete Stockfish AI integration with realistic difficulty scaling,
+Human vs Human mode, board flipping, comprehensive game controls, and
+all move locking/timing features working
 
 ## Build System
 
@@ -295,8 +294,8 @@ native format.
 **Reference**: `../CLAUDE.md` for complete terminal project specifications
 
 ### Summary Status
-- **✅ Fully Implemented:** 18 features
-- **🔄 Partially Implemented:** 4 features
+- **✅ Fully Implemented:** 20 features (AI integration + board flipping added)
+- **🔄 Partially Implemented:** 3 features (AI evaluation/hints pending)
 - **❌ Missing/Not Planned:** 12 features
 - **📋 iOS-Specific Adaptations Needed:** 6 features
 
@@ -340,26 +339,21 @@ native format.
 
 ### 3. AI OPPONENT INTEGRATION
 
-**✅ iOS UI Ready (Not Connected):**
-- ✅ Opponent selection menu (Stockfish/Lichess/Chess.com)
-- ✅ Skill level slider (0-20)
-- ✅ Game-start lock for skill changes
+**✅ Fully Implemented in iOS (Session 17):**
+- ✅ Opponent selection menu (Human/Stockfish/Lichess/Chess.com)
+- ✅ Skill level slider (0-20) with game-start lock
+- ✅ **Stockfish UCI integration** - Complete via ChessKitEngine package
+- ✅ **AI move automation** - Stockfish responds automatically after human moves
+- ✅ **Skill level depth mapping** - Realistic strength (depth 1-15 for skill 0-20)
+- ✅ **Human vs Human mode** - Local two-player games
+- ✅ **Pondering prevention** - Disabled during initialization
+- ✅ **Search mode selection** - Depth-based search (time-based pending time integration)
 
 **❌ Terminal Features Not Yet in iOS:**
-- ❌ **Stockfish UCI integration** - Terminal has complete
-  `stockfish.c` implementation
-- ❌ **Position evaluation** - Terminal has
-  `get_position_evaluation()` showing centipawn scores
-- ❌ **Evaluation scale conversion** - Terminal has
-  `centipawns_to_scale()` (-9 to +9)
-- ❌ **Hint system** - Terminal has `get_hint_move()` with fast
-  depth-based search
-- ❌ **AI vs Human move distinction** - Terminal handles promotion
-  differently for each
-- ❌ **Pondering prevention** - Terminal disables Stockfish pondering
-  for fair play
-- ❌ **Search mode selection** - Terminal switches between time-based
-  and depth-based search
+- ❌ **Position evaluation** - Terminal has `get_position_evaluation()` showing centipawn scores
+- ❌ **Evaluation scale conversion** - Terminal has `centipawns_to_scale()` (-9 to +9)
+- ❌ **Hint system** - Terminal has `get_hint_move()` with fast depth-based search
+- ❌ **Timer integration with AI** - Terminal uses 1/20th of remaining time for AI moves
 
 ---
 
@@ -506,13 +500,12 @@ Terminal command-line flags require iOS Settings equivalents:
 - ✅ Device-adaptive scaling
 - ✅ Responsive layout (iPhone/iPad/macOS)
 - ✅ Haptic feedback
+- ✅ **Board flipping** - Quick Menu toggle to flip perspective
 
 **❌ Terminal Features Not in iOS:**
 - ❌ **Move history display** - Terminal shows scrolling move list
 - ❌ **Position evaluation display** - Terminal shows
   centipawn/scaled score
-- ❌ **Captured pieces count** - Terminal shows pieces taken by each
-  side
 - ❌ **Live PGN display** - Terminal can show real-time PGN in
   separate terminal window
 
@@ -619,12 +612,13 @@ All core chess rules now fully implemented:
 - Position evaluation and hint system
 - Move history and undo
 
-**iOS Project (Current State):**
-- ~90% of core chess rules implemented
-- Professional UI/UX with touch controls
-- Foundation for all terminal features laid
-- Ready for AI integration
-- **Feature parity gap:** ~35% of terminal features remaining
+**iOS Project (Current State - Session 17):**
+- 100% of core chess rules implemented
+- Complete Stockfish AI integration with realistic difficulty scaling
+- Professional UI/UX with touch/drag controls and haptic feedback
+- Human vs Human and Human vs AI gameplay modes
+- Board flipping, time controls, undo, captured pieces tracking
+- **Feature parity gap:** ~25% of terminal features remaining (mainly file management and evaluation display)
 
 ---
 
@@ -1135,6 +1129,36 @@ with Settings
   mode, all platforms
 - Zero-warning clean build maintained
 
+**Session 17: Oct 16, 2025** - AI Gameplay Complete with Game Controls
+- **Board flipping feature:** Added "Flip Board" button to Quick Game Menu
+  with @AppStorage persistence and seamless coordinate transformation
+- **Human vs Human mode:** Added "Human" opponent option in OpponentView
+  for local two-player games
+- **Opponent/skill locking:** Implemented game-start lock preventing
+  opponent/engine/skill changes after gameplay begins
+  - Updated OpponentView.swift with locking logic for all opponent selections
+  - Updated StockfishSettingsView.swift with engine/skill level locks
+  - Orange warning text with disabled controls (50% opacity)
+  - Lock triggers: game.gameInProgress || !game.moveHistory.isEmpty
+- **Board move locking:** Added guards in ChessBoardView preventing
+  piece movement until "Start Game" button tapped
+  - Guards added to handleDragChanged() and handleSingleTap()
+- **AI engine initialization bug fix (CRITICAL):** Fixed Stockfish not
+  making moves
+  - Root cause: Engine wasn't being initialized when "Start Game" tapped
+  - Solution: Added initializeEngine() call in QuickGameMenuView "Start Game"
+  - Added @AppStorage properties to read selectedEngine and skillLevel
+  - Debug logging confirmed proper engine initialization flow
+- **Skill level depth mapping:** Implemented realistic strength scaling
+  - Created calculateSearchDepth(for:) in StockfishEngine.swift
+  - Maps skill 0-20 to search depth 1-15 plies
+  - Skill 5 = depth 3, Skill 10 = depth 7, Skill 20 = depth 15
+  - Prevents depth-10-for-all issue causing unrealistic strength
+- **Testing validation:** User confirmed AI move quality matches reference
+  Stockfish 17.1 engine at all skill levels
+- **Phase 3 AI Gameplay milestone achieved:** Fully playable Stockfish
+  integration with appropriate difficulty scaling
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -1172,6 +1196,15 @@ integration will add conditional logic to distinguish human vs AI
 promotion (AI will select piece automatically via UCI notation like
 "e7e8q"). Protocol-based ChessEngine architecture ensures clean
 refactoring for Stockfish/Lichess/Chess.com engines.
+
+**Oct 16, 2025**: Skill level depth mapping - Stockfish's UCI "Skill
+Level" option has limited effect at high search depths. Solution:
+calculateSearchDepth(for:) maps skill 0-20 to search depth 1-15 plies,
+providing realistic strength variation. Skill 5 = depth 3 (beginner
+mistakes), Skill 10 = depth 7 (intermediate play), Skill 20 = depth 15
+(maximum strength). This prevents the depth-10-for-all issue that caused
+unrealistic AI difficulty. User testing confirmed move quality matches
+reference Stockfish 17.1 engine.
 
 ### Implementation Progress
 
@@ -1219,9 +1252,14 @@ refactoring for Stockfish/Lichess/Chess.com engines.
 - ✅ **Captured pieces display** (calculated from move history, tappable overlay)
 - ✅ **Time controls enforcement** (live countdown, increment, forfeit detection)
 - ✅ **Start Game UX** (user-controlled timer start, fixes terminal weakness)
-- 🔄 **Stockfish engine foundation** (ChessEngine protocol + StockfishEngine + tests created)
-- 📋 Engine integration into ChessGame model
-- 📋 AI move automation in game flow
+- ✅ **Board flipping** (Quick Menu toggle with @AppStorage persistence)
+- ✅ **Human vs Human mode** (local two-player games)
+- ✅ **Stockfish engine foundation** (ChessEngine protocol + StockfishEngine + tests)
+- ✅ **Engine integration** (initializeEngine() in ChessGame model)
+- ✅ **AI move automation** (Stockfish makes moves in game flow)
+- ✅ **Skill level depth mapping** (realistic strength scaling depth 1-15)
+- ✅ **Opponent/skill locking** (prevents changes after game starts)
+- ✅ **Board move locking** (prevents moves until "Start Game" tapped)
 - 📋 Position evaluation display
 - 📋 Hint system implementation
 - 📋 **FEN/PGN import with position navigation** (matches terminal LOAD FEN/PGN)

@@ -29,7 +29,7 @@ struct ContentView: View {
     @State private var timeForfeitWinner: Color?
 
     // Opponent settings
-    @AppStorage("selectedEngine") private var selectedEngine = "stockfish"
+    @AppStorage("selectedEngine") private var selectedEngine = "human"
     @AppStorage("stockfishSkillLevel") private var skillLevel = 5
 
     // Time control settings
@@ -352,14 +352,16 @@ struct ContentView: View {
                 // Display the appropriate opponent settings view based on selected engine
                 Group {
                     switch selectedEngine {
+                    case "human":
+                        OpponentView(game: game)
                     case "stockfish":
-                        StockfishSettingsView()
+                        StockfishSettingsView(game: game)
                     case "chesscom":
                         ChessComSettingsView()
                     case "lichess":
                         LichessSettingsView()
                     default:
-                        StockfishSettingsView()
+                        OpponentView(game: game)
                     }
                 }
                 .toolbar {
@@ -415,7 +417,9 @@ struct ContentView: View {
         .alert("Time Forfeit!", isPresented: $showingTimeForfeitAlert) {
             Button("OK") {
                 // Reset game after time forfeit (onChange will re-initialize time controls)
-                game.resetGame()
+                Task {
+                    await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel)
+                }
             }
         } message: {
             if let winner = timeForfeitWinner {
@@ -425,9 +429,11 @@ struct ContentView: View {
     }
 
     /// Computed property for opponent display text
-    /// Matches terminal project format: "Opponent: Stockfish (Level 5)"
+    /// Displays current game mode (Human vs Human or AI opponent)
     private var opponentInfoText: String {
         switch selectedEngine {
+        case "human":
+            return "Mode: Human vs Human"
         case "stockfish":
             return "Opponent: Stockfish (Level \(skillLevel))"
         case "chesscom":

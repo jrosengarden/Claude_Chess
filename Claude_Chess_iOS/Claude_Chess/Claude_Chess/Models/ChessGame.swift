@@ -82,6 +82,19 @@ class ChessGame: ObservableObject {
     /// Timer doesn't run until user taps "Start Game"
     @Published var gameInProgress: Bool = false
 
+    // MARK: - AI Engine Integration
+
+    /// Stockfish chess engine instance (nil if not using Stockfish)
+    var engine: StockfishEngine?
+
+    /// Selected opponent engine from settings
+    var selectedEngine: String = "human"
+
+    /// Whether current opponent is an AI engine (not human vs human)
+    var isAIOpponent: Bool {
+        return selectedEngine != "human"
+    }
+
     // MARK: - Initialization
 
     /// Initialize a new chess game with standard starting position
@@ -164,9 +177,13 @@ class ChessGame: ObservableObject {
 
     // MARK: - Game Management
 
-    /// Reset game to starting position
+    /// Reset game to starting position and initialize AI engine if needed
     /// Clears the board and reinitializes to standard chess starting position
-    func resetGame() {
+    /// Ported from terminal project newGame() logic
+    /// - Parameters:
+    ///   - selectedEngine: Engine selection from settings ("human", "stockfish", etc.)
+    ///   - skillLevel: Stockfish skill level (0-20)
+    func resetGame(selectedEngine: String = "human", skillLevel: Int = 5) async {
         setupInitialPosition()
         // Clear move history (captured pieces tracking)
         moveHistory.removeAll()
@@ -176,6 +193,13 @@ class ChessGame: ObservableObject {
         gameInProgress = false  // User must explicitly start game
         // Increment reset trigger to notify UI to clear selection state
         resetTrigger += 1
+
+        // Initialize AI engine if Stockfish is selected (terminal project parity)
+        do {
+            try await initializeEngine(selectedEngine: selectedEngine, skillLevel: skillLevel)
+        } catch {
+            print("ERROR: Failed to initialize engine: \(error)")
+        }
     }
 
     /// Setup board from FEN string
@@ -879,6 +903,204 @@ class ChessGame: ObservableObject {
                     }
                 }
             }
+        }
+    }
+
+    // MARK: - AI Engine Management
+
+    /// Initialize Stockfish engine with skill level from settings
+    /// Ported from terminal project stockfish.c logic
+    /// - Parameters:
+    ///   - selectedEngine: Engine selection from settings ("human", "stockfish", etc.)
+    ///   - skillLevel: Stockfish skill level (0-20)
+    /// - Throws: Engine initialization errors
+    func initializeEngine(selectedEngine: String, skillLevel: Int) async throws {
+        print("DEBUG: initializeEngine() called")
+        print("  selectedEngine parameter = \(selectedEngine)")
+        print("  skillLevel parameter = \(skillLevel)")
+
+        // Store selected engine
+        self.selectedEngine = selectedEngine
+        print("  game.selectedEngine set to = \(self.selectedEngine)")
+
+        // Only initialize if Stockfish is selected
+        guard selectedEngine == "stockfish" else {
+            engine = nil
+            print("  Engine NOT initialized (not stockfish)")
+            return
+        }
+
+        // Shutdown any existing engine first
+        await shutdownEngine()
+
+        // Create and initialize new Stockfish engine
+        let newEngine = StockfishEngine()
+        try await newEngine.initialize()
+        try await newEngine.setSkillLevel(skillLevel)
+
+        // Store engine reference
+        engine = newEngine
+
+        print("Stockfish engine initialized at skill level \(skillLevel)")
+    }
+
+    /// Shutdown Stockfish engine with proper cleanup
+    /// Ported from terminal project cleanup logic
+    func shutdownEngine() async {
+        guard let engine = engine else { return }
+
+        await engine.shutdown()
+        self.engine = nil
+
+        print("Stockfish engine shutdown complete")
+    }
+
+    /// Get AI move from Stockfish engine
+    /// Ported from terminal project stockfish.c:get_best_move()
+    /// - Returns: UCI move string (e.g., "e2e4", "e7e8q" for promotion) or nil if no move available
+    /// - Throws: Engine communication errors
+    func getAIMove() async throws -> String? {
+        guard let engine = engine else {
+            print("ERROR: getAIMove called but engine is nil")
+            return nil
+        }
+
+        // Convert current board to FEN string
+        let fen = boardToFEN()
+
+        // Determine time limit based on time controls
+        let timeLimit: Int?
+        if timeControlsEnabled && !timeControlsDisabledByUndo {
+            // Time-based search: use ~1/20th of remaining time (terminal project behavior)
+            let timeRemaining = getCurrentTime(for: currentPlayer)
+            var moveTime = (timeRemaining * 1000) / 20  // Convert to milliseconds
+
+            // Clamp between 500ms and 10000ms (terminal project limits)
+            if moveTime < 500 { moveTime = 500 }
+            if moveTime > 10000 { moveTime = 10000 }
+
+            timeLimit = moveTime
+        } else {
+            // Depth-based search when time controls disabled
+            timeLimit = nil
+        }
+
+        // Request best move from engine
+        let move = try await engine.getBestMove(position: fen, timeLimit: timeLimit)
+
+        print("AI move received: \(move ?? "none")")
+        return move
+    }
+
+    /// Convert current board state to FEN string
+    /// Ported from terminal project stockfish.c:board_to_fen()
+    /// - Returns: Complete FEN string with all 6 components
+    private func boardToFEN() -> String {
+        var fen = ""
+
+        // 1. Piece placement (rank by rank from rank 8 to rank 1)
+        for row in 0..<8 {
+            var emptyCount = 0
+
+            for col in 0..<8 {
+                if let piece = board[row][col] {
+                    // Output any accumulated empty squares
+                    if emptyCount > 0 {
+                        fen += "\(emptyCount)"
+                        emptyCount = 0
+                    }
+
+                    // Output piece character
+                    fen += String(piece.fenCharacter)
+                } else {
+                    emptyCount += 1
+                }
+            }
+
+            // Output remaining empty squares for this rank
+            if emptyCount > 0 {
+                fen += "\(emptyCount)"
+            }
+
+            // Add rank separator (except after rank 1)
+            if row < 7 {
+                fen += "/"
+            }
+        }
+
+        // 2. Active color
+        fen += " \(currentPlayer == .white ? "w" : "b")"
+
+        // 3. Castling rights
+        var castling = ""
+        if !whiteKingMoved {
+            if !whiteRookKingsideMoved { castling += "K" }
+            if !whiteRookQueensideMoved { castling += "Q" }
+        }
+        if !blackKingMoved {
+            if !blackRookKingsideMoved { castling += "k" }
+            if !blackRookQueensideMoved { castling += "q" }
+        }
+        fen += " \(castling.isEmpty ? "-" : castling)"
+
+        // 4. En passant target
+        if let epTarget = enPassantTarget {
+            fen += " \(epTarget.algebraic)"
+        } else {
+            fen += " -"
+        }
+
+        // 5. Halfmove clock
+        fen += " \(halfmoveClock)"
+
+        // 6. Fullmove number
+        fen += " \(fullmoveNumber)"
+
+        return fen
+    }
+
+    /// Parse UCI move string and execute on board
+    /// Ported from terminal project stockfish.c:parse_move_string()
+    /// - Parameter uciMove: UCI move string (e.g., "e2e4", "e7e8q" for promotion)
+    /// - Returns: True if move was successfully parsed and executed
+    @discardableResult
+    func executeAIMove(_ uciMove: String) async -> Bool {
+        guard uciMove.count >= 4 else {
+            print("ERROR: Invalid UCI move string: \(uciMove)")
+            return false
+        }
+
+        // Parse from/to positions
+        let fromAlg = String(uciMove.prefix(2))
+        let toAlg = String(uciMove.dropFirst(2).prefix(2))
+
+        guard let from = Position(algebraic: fromAlg),
+              let to = Position(algebraic: toAlg) else {
+            print("ERROR: Could not parse UCI positions: \(fromAlg) to \(toAlg)")
+            return false
+        }
+
+        // Check for promotion (5-character move like "e7e8q")
+        if uciMove.count == 5 {
+            let promotionChar = uciMove.last!
+
+            // Map UCI promotion character to PieceType
+            let promotionPiece: PieceType
+            switch promotionChar.lowercased() {
+            case "q": promotionPiece = .queen
+            case "r": promotionPiece = .rook
+            case "b": promotionPiece = .bishop
+            case "n": promotionPiece = .knight
+            default:
+                print("ERROR: Invalid promotion character: \(promotionChar)")
+                return false
+            }
+
+            // Execute promotion move (AI doesn't show picker)
+            return makePromotionMove(from: from, to: to, promotionPiece: promotionPiece)
+        } else {
+            // Regular move
+            return makeMove(from: from, to: to)
         }
     }
 }

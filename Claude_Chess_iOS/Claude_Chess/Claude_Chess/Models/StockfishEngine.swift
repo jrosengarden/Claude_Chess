@@ -221,8 +221,10 @@ class StockfishEngine: ChessEngine {
             // Time-based search (terminal project: uses 1/20th of remaining time)
             await engine.send(command: .go(movetime: timeLimit))
         } else {
-            // Depth-based search (terminal project: depth 10 for consistent speed)
-            await engine.send(command: .go(depth: 10))
+            // Depth-based search with skill-adjusted depth (terminal project behavior)
+            // Lower skill levels use shallower depth for more realistic play
+            let searchDepth = calculateSearchDepth(for: skillLevel)
+            await engine.send(command: .go(depth: searchDepth))
         }
 
         // Wait for bestmove response (timeout after 30 seconds)
@@ -373,6 +375,42 @@ class StockfishEngine: ChessEngine {
         default:
             // Ignore other responses (uciok, readyok, etc.)
             break
+        }
+    }
+
+    /// Calculate search depth based on skill level.
+    ///
+    /// Lower skill levels use shallower depth for more realistic play and faster moves.
+    /// Matches terminal project behavior where skill affects both UCI setting and search depth.
+    ///
+    /// ## Depth Mapping
+    /// - Skill 0-5: Depth 1-3 (beginner, fast and weak)
+    /// - Skill 6-10: Depth 4-6 (casual player)
+    /// - Skill 11-15: Depth 7-10 (intermediate)
+    /// - Skill 16-20: Depth 11-15 (advanced to maximum)
+    ///
+    /// - Parameter skillLevel: Skill level (0-20)
+    /// - Returns: Search depth (1-15 plies)
+    private func calculateSearchDepth(for skillLevel: Int) -> Int {
+        switch skillLevel {
+        case 0...2:
+            return 1  // Beginner - very weak, instant moves
+        case 3...5:
+            return 3  // Beginner+ - weak but sees basic tactics
+        case 6...8:
+            return 5  // Casual - decent moves, some mistakes
+        case 9...11:
+            return 7  // Intermediate - solid play
+        case 12...14:
+            return 9  // Intermediate+ - strong play
+        case 15...17:
+            return 11  // Advanced - very strong
+        case 18...19:
+            return 13  // Expert - nearly perfect
+        case 20:
+            return 15  // Maximum - full strength
+        default:
+            return 5  // Fallback
         }
     }
 

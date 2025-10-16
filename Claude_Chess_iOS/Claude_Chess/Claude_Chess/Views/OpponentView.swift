@@ -9,17 +9,54 @@
 
 import SwiftUI
 
-/// Opponent selection view for choosing AI chess engine
-/// - Stockfish: Native offline engine with skill levels 0-20
+/// Opponent selection view for choosing game mode
+/// - Human: Two humans playing on same device (pass and play)
+/// - Stockfish: Native offline AI engine with skill levels 0-20
 /// - Lichess: Online API integration (future)
 /// - Chess.com: Online API integration (future)
 struct OpponentView: View {
-    @AppStorage("selectedEngine") private var selectedEngine = "stockfish"
+    @AppStorage("selectedEngine") private var selectedEngine = "human"
+    @ObservedObject var game: ChessGame
+
+    /// Check if opponent selection is locked (game has started)
+    private var isOpponentLockEnabled: Bool {
+        return game.gameInProgress || !game.moveHistory.isEmpty
+    }
 
     var body: some View {
         List {
+            Section(header: Text("Opponent Selection")) {
+                // Lock warning if game has started
+                if isOpponentLockEnabled {
+                    Text("Opponent cannot be changed after game has started. Start a New Game to change opponent.")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                        .padding(.vertical, 4)
+                }
+
+                // Human vs Human option
+                Button(action: {
+                    if !isOpponentLockEnabled {
+                        selectedEngine = "human"
+                    }
+                }) {
+                    HStack {
+                        Label("Human", systemImage: "person.2.fill")
+                            .foregroundColor(.accentColor)
+                        Spacer()
+                        if selectedEngine == "human" {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+                .disabled(isOpponentLockEnabled)
+                .opacity(isOpponentLockEnabled ? 0.5 : 1.0)
+            }
+
             Section(header: Text("AI Engine Selection")) {
-                NavigationLink(destination: StockfishSettingsView()) {
+                NavigationLink(destination: StockfishSettingsView(game: game)) {
                     HStack {
                         Label("Stockfish", systemImage: "desktopcomputer")
                             .foregroundColor(.accentColor)
@@ -30,6 +67,8 @@ struct OpponentView: View {
                         }
                     }
                 }
+                .disabled(isOpponentLockEnabled)
+                .opacity(isOpponentLockEnabled ? 0.5 : 1.0)
 
                 NavigationLink(destination: ChessComSettingsView()) {
                     HStack {
@@ -42,6 +81,8 @@ struct OpponentView: View {
                         }
                     }
                 }
+                .disabled(isOpponentLockEnabled)
+                .opacity(isOpponentLockEnabled ? 0.5 : 1.0)
 
                 NavigationLink(destination: LichessSettingsView()) {
                     HStack {
@@ -54,10 +95,20 @@ struct OpponentView: View {
                         }
                     }
                 }
+                .disabled(isOpponentLockEnabled)
+                .opacity(isOpponentLockEnabled ? 0.5 : 1.0)
             }
 
-            Section(header: Text("About Engines")) {
+            Section(header: Text("About Opponents")) {
                 VStack(alignment: .leading, spacing: 12) {
+                    Text("Human")
+                        .font(.headline)
+                    Text("Two players on same device (pass and play). Use Flip Board to rotate the board between turns.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Divider()
+
                     Text("Stockfish")
                         .font(.headline)
                     Text("Offline chess engine with adjustable skill levels (0-20). No internet connection required.")
@@ -91,6 +142,6 @@ struct OpponentView: View {
 
 #Preview {
     NavigationView {
-        OpponentView()
+        OpponentView(game: ChessGame())
     }
 }

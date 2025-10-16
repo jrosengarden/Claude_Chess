@@ -15,12 +15,28 @@ import SwiftUI
 struct StockfishSettingsView: View {
     @AppStorage("selectedEngine") private var selectedEngine = "stockfish"
     @AppStorage("stockfishSkillLevel") private var skillLevel = 5
+    @ObservedObject var game: ChessGame
+
+    /// Check if skill level selection is locked (game has started)
+    private var isSkillLevelLockEnabled: Bool {
+        return game.gameInProgress || !game.moveHistory.isEmpty
+    }
 
     var body: some View {
         List {
             Section(header: Text("Engine Selection")) {
+                // Lock warning if game has started
+                if isSkillLevelLockEnabled {
+                    Text("Opponent and skill level cannot be changed after game has started. Start a New Game to change settings.")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                        .padding(.vertical, 4)
+                }
+
                 Button(action: {
-                    selectedEngine = "stockfish"
+                    if !isSkillLevelLockEnabled {
+                        selectedEngine = "stockfish"
+                    }
                 }) {
                     HStack {
                         Text("Use Stockfish")
@@ -31,6 +47,9 @@ struct StockfishSettingsView: View {
                         }
                     }
                 }
+                .buttonStyle(PlainButtonStyle())
+                .disabled(isSkillLevelLockEnabled)
+                .opacity(isSkillLevelLockEnabled ? 0.5 : 1.0)
             }
 
             Section(header: Text("Skill Level")) {
@@ -48,6 +67,8 @@ struct StockfishSettingsView: View {
                         get: { Double(skillLevel) },
                         set: { skillLevel = Int($0) }
                     ), in: 0...20, step: 1)
+                    .disabled(isSkillLevelLockEnabled)
+                    .opacity(isSkillLevelLockEnabled ? 0.5 : 1.0)
 
                     // Informational text
                     VStack(alignment: .leading, spacing: 4) {
@@ -127,6 +148,6 @@ struct StockfishSettingsView: View {
 
 #Preview {
     NavigationView {
-        StockfishSettingsView()
+        StockfishSettingsView(game: ChessGame())
     }
 }
