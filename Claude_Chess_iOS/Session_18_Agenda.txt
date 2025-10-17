@@ -128,6 +128,7 @@ These features will be covered in Session 19+:
 
 ## Documentation Tasks (End of Session)
 - Update Session 18 entry in CLAUDE.md
+- Update Readme.md with appropriate information from Session 18
 - Update Implementation Progress (mark completed items)
 - Update TODO tracking (remove completed TODOs)
 - Verify TODO count accuracy with grep
