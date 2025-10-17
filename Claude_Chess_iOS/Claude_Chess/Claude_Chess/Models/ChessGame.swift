@@ -95,6 +95,19 @@ class ChessGame: ObservableObject {
         return selectedEngine != "human"
     }
 
+    // MARK: - Position Evaluation
+
+    /// Current position evaluation in centipawns (from Stockfish)
+    /// Positive = White advantage, Negative = Black advantage
+    /// nil = evaluation not yet calculated or unavailable
+    @Published var positionEvaluation: Int? = nil
+
+    // MARK: - Hint System
+
+    /// Current hint move in UCI notation (e.g., "e2e4", "e7e8q")
+    /// nil = no hint requested or hint unavailable
+    @Published var currentHint: String? = nil
+
     // MARK: - Initialization
 
     /// Initialize a new chess game with standard starting position
@@ -933,13 +946,13 @@ class ChessGame: ObservableObject {
         // Shutdown any existing engine first
         await shutdownEngine()
 
-        // Create and initialize new Stockfish engine
-        let newEngine = StockfishEngine()
-        try await newEngine.initialize()
-        try await newEngine.setSkillLevel(skillLevel)
+        // Use shared Stockfish engine instance (singleton pattern)
+        let sharedEngine = StockfishEngine.shared
+        try await sharedEngine.initialize()
+        try await sharedEngine.setSkillLevel(skillLevel)
 
         // Store engine reference
-        engine = newEngine
+        engine = sharedEngine
 
         print("Stockfish engine initialized at skill level \(skillLevel)")
     }
@@ -1057,6 +1070,60 @@ class ChessGame: ObservableObject {
         fen += " \(fullmoveNumber)"
 
         return fen
+    }
+
+    /// Update position evaluation using Stockfish engine
+    /// Ported from terminal project stockfish.c:get_position_evaluation()
+    /// - Note: Sets positionEvaluation to nil if engine unavailable or evaluation fails
+    func updatePositionEvaluation() async {
+        // Only evaluate if Stockfish engine is available
+        guard let engine = engine else {
+            positionEvaluation = nil
+            return
+        }
+
+        do {
+            // Convert current board to FEN
+            let fen = boardToFEN()
+
+            // Request evaluation from engine (depth 15 like terminal project)
+            if let eval = try await engine.evaluatePosition(position: fen) {
+                positionEvaluation = eval
+            } else {
+                positionEvaluation = nil
+            }
+        } catch {
+            print("ERROR: Position evaluation failed: \(error)")
+            positionEvaluation = nil
+        }
+    }
+
+    /// Request hint move from Stockfish engine
+    /// Ported from terminal project stockfish.c:get_hint_move()
+    /// Uses fast depth-based search to avoid consuming user's time during hints
+    /// - Note: Sets currentHint to nil if engine unavailable or hint fails
+    func requestHint() async {
+        // Only provide hints if Stockfish engine is available
+        guard let engine = engine else {
+            currentHint = nil
+            return
+        }
+
+        do {
+            // Convert current board to FEN
+            let fen = boardToFEN()
+
+            // Request hint from engine (fast search, no time limit - depth-based)
+            // Terminal project uses depth-based search for hints to avoid burning user time
+            if let hint = try await engine.getHint(position: fen) {
+                currentHint = hint
+            } else {
+                currentHint = nil
+            }
+        } catch {
+            print("ERROR: Hint request failed: \(error)")
+            currentHint = nil
+        }
     }
 
     /// Parse UCI move string and execute on board

@@ -29,7 +29,7 @@ logic, features, and behavior.**
 
 **Current Phase:** Phase 3 IN PROGRESS 🔄 - AI Gameplay Complete
 **Created:** September 30, 2025
-**Last Updated:** October 16, 2025 (Session 17)
+**Last Updated:** October 17, 2025 (Session 18)
 **Development Stage:** Fully playable chess game with all core rules,
 complete Stockfish AI integration with realistic difficulty scaling,
 Human vs Human mode, board flipping, comprehensive game controls, and
@@ -231,15 +231,13 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (12 total as of Oct 14, 2025 - Session 16):**
+**Current TODO Inventory (9 total as of Oct 17, 2025 - Session 18):**
 
 **Phase 3 - Move Validation & Game Logic (0 TODOs):**
 - ✅ All validation complete (2 castling TODOs removed in Session 15 post-session fixes)
 
-**Phase 3 - UI & Display (3 TODOs):**
-- `HintView.swift` (line 36) - Implement actual hint functionality
-- `ScoreView.swift` (line 21) - Display current position evaluation
-- `ScoreView.swift` (line 29) - Display game statistics
+**Phase 3 - UI & Display (1 TODO):**
+- `ScoreView.swift` (line 46) - Display game statistics
 
 **Phase 3 - Game Management (8 TODOs):**
 - `GameMenuView.swift` (line 76) - Import FEN action (load .fen files with position navigation + save prompt)
@@ -294,8 +292,8 @@ native format.
 **Reference**: `../CLAUDE.md` for complete terminal project specifications
 
 ### Summary Status
-- **✅ Fully Implemented:** 20 features (AI integration + board flipping added)
-- **🔄 Partially Implemented:** 3 features (AI evaluation/hints pending)
+- **✅ Fully Implemented:** 23 features (evaluation/hints complete in Session 18)
+- **🔄 Partially Implemented:** 0 features
 - **❌ Missing/Not Planned:** 12 features
 - **📋 iOS-Specific Adaptations Needed:** 6 features
 
@@ -349,10 +347,12 @@ native format.
 - ✅ **Pondering prevention** - Disabled during initialization
 - ✅ **Search mode selection** - Depth-based search (time-based pending time integration)
 
+**✅ Completed in iOS (Session 18):**
+- ✅ **Position evaluation** - Terminal has `get_position_evaluation()` showing centipawn scores
+- ✅ **Evaluation scale conversion** - Terminal has `centipawns_to_scale()` (-9 to +9)
+- ✅ **Hint system** - Terminal has `get_hint_move()` with fast depth-based search
+
 **❌ Terminal Features Not Yet in iOS:**
-- ❌ **Position evaluation** - Terminal has `get_position_evaluation()` showing centipawn scores
-- ❌ **Evaluation scale conversion** - Terminal has `centipawns_to_scale()` (-9 to +9)
-- ❌ **Hint system** - Terminal has `get_hint_move()` with fast depth-based search
 - ❌ **Timer integration with AI** - Terminal uses 1/20th of remaining time for AI moves
 
 ---
@@ -1159,6 +1159,29 @@ with Settings
 - **Phase 3 AI Gameplay milestone achieved:** Fully playable Stockfish
   integration with appropriate difficulty scaling
 
+**Session 18: Oct 17, 2025** - Position Evaluation & Hint System Complete
+- **Priority 0: Stockfish Version Verification** - Fixed engine lifecycle bug
+  with singleton pattern (StockfishEngine.shared) to prevent multiple instances
+- **Quick Fixes:** Haptic feedback on AI moves, moved Integration Tests to
+  Stockfish Settings, removed redundant About from Settings, added ChessKitEngine
+  license to About view
+- **Priority 4: AI Time Controls Integration** - Confirmed already complete
+  (Session 15)
+- **Priority 1: Position Evaluation Display** - Implemented complete evaluation
+  system with 3 display formats (centipawns, scaled -9 to +9, win probability)
+  and live updates during gameplay. Added evaluatePosition() to StockfishEngine,
+  integrated with ScoreView displaying color-coded evaluation with interpretation
+  text. Score moved from hamburger menu to Quick Menu for better UX.
+- **Priority 2: Hint System Implementation** - Complete hint system ported from
+  terminal project with 4-state UI (game not started warning, loading indicator,
+  hint display with UCI formatting, no engine warning). Added requestHint() to
+  ChessGame, complete HintView rewrite with formatHintMove() and hintDescription()
+  helpers. Fixed hint availability logic: checks game.engine != nil (not opponent
+  setting) and game.gameInProgress (prevents hints before "Start Game"). User
+  confirmed: "Hint system seems to be working fine."
+- **TODO count reduced:** 12 → 9 total (removed HintView and ScoreView evaluation
+  TODOs)
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -1260,8 +1283,9 @@ reference Stockfish 17.1 engine.
 - ✅ **Skill level depth mapping** (realistic strength scaling depth 1-15)
 - ✅ **Opponent/skill locking** (prevents changes after game starts)
 - ✅ **Board move locking** (prevents moves until "Start Game" tapped)
-- 📋 Position evaluation display
-- 📋 Hint system implementation
+- ✅ **Position evaluation display** (3 formats with live updates - Session 18)
+- ✅ **Hint system implementation** (UCI formatting, 4-state UI - Session 18)
+- 📋 **Game statistics display** (move count, captures, time remaining)
 - 📋 **FEN/PGN import with position navigation** (matches terminal LOAD FEN/PGN)
 - 📋 FEN/PGN export
 - 📋 **"Save current game" prompts before loading positions**

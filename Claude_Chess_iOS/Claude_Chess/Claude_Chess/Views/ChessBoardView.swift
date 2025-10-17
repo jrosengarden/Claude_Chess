@@ -351,6 +351,11 @@ struct ChessBoardView: View {
                         let moveNotation = isCapture ? "\(position.algebraic) x \(dropPosition.algebraic)" : "\(position.algebraic) to \(dropPosition.algebraic)"
                         print("Move executed (drag): \(moveNotation)")
 
+                        // Update position evaluation (async)
+                        Task {
+                            await game.updatePositionEvaluation()
+                        }
+
                         // Check for game-ending conditions
                         checkGameEnd()
 
@@ -460,6 +465,11 @@ struct ChessBoardView: View {
                         print("  Current player: \(game.currentPlayer.displayName)")
                         clearSelection()
                         clearPreview()
+
+                        // Update position evaluation (async)
+                        Task {
+                            await game.updatePositionEvaluation()
+                        }
 
                         // Check for game-ending conditions
                         checkGameEnd()
@@ -580,6 +590,11 @@ struct ChessBoardView: View {
 
             print("Promotion executed: \(from.algebraic) to \(to.algebraic), promoted to \(piece.displayName)")
 
+            // Update position evaluation (async)
+            Task {
+                await game.updatePositionEvaluation()
+            }
+
             // Check for game-ending conditions
             checkGameEnd()
 
@@ -634,7 +649,19 @@ struct ChessBoardView: View {
                 let success = await game.executeAIMove(uciMove)
 
                 if success {
+                    // Heavy haptic feedback for AI move
+                    await MainActor.run {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            heavyHaptic.impactOccurred()
+                        }
+                        #endif
+                    }
+
                     print("AI move executed successfully")
+
+                    // Update position evaluation after AI move
+                    await game.updatePositionEvaluation()
 
                     // Check for game-ending conditions after AI move
                     await MainActor.run {

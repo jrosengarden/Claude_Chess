@@ -16,9 +16,6 @@ struct QuickGameMenuView: View {
     @State private var showingHint = false
     @State private var showingFEN = false
     @State private var showingPGN = false
-    @State private var showingEngineTest = false
-    @State private var engineTestResults = ""
-    @State private var isRunningEngineTest = false
 
     // Board orientation (persisted across app restarts)
     @AppStorage("boardFlipped") private var boardFlipped: Bool = false
@@ -96,32 +93,6 @@ struct QuickGameMenuView: View {
                             Text("Hint")
                         }
                     }
-                    
-                    Button {
-                        #if os(iOS)
-                        if hapticFeedbackEnabled {
-                            lightHaptic.impactOccurred()
-                        }
-                        #endif
-                        isRunningEngineTest = true
-                        Task {
-                            engineTestResults = await EngineTest.runEngineTest()
-                            isRunningEngineTest = false
-                            showingEngineTest = true
-                        }
-                    } label: {
-                        HStack {
-                            if isRunningEngineTest {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
-                            } else {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                            }
-                            Text("Stockfish Integration Tests")
-                        }
-                    }
-                    .disabled(isRunningEngineTest)
 
                     Button(role: .destructive) {
                         #if os(iOS)
@@ -139,6 +110,14 @@ struct QuickGameMenuView: View {
                 }
 
                 Section("Position Info") {
+                    NavigationLink(destination: ScoreView(game: game)) {
+                        HStack {
+                            Image(systemName: "chart.bar.fill")
+                                .foregroundColor(.blue)
+                            Text("Score")
+                        }
+                    }
+
                     Button {
                         #if os(iOS)
                         if hapticFeedbackEnabled {
@@ -182,7 +161,7 @@ struct QuickGameMenuView: View {
         }
         .sheet(isPresented: $showingHint) {
             NavigationView {
-                HintView()
+                HintView(game: game)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") {
@@ -216,18 +195,6 @@ struct QuickGameMenuView: View {
                     }
             }
         }
-        .sheet(isPresented: $showingEngineTest) {
-            NavigationView {
-                EngineTestResultsView(results: engineTestResults)
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") {
-                                showingEngineTest = false
-                            }
-                        }
-                    }
-            }
-        }
     }
 }
 
@@ -255,23 +222,6 @@ struct PGNDisplayView: View {
                 .foregroundColor(.secondary)
         }
         .navigationTitle("PGN Notation")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-/// Engine test results display view
-struct EngineTestResultsView: View {
-    let results: String
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(results)
-                    .font(.system(.body, design: .monospaced))
-                    .padding()
-            }
-        }
-        .navigationTitle("Stockfish Test Results")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

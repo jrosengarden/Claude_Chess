@@ -49,11 +49,6 @@ struct GameMenuView: View {
                         Label("Setup Game Board", systemImage: "square.grid.3x3")
                     }
 
-                    NavigationLink(destination: ScoreView()) {
-                        Label("Score", systemImage: "chart.bar")
-                            .foregroundColor(.accentColor)
-                    }
-
                     NavigationLink(destination: AboutView()) {
                         Label("About", systemImage: "info.circle")
                             .foregroundColor(.accentColor)
@@ -71,7 +66,7 @@ struct GameMenuView: View {
                             .foregroundColor(.accentColor)
                     }
 
-                    NavigationLink(destination: HintView()) {
+                    NavigationLink(destination: HintView(game: game)) {
                         Label("Hint", systemImage: "lightbulb")
                             .foregroundColor(.accentColor)
                     }

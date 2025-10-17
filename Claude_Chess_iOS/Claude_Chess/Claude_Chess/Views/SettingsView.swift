@@ -75,16 +75,6 @@ struct SettingsView: View {
                         }
                     }
                 }
-
-                // About Section
-                Section("About") {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text("1.0 (Phase 1)")
-                            .foregroundColor(.secondary)
-                    }
-                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)

@@ -46,6 +46,20 @@ import ChessKitEngine
 @MainActor
 class StockfishEngine: ChessEngine {
 
+    // MARK: - Singleton
+
+    /// Shared singleton instance to prevent multiple Stockfish processes.
+    ///
+    /// ChessKitEngine's Stockfish process appears to be a singleton at the system level.
+    /// Only one Stockfish instance can run at a time. Multiple instances interfere with
+    /// each other, causing timeouts and unresponsive behavior.
+    ///
+    /// This singleton pattern ensures:
+    /// - Only one StockfishEngine instance exists
+    /// - The engine can be reused across different game sessions
+    /// - No resource conflicts between multiple engine instances
+    static let shared = StockfishEngine()
+
     // MARK: - Properties
 
     /// The underlying ChessKitEngine instance
@@ -66,6 +80,9 @@ class StockfishEngine: ChessEngine {
     /// Current skill level (0-20)
     private var skillLevel: Int = 5  // Default from terminal project
 
+    /// Engine version string (captured from UCI "id name" response)
+    private var engineVersion: String = "Unknown"
+
     // MARK: - ChessEngine Protocol Conformance
 
     let engineName: String = "Stockfish"
@@ -80,7 +97,8 @@ class StockfishEngine: ChessEngine {
 
     // MARK: - Initialization
 
-    init() {
+    private init() {
+        // Private init to enforce singleton pattern
         // Engine will be initialized in initialize()
     }
 
@@ -193,6 +211,16 @@ class StockfishEngine: ChessEngine {
         await engine?.send(command: .setoption(id: "Ponder", value: "false"))
     }
 
+    /// Get engine version string.
+    ///
+    /// Returns the version information captured from UCI "id name" response
+    /// during initialization (e.g., "Stockfish 17").
+    ///
+    /// - Returns: Engine version string
+    func getEngineVersion() -> String {
+        return engineVersion
+    }
+
     // MARK: - Move Generation
 
     func getBestMove(position: String, timeLimit: Int?) async throws -> String? {
@@ -230,6 +258,12 @@ class StockfishEngine: ChessEngine {
         // Wait for bestmove response (timeout after 30 seconds)
         let startTime = Date()
         while currentBestMove == nil {
+            // Check if engine was shut down during wait
+            guard initialized else {
+                print("⚠️ Engine shut down during getBestMove() wait")
+                return nil
+            }
+
             try await Task.sleep(nanoseconds: 100_000_000) // 100ms
 
             // Timeout check
@@ -268,6 +302,12 @@ class StockfishEngine: ChessEngine {
         // Wait for bestmove response (shorter timeout for hints)
         let startTime = Date()
         while currentBestMove == nil {
+            // Check if engine was shut down during wait
+            guard initialized else {
+                print("⚠️ Engine shut down during getHint() wait")
+                return nil
+            }
+
             try await Task.sleep(nanoseconds: 100_000_000) // 100ms
 
             // Shorter timeout for hints
@@ -308,6 +348,12 @@ class StockfishEngine: ChessEngine {
         // Wait for evaluation response
         let startTime = Date()
         while currentEvaluation == nil {
+            // Check if engine was shut down during wait
+            guard initialized else {
+                print("⚠️ Engine shut down during evaluatePosition() wait")
+                return nil
+            }
+
             try await Task.sleep(nanoseconds: 100_000_000) // 100ms
 
             // Timeout check
@@ -371,6 +417,15 @@ class StockfishEngine: ChessEngine {
                     currentEvaluation = mate > 0 ? 10000 : -10000
                 }
             }
+
+        case .id(.name(let engineName)):
+            // Capture engine version from UCI "id name" response
+            engineVersion = engineName
+            print("✅ Detected engine: \(engineName)")
+
+        case .id(.author(let authorName)):
+            // Capture author information (optional, for future use)
+            print("ℹ️ Engine author: \(authorName)")
 
         default:
             // Ignore other responses (uciok, readyok, etc.)

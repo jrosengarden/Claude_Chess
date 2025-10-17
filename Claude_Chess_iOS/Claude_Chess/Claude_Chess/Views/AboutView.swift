@@ -14,6 +14,8 @@ import SwiftUI
 /// - Development credits
 /// - Third-party license information (chess pieces, Stockfish, etc.)
 struct AboutView: View {
+    @State private var stockfishVersion: String = "Unknown"
+
     var body: some View {
         List {
             Section(header: Text("App Information")) {
@@ -28,6 +30,12 @@ struct AboutView: View {
                     Text("Build")
                     Spacer()
                     Text("1")
+                        .foregroundColor(.secondary)
+                }
+                HStack {
+                    Text("AI Engine")
+                    Spacer()
+                    Text(stockfishVersion)
                         .foregroundColor(.secondary)
                 }
                 HStack {
@@ -94,7 +102,22 @@ struct AboutView: View {
                         .foregroundColor(.blue)
                 }
 
-                // TODO: Add any other third-party libraries used
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("ChessKitEngine")
+                        .font(.headline)
+
+                    Text("ChessKitEngine is licensed under the MIT License.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("Copyright © 2024 The ChessKit Authors")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("GitHub: https://github.com/chesskit-app/chesskit-engine")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
             }
  
             Section(header: Text("Open Source")) {
@@ -107,6 +130,29 @@ struct AboutView: View {
         }
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // Get Stockfish version from shared engine instance
+            Task {
+                let engine = StockfishEngine.shared
+                let currentVersion = engine.getEngineVersion()
+
+                // If engine hasn't been initialized yet, initialize it just to detect version
+                if currentVersion == "Unknown" {
+                    do {
+                        try await engine.initialize()
+                        stockfishVersion = engine.getEngineVersion()
+                        // Shutdown to free resources since we only needed the version
+                        await engine.shutdown()
+                    } catch {
+                        // If initialization fails, fall back to known version
+                        stockfishVersion = "Stockfish 17"
+                    }
+                } else {
+                    // Engine already initialized, just use the version
+                    stockfishVersion = currentVersion
+                }
+            }
+        }
     }
 }
 

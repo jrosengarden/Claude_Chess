@@ -33,7 +33,7 @@ class EngineTest {
 
         // Test 1: Engine Initialization
         results += "1️⃣ Testing engine initialization...\n"
-        let engine = StockfishEngine()
+        let engine = StockfishEngine.shared
 
         do {
             try await engine.initialize()
@@ -96,8 +96,17 @@ class EngineTest {
             results += "   ❌ Hint failed: \(error.localizedDescription)\n\n"
         }
 
-        // Test 6: Shutdown
-        results += "6️⃣ Testing engine shutdown...\n"
+        // Test 6: Engine Version
+        results += "6️⃣ Testing engine version detection...\n"
+        let version = engine.getEngineVersion()
+        if version != "Unknown" {
+            results += "   ✅ Engine Version: \(version)\n\n"
+        } else {
+            results += "   ❌ Engine Version: \(version) (detection failed)\n\n"
+        }
+
+        // Test 7: Shutdown
+        results += "7️⃣ Testing engine shutdown...\n"
         await engine.shutdown()
         results += "   ✅ Engine shut down successfully\n\n"
 
@@ -108,7 +117,7 @@ class EngineTest {
 
     /// Quick test - just verify engine can be initialized and generate one move.
     static func quickTest() async -> String {
-        let engine = StockfishEngine()
+        let engine = StockfishEngine.shared
 
         do {
             try await engine.initialize()

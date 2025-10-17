@@ -17,6 +17,11 @@ struct StockfishSettingsView: View {
     @AppStorage("stockfishSkillLevel") private var skillLevel = 5
     @ObservedObject var game: ChessGame
 
+    // Engine test state
+    @State private var showingEngineTest = false
+    @State private var engineTestResults = ""
+    @State private var isRunningEngineTest = false
+
     /// Check if skill level selection is locked (game has started)
     private var isSkillLevelLockEnabled: Bool {
         return game.gameInProgress || !game.moveHistory.isEmpty
@@ -118,9 +123,50 @@ struct StockfishSettingsView: View {
                         .foregroundColor(.blue)
                 }
             }
+
+            Section(header: Text("Diagnostics")) {
+                Button {
+                    isRunningEngineTest = true
+                    Task {
+                        engineTestResults = await EngineTest.runEngineTest()
+                        isRunningEngineTest = false
+                        showingEngineTest = true
+                    }
+                } label: {
+                    HStack {
+                        if isRunningEngineTest {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle())
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                        }
+                        Text("Run Integration Tests")
+                    }
+                }
+                .disabled(isRunningEngineTest)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Verify Stockfish engine is working correctly on this device.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
         }
         .navigationTitle("Stockfish")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingEngineTest) {
+            NavigationView {
+                EngineTestResultsView(results: engineTestResults)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") {
+                                showingEngineTest = false
+                            }
+                        }
+                    }
+            }
+        }
     }
 
     /// Returns human-readable description of skill level
@@ -141,6 +187,23 @@ struct StockfishSettingsView: View {
         default:
             return "Unknown"
         }
+    }
+}
+
+/// Engine test results display view
+struct EngineTestResultsView: View {
+    let results: String
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(results)
+                    .font(.system(.body, design: .monospaced))
+                    .padding()
+            }
+        }
+        .navigationTitle("Stockfish Test Results")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
