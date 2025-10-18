@@ -1055,6 +1055,7 @@ class ChessGame: ObservableObject {
 
         // Convert current board to FEN string
         let fen = boardToFEN()
+        NSLog("📋 Sending FEN to engine: %@", fen)
 
         // Determine time limit based on time controls
         let timeLimit: Int?

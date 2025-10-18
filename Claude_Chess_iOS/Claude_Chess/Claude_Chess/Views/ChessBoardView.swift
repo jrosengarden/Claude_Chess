@@ -62,6 +62,9 @@ struct ChessBoardView: View {
     // AI move tracking (prevent concurrent AI move requests)
     @State private var aiMoveInProgress = false
 
+    // TEMPORARY: Blocking overlay for testing race condition
+    @State private var showingWaitOverlay = false
+
     // Board orientation (persisted via AppStorage)
     @AppStorage("boardFlipped") private var boardFlipped: Bool = false
 
@@ -75,6 +78,27 @@ struct ChessBoardView: View {
     @AppStorage("customDarkRed") private var customDarkRed: Double = 0.72
     @AppStorage("customDarkGreen") private var customDarkGreen: Double = 0.53
     @AppStorage("customDarkBlue") private var customDarkBlue: Double = 0.30
+
+    // TEMPORARY: Wait overlay view for testing
+    private var waitOverlay: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.6)
+                .ignoresSafeArea()
+                .allowsHitTesting(true)  // Block all touches
+
+            VStack(spacing: 20) {
+                ProgressView()
+                    .scaleEffect(2.0)
+                    .progressViewStyle(CircularProgressViewStyle(tint: SwiftUI.Color.white))
+
+                Text("Please wait...")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(SwiftUI.Color.white)
+            }
+        }
+        .allowsHitTesting(true)  // Ensure overlay captures all touch events
+    }
 
     private var currentTheme: BoardColorTheme {
         if boardThemeId == "custom" {
@@ -146,6 +170,7 @@ struct ChessBoardView: View {
                     x: geometry.size.width / 2,
                     y: geometry.size.height / 2
                 )
+                .disabled(showingWaitOverlay)  // Disable board interaction when overlay is showing
 
                 // Dragged piece overlay
                 if let draggedPos = draggedPiece {
@@ -172,6 +197,11 @@ struct ChessBoardView: View {
                             .shadow(radius: 10)
                             .allowsHitTesting(false)
                     }
+                }
+
+                // TEMPORARY: Blocking overlay for testing race condition
+                if showingWaitOverlay {
+                    waitOverlay
                 }
             }
             .rotationEffect(.degrees(boardFlipped ? 180 : 0))
@@ -639,46 +669,66 @@ struct ChessBoardView: View {
     /// Trigger AI move response after human move
     /// Ported from terminal project's AI move automation logic
     private func triggerAIMove() {
+        NSLog("🔍 triggerAIMove() called - currentPlayer: %@, aiMoveInProgress: %d", String(describing: game.currentPlayer), aiMoveInProgress)
+
         // Prevent concurrent AI move requests
-        guard !aiMoveInProgress else { return }
+        guard !aiMoveInProgress else {
+            NSLog("⚠️ Blocked: aiMoveInProgress is true")
+            return
+        }
 
         // Only trigger if playing against AI engine
-        guard game.isAIOpponent else { return }
+        guard game.isAIOpponent else {
+            NSLog("⚠️ Blocked: not AI opponent")
+            return
+        }
 
         // Only trigger if it's the AI's turn
-        guard game.isAITurn else { return }
+        guard game.isAITurn else {
+            NSLog("⚠️ Blocked: not AI's turn")
+            return
+        }
 
         // Check if game is in progress
-        guard game.gameInProgress else { return }
+        guard game.gameInProgress else {
+            NSLog("⚠️ Blocked: game not in progress")
+            return
+        }
 
         // Only trigger if game hasn't ended
         guard !GameStateChecker.isCheckmate(game: game, color: game.currentPlayer) &&
               !GameStateChecker.isStalemate(game: game, color: game.currentPlayer) &&
               !game.isFiftyMoveRuleDraw() else {
+            NSLog("⚠️ Blocked: game ended")
             return
         }
 
+        NSLog("✅ Triggering AI move - setting aiMoveInProgress = true")
         // Set flag to prevent concurrent requests
         aiMoveInProgress = true
 
         // Request and execute AI move asynchronously
         Task {
-            defer {
-                // Always clear the flag when done (success or failure)
-                Task { @MainActor in
-                    aiMoveInProgress = false
-                }
-            }
-
+            NSLog("🤖 AI Task started - requesting move from engine")
             do {
                 // Get AI move from engine
                 guard let uciMove = try await game.getAIMove() else {
+                    NSLog("❌ ERROR: AI engine returned no move")
                     print("ERROR: AI engine returned no move")
+                    // Clear flag before returning
+                    await MainActor.run {
+                        NSLog("🔓 Clearing aiMoveInProgress flag (no move)")
+                        aiMoveInProgress = false
+                    }
                     return
                 }
 
+                NSLog("🤖 AI engine returned move: %@", uciMove)
+
                 // Execute the AI move
                 let success = await game.executeAIMove(uciMove)
+
+                // NSLog("🤖 executeAIMove returned: %d, currentPlayer now: %@", success, String(describing: game.currentPlayer))
 
                 if success {
                     // Heavy haptic feedback for AI move
@@ -689,20 +739,28 @@ struct ChessBoardView: View {
                         }
                         #endif
                     }
-
-                    // Update position evaluation after AI move
-                    await game.updatePositionEvaluation()
-
-                    // Check for game-ending conditions after AI move
-                    await MainActor.run {
-                        checkGameEnd()
-                    }
                 } else {
+                    // NSLog("❌ ERROR: Failed to execute AI move: %@", uciMove)
                     print("ERROR: Failed to execute AI move: \(uciMove)")
                 }
+
+                // CRITICAL: Clear flag AFTER all post-move operations complete
+                // This prevents race conditions where user input during state updates
+                // could trigger another AI move before the view fully stabilizes
+                await MainActor.run {
+                    // NSLog("🔓 Clearing aiMoveInProgress flag (after all operations)")
+                    aiMoveInProgress = false
+                }
             } catch {
+                // NSLog("❌ ERROR: AI move request failed: %@", error.localizedDescription)
                 print("ERROR: AI move request failed: \(error)")
+                // Clear flag on error path too
+                await MainActor.run {
+                    // NSLog("🔓 Clearing aiMoveInProgress flag (error)")
+                    aiMoveInProgress = false
+                }
             }
+            // NSLog("🤖 AI Task completed")
         }
     }
 

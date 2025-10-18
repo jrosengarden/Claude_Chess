@@ -45,11 +45,12 @@ experience with SwiftUI.
 - Visual board with intuitive touch controls
 - Move validation and legal move highlighting
 
-### AI Opponent ✅ (Sessions 16-18 Complete)
-- ✅ Multiple difficulty levels (0-20 with depth mapping)
+### AI Opponent ✅ (Sessions 16-20 Complete)
+- ✅ Multiple difficulty levels (0-20 with UCI Skill Level control)
+- ✅ Proper skill variation (fixed depth 10, terminal project parity)
 - ✅ Position evaluation and analysis (3 display formats)
 - ✅ Move hints and suggestions (UCI formatting)
-- ✅ Fast, responsive gameplay (Stockfish 17 integration)
+- ✅ Fast, responsive gameplay (optimized performance, race condition fixes)
 
 ### Game Management
 - Save and load games

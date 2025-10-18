@@ -29,11 +29,12 @@ logic, features, and behavior.**
 
 **Current Phase:** Phase 3 IN PROGRESS 🔄 - AI Gameplay Complete
 **Created:** September 30, 2025
-**Last Updated:** October 17, 2025 (Session 18)
+**Last Updated:** October 18, 2025 (Session 20)
 **Development Stage:** Fully playable chess game with all core rules,
-complete Stockfish AI integration with realistic difficulty scaling,
-Human vs Human mode, board flipping, comprehensive game controls, and
-all move locking/timing features working
+complete Stockfish AI integration with proper difficulty scaling
+(fixed depth 10 + UCI Skill Level), optimized performance with race
+condition fixes, position evaluation, hint system, and all critical
+gameplay bugs resolved
 
 ## Build System
 
@@ -231,7 +232,7 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (8 total as of Oct 17, 2025 - Session 19):**
+**Current TODO Inventory (9 total as of Oct 18, 2025 - Session 20):**
 
 **Phase 3 - Move Validation & Game Logic (0 TODOs):**
 - ✅ All validation complete (2 castling TODOs removed in Session 15 post-session fixes)
@@ -239,11 +240,12 @@ prevent accumulation of technical debt.
 **Phase 3 - UI & Display (1 TODO):**
 - `ScoreView.swift` (line 46) - Display game statistics
 
-**Phase 3 - Game Management (7 TODOs):**
+**Phase 3 - Game Management (8 TODOs):**
 - `GameMenuView.swift` (line 79) - Import FEN action (load .fen files with position navigation + save prompt)
 - `GameMenuView.swift` (line 85) - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
 - `GameMenuView.swift` (line 91) - Share Game action (mid-game sharing via iOS share sheet)
 - `GameMenuView.swift` (line 99) - Resign action
+- `GameMenuView.swift` (line 149) - Save current game to file (Setup Board Phase 3 placeholder)
 - `QuickGameMenuView.swift` (line 110) - Resign action
 - `QuickGameMenuView.swift` (line 214) - FEN display implementation
 - `QuickGameMenuView.swift` (line 228) - PGN display implementation
@@ -251,8 +253,10 @@ prevent accumulation of technical debt.
 **Future/Optional (0 TODOs):**
 - ✅ All optional TODOs removed
 
+**Changes in Session 20:**
+- Confirmed `GameMenuView.swift` (line 149) Setup Board save TODO is correct placeholder (re-added to inventory)
+
 **Changes in Session 19:**
-- Removed `GameMenuView.swift` (line 149) - Setup Game Board save prompt (IMPLEMENTED)
 - Removed `AboutView.swift` (line 97) - Third-party libraries placeholder (not needed with ChessKitEngine already documented)
 
 **Active Maintenance Protocol (MANDATORY):**
@@ -1199,6 +1203,21 @@ with Settings
   Setup Board workflow matches terminal project behavior
 - **TODO count unchanged:** 8 total (1 removed from GameMenuView.swift line 149,
   tracking section will be updated)
+
+**Session 20: Oct 18, 2025** - Performance Optimization & Race Condition Fix
+- **Stockfish performance optimization** - Reduced delays: initialization
+  900ms→150ms, polling 100ms→10ms, stop delay 200ms→100ms (AI responds much faster)
+- **Generation counter system** - Implemented request/response tracking to prevent
+  stale bestmove responses (fixed race condition causing double-moves and cached moves)
+- **Skill level bug fix** - Changed from variable depth (1-15) to fixed depth 10
+  matching terminal project; all skill levels were playing identically due to
+  insufficient move diversity at shallow depths
+- **Terminal project parity** - Verified UCI "Skill Level" option with fixed depth 10
+  matches terminal DEFAULT_SEARCH_DEPTH behavior
+- **Debug cleanup** - Removed NSLog statements after race condition resolved
+- **User testing** - No double-moves at any skill level, subtle difficulty differences
+  visible, fast AI response times maintained
+- **TODO count:** 8 → 9 (Setup Board save TODO confirmed as correct Phase 3 placeholder)
 
 ### Key Decisions
 

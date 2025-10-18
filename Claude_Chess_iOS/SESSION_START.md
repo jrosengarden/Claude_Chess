@@ -12,21 +12,29 @@
 integration, position evaluation, hint system, and all critical gameplay
 bugs resolved
 
-## Active TODO Inventory (8 total)
+## Active TODO Inventory (9 total)
 
 **Phase 3 - UI & Display (1 TODO):**
 - `ScoreView.swift` (line 46) - Display game statistics
 
-**Phase 3 - Game Management (7 TODOs):**
+**Phase 3 - Game Management (8 TODOs):**
 - `GameMenuView.swift` (line 79) - Import FEN action
 - `GameMenuView.swift` (line 85) - Import PGN action
 - `GameMenuView.swift` (line 91) - Share Game action
 - `GameMenuView.swift` (line 99) - Resign action
+- `GameMenuView.swift` (line 149) - Save current game to file (Setup Board)
 - `QuickGameMenuView.swift` (line 110) - Resign action
 - `QuickGameMenuView.swift` (line 214) - FEN display implementation
 - `QuickGameMenuView.swift` (line 228) - PGN display implementation
 
 ## Recent Sessions (Last 3)
+
+**Session 20: Oct 18, 2025** - Performance Optimization & Race Condition Fix
+- Fixed Stockfish AI slow response times (reduced delays: 900ms→150ms init, 100ms polling→10ms)
+- Implemented generation counter system to prevent stale bestmove responses (race condition fix)
+- Fixed skill level implementation (variable depth→fixed depth 10, proper UCI Skill Level usage)
+- Removed NSLog debug statements after race condition resolved
+- TODO count: 8 → 9 (Setup Board save TODO confirmed correct)
 
 **Session 19: Oct 17, 2025** - Critical AI Gameplay Bug Fixes
 - Fixed human move during AI turn (added turn validation guards)
