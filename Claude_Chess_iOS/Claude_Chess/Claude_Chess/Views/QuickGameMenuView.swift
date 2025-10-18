@@ -42,18 +42,25 @@ struct QuickGameMenuView: View {
                         }
                         #endif
 
-                        // Initialize AI engine if needed
+                        // Initialize AI engine if needed, THEN start game
                         Task {
                             do {
                                 try await game.initializeEngine(selectedEngine: selectedEngine, skillLevel: skillLevel)
                             } catch {
                                 print("ERROR: Failed to initialize engine: \(error)")
                             }
-                        }
 
-                        game.gameInProgress = true
-                        game.startMoveTimer()
-                        dismiss()
+                            // Start game AFTER engine is initialized
+                            await MainActor.run {
+                                game.gameInProgress = true
+                                game.startMoveTimer()
+
+                                // Trigger AI move check in case it's AI's turn (e.g., after Setup Board with Black to move)
+                                game.aiMoveCheckTrigger += 1
+
+                                dismiss()
+                            }
+                        }
                     } label: {
                         HStack {
                             Image(systemName: "play.fill")

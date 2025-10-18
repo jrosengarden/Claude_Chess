@@ -138,6 +138,6 @@ xcodebuild -project Claude_Chess/Claude_Chess.xcodeproj \
  
  Next Session Workflow:
   1. Read SESSION_START.md (~150 lines vs 1691) (this document)
-  2. Run git log -3 to see recent commits
+  2. Run git log -5 to see recent commits
   3. Start working immediately
 

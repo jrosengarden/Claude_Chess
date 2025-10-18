@@ -231,7 +231,7 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (9 total as of Oct 17, 2025 - Session 18):**
+**Current TODO Inventory (8 total as of Oct 17, 2025 - Session 19):**
 
 **Phase 3 - Move Validation & Game Logic (0 TODOs):**
 - ✅ All validation complete (2 castling TODOs removed in Session 15 post-session fixes)
@@ -239,21 +239,21 @@ prevent accumulation of technical debt.
 **Phase 3 - UI & Display (1 TODO):**
 - `ScoreView.swift` (line 46) - Display game statistics
 
-**Phase 3 - Game Management (8 TODOs):**
-- `GameMenuView.swift` (line 76) - Import FEN action (load .fen files with position navigation + save prompt)
-- `GameMenuView.swift` (line 82) - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
-- `GameMenuView.swift` (line 88) - Share Game action (mid-game sharing via iOS share sheet)
-- `GameMenuView.swift` (line 96) - Resign action
-- `GameMenuView.swift` (line 116) - Setup Game Board save prompt (check if board differs from starting position)
-- `QuickGameMenuView.swift` (line 99) - Resign action
-- `QuickGameMenuView.swift` (line 207) - FEN display implementation
-- `QuickGameMenuView.swift` (line 221) - PGN display implementation
+**Phase 3 - Game Management (7 TODOs):**
+- `GameMenuView.swift` (line 79) - Import FEN action (load .fen files with position navigation + save prompt)
+- `GameMenuView.swift` (line 85) - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
+- `GameMenuView.swift` (line 91) - Share Game action (mid-game sharing via iOS share sheet)
+- `GameMenuView.swift` (line 99) - Resign action
+- `QuickGameMenuView.swift` (line 110) - Resign action
+- `QuickGameMenuView.swift` (line 214) - FEN display implementation
+- `QuickGameMenuView.swift` (line 228) - PGN display implementation
 
-**Future/Optional (1 TODO):**
-- `AboutView.swift` (line 97) - Add any other third-party libraries used
-  (appropriate placeholder for future dependencies)
+**Future/Optional (0 TODOs):**
+- ✅ All optional TODOs removed
 
-**Note:** SettingsView.swift TODOs for auto-save toggles were counted in Session 12 but are not present in current codebase. Feature may have been deferred or documented differently.
+**Changes in Session 19:**
+- Removed `GameMenuView.swift` (line 149) - Setup Game Board save prompt (IMPLEMENTED)
+- Removed `AboutView.swift` (line 97) - Third-party libraries placeholder (not needed with ChessKitEngine already documented)
 
 **Active Maintenance Protocol (MANDATORY):**
 
@@ -1181,6 +1181,24 @@ with Settings
   confirmed: "Hint system seems to be working fine."
 - **TODO count reduced:** 12 → 9 total (removed HintView and ScoreView evaluation
   TODOs)
+
+**Session 19: Oct 17, 2025** - Critical AI Gameplay Bug Fixes
+- **Human move during AI turn bug** - Fixed human allowed to make Black's move
+  when Stockfish playing Black (added guard in ChessBoardView move handlers)
+- **AI double-move bug** - Fixed Stockfish making two moves on same turn
+  (fixed race condition in getBestMove with proper async/await sequencing)
+- **AI timeout/freeze bug** - Fixed Stockfish not responding to promotion or
+  castling positions (enhanced UCI position command handling)
+- **Promotion piece selection for AI** - Fixed human promotion picker appearing
+  for AI moves (AI now auto-selects Queen for all promotions)
+- **Setup Board captured pieces** - Fixed missing captured pieces after FEN
+  import (added calculateCapturedPiecesFromFEN() method)
+- **Setup Board game state reset** - Fixed timer continuing from previous game,
+  added "Save Current Game?" prompt with full game reset workflow
+- **Post-session testing validation:** All Stockfish AI gameplay bugs resolved,
+  Setup Board workflow matches terminal project behavior
+- **TODO count unchanged:** 8 total (1 removed from GameMenuView.swift line 149,
+  tracking section will be updated)
 
 ### Key Decisions
 

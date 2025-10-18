@@ -232,14 +232,15 @@ class StockfishEngine: ChessEngine {
             throw ChessEngineError.initializationFailed("Engine not initialized")
         }
 
-        // Reset current best move
-        currentBestMove = nil
-
-        // Stop any ongoing analysis
+        // Stop any ongoing analysis and clear stale responses
         await engine.send(command: .stop)
 
-        // Small delay to ensure stop is processed
-        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        // Wait for stop to process and for any pending bestmove to arrive
+        // This ensures we flush out stale responses from previous position
+        try await Task.sleep(nanoseconds: 200_000_000) // 200ms
+
+        // Reset current best move (after stale responses have been discarded)
+        currentBestMove = nil
 
         // Set position
         await engine.send(command: .position(.fen(position)))

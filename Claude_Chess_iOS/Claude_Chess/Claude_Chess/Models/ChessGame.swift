@@ -82,6 +82,10 @@ class ChessGame: ObservableObject {
     /// Timer doesn't run until user taps "Start Game"
     @Published var gameInProgress: Bool = false
 
+    /// Trigger to check if AI should make first move (after Start Game or Setup Board)
+    /// Increments when we need to check for AI's turn
+    @Published var aiMoveCheckTrigger: Int = 0
+
     // MARK: - AI Engine Integration
 
     /// Stockfish chess engine instance (nil if not using Stockfish)
@@ -93,6 +97,18 @@ class ChessGame: ObservableObject {
     /// Whether current opponent is an AI engine (not human vs human)
     var isAIOpponent: Bool {
         return selectedEngine != "human"
+    }
+
+    /// Whether it's currently the AI's turn to move
+    /// Returns true if AI opponent is enabled and it's Black's turn
+    var isAITurn: Bool {
+        return isAIOpponent && currentPlayer == .black
+    }
+
+    /// Whether it's currently a human player's turn to move
+    /// Returns true if no AI opponent OR it's White's turn (human side)
+    var isHumanTurn: Bool {
+        return !isAITurn
     }
 
     // MARK: - Position Evaluation
@@ -390,26 +406,91 @@ class ChessGame: ObservableObject {
 
     // MARK: - Captured Pieces
 
-    /// Get all pieces captured by White (from move history)
+    /// Get all pieces captured by White
+    /// Combines move history captures with pieces missing from Setup Board positions
     var capturedByWhite: [Piece] {
-        return moveHistory.compactMap { record in
-            // White captures when they move (player == .white)
-            if record.player == .white, let captured = record.capturedPiece {
-                return captured
+        // If we have move history, use it (normal game flow)
+        if !moveHistory.isEmpty {
+            return moveHistory.compactMap { record in
+                // White captures when they move (player == .white)
+                if record.player == .white, let captured = record.capturedPiece {
+                    return captured
+                }
+                return nil
             }
-            return nil
         }
+
+        // No move history - calculate from board state (Setup Board scenario)
+        // Compare current board to starting position to find missing Black pieces
+        return calculateMissingPieces(for: .black)
     }
 
-    /// Get all pieces captured by Black (from move history)
+    /// Get all pieces captured by Black
+    /// Combines move history captures with pieces missing from Setup Board positions
     var capturedByBlack: [Piece] {
-        return moveHistory.compactMap { record in
-            // Black captures when they move (player == .black)
-            if record.player == .black, let captured = record.capturedPiece {
-                return captured
+        // If we have move history, use it (normal game flow)
+        if !moveHistory.isEmpty {
+            return moveHistory.compactMap { record in
+                // Black captures when they move (player == .black)
+                if record.player == .black, let captured = record.capturedPiece {
+                    return captured
+                }
+                return nil
             }
-            return nil
         }
+
+        // No move history - calculate from board state (Setup Board scenario)
+        // Compare current board to starting position to find missing White pieces
+        return calculateMissingPieces(for: .white)
+    }
+
+    /// Calculate missing pieces of a given color compared to standard starting position
+    /// Used for Setup Board positions with no move history
+    /// - Parameter color: Color of pieces to check
+    /// - Returns: Array of pieces that are missing from standard starting position
+    private func calculateMissingPieces(for color: Color) -> [Piece] {
+        // Standard starting piece counts for each color
+        let standardCounts: [PieceType: Int] = [
+            .pawn: 8,
+            .rook: 2,
+            .knight: 2,
+            .bishop: 2,
+            .queen: 1,
+            .king: 1
+        ]
+
+        // Count current pieces on board for this color
+        var currentCounts: [PieceType: Int] = [
+            .pawn: 0,
+            .rook: 0,
+            .knight: 0,
+            .bishop: 0,
+            .queen: 0,
+            .king: 0
+        ]
+
+        // Scan board and count pieces
+        for row in 0..<8 {
+            for col in 0..<8 {
+                if let piece = board[row][col], piece.color == color {
+                    currentCounts[piece.type, default: 0] += 1
+                }
+            }
+        }
+
+        // Build array of missing pieces
+        var missingPieces: [Piece] = []
+        for (pieceType, standardCount) in standardCounts {
+            let currentCount = currentCounts[pieceType] ?? 0
+            let missingCount = standardCount - currentCount
+
+            // Add missing pieces to array
+            for _ in 0..<missingCount {
+                missingPieces.append(Piece(type: pieceType, color: color))
+            }
+        }
+
+        return missingPieces
     }
 
     // MARK: - Time Control Management
@@ -928,18 +1009,12 @@ class ChessGame: ObservableObject {
     ///   - skillLevel: Stockfish skill level (0-20)
     /// - Throws: Engine initialization errors
     func initializeEngine(selectedEngine: String, skillLevel: Int) async throws {
-        print("DEBUG: initializeEngine() called")
-        print("  selectedEngine parameter = \(selectedEngine)")
-        print("  skillLevel parameter = \(skillLevel)")
-
         // Store selected engine
         self.selectedEngine = selectedEngine
-        print("  game.selectedEngine set to = \(self.selectedEngine)")
 
         // Only initialize if Stockfish is selected
         guard selectedEngine == "stockfish" else {
             engine = nil
-            print("  Engine NOT initialized (not stockfish)")
             return
         }
 

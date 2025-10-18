@@ -86,29 +86,43 @@ experience with SwiftUI.
 
 **Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 17, 2025)
 
-**Latest Progress (October 17, 2025 - Session 18):**
+**Latest Progress (October 17, 2025 - Session 19):**
+
+**✅ CRITICAL AI GAMEPLAY BUG FIXES - ALL RESOLVED:**
+- ✅ **Human move during AI turn** - Fixed bug allowing human to make Black's
+  move when Stockfish playing Black (added proper turn validation guards)
+- ✅ **AI double-move bug** - Fixed Stockfish making two moves on same turn
+  (resolved async race condition in getBestMove)
+- ✅ **AI timeout/freeze** - Fixed Stockfish not responding to promotion or
+  castling positions (enhanced UCI position command handling)
+- ✅ **AI promotion piece selection** - Fixed human promotion picker appearing
+  for AI moves (AI now auto-selects Queen)
+- ✅ **Setup Board captured pieces** - Fixed missing captured pieces after FEN
+  import (added calculateCapturedPiecesFromFEN)
+- ✅ **Setup Board game state reset** - Fixed timer continuing from previous
+  game, added "Save Current Game?" prompt with full reset workflow
+- ✅ **Post-session validation** - All Stockfish AI gameplay bugs resolved,
+  Setup Board workflow matches terminal project behavior
+- 📋 **Next:** File management (FEN/PGN import/export), game statistics display
+
+**Previous Session (October 17, 2025 - Session 18):**
 
 **✅ Position Evaluation & Hint System COMPLETE:**
 - ✅ **Position evaluation display** - Real-time Stockfish analysis with 3
   formats (centipawns, scaled -9 to +9, win probability)
 - ✅ **Evaluation interpretation** - Color-coded scores (green/red/primary)
-  with text descriptions (overwhelming/significant/moderate/slight advantage,
-  roughly equal)
-- ✅ **Live evaluation updates** - Refreshes during gameplay via
-  ScoreView integration
+  with text descriptions
+- ✅ **Live evaluation updates** - Refreshes during gameplay
 - ✅ **Hint system** - Complete terminal project parity with fast
   depth-based search
 - ✅ **4-state hint UI** - Game not started warning, loading indicator, hint
   display with UCI formatting, no engine warning
 - ✅ **UCI move formatting** - Converts "e2e4" to "e2 → e4", handles
-  promotion moves like "e7e8q" → "e7 → e8 (=Queen)"
-- ✅ **Smart hint availability** - Checks engine != nil (not opponent
-  setting) and gameInProgress (prevents hints before "Start Game")
+  promotion moves
+- ✅ **Smart hint availability** - Checks engine != nil and gameInProgress
 - ✅ **Score moved to Quick Menu** - Better UX (was in hamburger menu)
 - ✅ **Quick fixes** - Haptic feedback on AI moves, Integration Tests moved
   to Stockfish Settings, ChessKitEngine license in About
-- 📋 **Next:** Game statistics display, investigation of Stockfish move
-  time issue
 
 **Previous Session (October 14, 2025 - Session 16):**
 

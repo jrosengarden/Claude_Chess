@@ -59,6 +59,9 @@ struct ChessBoardView: View {
     @State private var promotionTo: Position?
     @State private var promotionColor: Color?
 
+    // AI move tracking (prevent concurrent AI move requests)
+    @State private var aiMoveInProgress = false
+
     // Board orientation (persisted via AppStorage)
     @AppStorage("boardFlipped") private var boardFlipped: Bool = false
 
@@ -185,6 +188,12 @@ struct ChessBoardView: View {
             // Clear UI state when New Game is created
             resetBoardState()
         }
+        .onChange(of: game.aiMoveCheckTrigger) { oldValue, newValue in
+            // Check if AI should make a move when game starts or after Setup Board
+            if game.gameInProgress && game.isAITurn {
+                triggerAIMove()
+            }
+        }
         .alert("Checkmate!", isPresented: $showingCheckmate) {
             Button("New Game") {
                 Task {
@@ -266,6 +275,11 @@ struct ChessBoardView: View {
     private func handleDragChanged(at position: Position, translation: CGSize, squareSize: CGFloat) {
         // Prevent any moves until "Start Game" is tapped
         guard game.gameInProgress else {
+            return
+        }
+
+        // Prevent human from moving during AI's turn
+        guard game.isHumanTurn else {
             return
         }
 
@@ -383,6 +397,11 @@ struct ChessBoardView: View {
 
     /// Handle double-tap on a square (preview mode toggle)
     private func handleDoubleTap(at position: Position) {
+        // Prevent preview during AI's turn (could block AI move execution)
+        guard game.isHumanTurn else {
+            return
+        }
+
         // If single-tap selection is active, ignore double-taps completely
         if selectedSquare != nil {
             return
@@ -412,6 +431,11 @@ struct ChessBoardView: View {
     private func handleSingleTap(at position: Position) {
         // Prevent any moves until "Start Game" is tapped
         guard game.gameInProgress else {
+            return
+        }
+
+        // Prevent human from moving during AI's turn
+        guard game.isHumanTurn else {
             return
         }
 
@@ -570,6 +594,7 @@ struct ChessBoardView: View {
         dragOffset = .zero
         kingInCheckPosition = nil
         winnerColor = nil
+        aiMoveInProgress = false  // Clear AI move flag
     }
 
     // MARK: - Pawn Promotion Handler
@@ -614,36 +639,43 @@ struct ChessBoardView: View {
     /// Trigger AI move response after human move
     /// Ported from terminal project's AI move automation logic
     private func triggerAIMove() {
-        // Debug output
-        print("DEBUG: triggerAIMove() called")
-        print("  game.selectedEngine = \(game.selectedEngine)")
-        print("  game.isAIOpponent = \(game.isAIOpponent)")
-        print("  game.engine = \(game.engine != nil ? "initialized" : "nil")")
+        // Prevent concurrent AI move requests
+        guard !aiMoveInProgress else { return }
 
         // Only trigger if playing against AI engine
-        guard game.isAIOpponent else {
-            print("  SKIP: Not AI opponent")
-            return
-        }
+        guard game.isAIOpponent else { return }
 
-        // Only trigger if game is still in progress (not checkmate/stalemate)
+        // Only trigger if it's the AI's turn
+        guard game.isAITurn else { return }
+
+        // Check if game is in progress
+        guard game.gameInProgress else { return }
+
+        // Only trigger if game hasn't ended
         guard !GameStateChecker.isCheckmate(game: game, color: game.currentPlayer) &&
               !GameStateChecker.isStalemate(game: game, color: game.currentPlayer) &&
               !game.isFiftyMoveRuleDraw() else {
-            print("  SKIP: Game ended")
             return
         }
 
+        // Set flag to prevent concurrent requests
+        aiMoveInProgress = true
+
         // Request and execute AI move asynchronously
         Task {
+            defer {
+                // Always clear the flag when done (success or failure)
+                Task { @MainActor in
+                    aiMoveInProgress = false
+                }
+            }
+
             do {
                 // Get AI move from engine
                 guard let uciMove = try await game.getAIMove() else {
                     print("ERROR: AI engine returned no move")
                     return
                 }
-
-                print("AI selected move: \(uciMove)")
 
                 // Execute the AI move
                 let success = await game.executeAIMove(uciMove)
@@ -657,8 +689,6 @@ struct ChessBoardView: View {
                         }
                         #endif
                     }
-
-                    print("AI move executed successfully")
 
                     // Update position evaluation after AI move
                     await game.updatePositionEvaluation()
