@@ -1,6 +1,6 @@
 # Claude Chess iOS - Session Starter
 
-**Last Updated:** October 17, 2025 (Session 18)
+**Last Updated:** October 17, 2025 (Session 19)
 **Current Phase:** Phase 3 IN PROGRESS 🔄
 
 ## Quick Status
@@ -9,24 +9,33 @@
 **Framework:** SwiftUI
 **Parent Project:** Terminal-based Claude Chess (C) - located at `../`
 **Development Stage:** Fully playable chess game with complete Stockfish AI
-integration, position evaluation, and hint system
+integration, position evaluation, hint system, and all critical gameplay
+bugs resolved
 
-## Active TODO Inventory (9 total)
+## Active TODO Inventory (8 total)
 
 **Phase 3 - UI & Display (1 TODO):**
 - `ScoreView.swift` (line 46) - Display game statistics
 
-**Phase 3 - Game Management (8 TODOs):**
-- `GameMenuView.swift` (line 76) - Import FEN action
-- `GameMenuView.swift` (line 82) - Import PGN action
-- `GameMenuView.swift` (line 88) - Share Game action
-- `GameMenuView.swift` (line 96) - Resign action
-- `GameMenuView.swift` (line 116) - Setup Game Board save prompt
-- `QuickGameMenuView.swift` (line 99) - Resign action
-- `QuickGameMenuView.swift` (line 207) - FEN display implementation
-- `QuickGameMenuView.swift` (line 221) - PGN display implementation
+**Phase 3 - Game Management (7 TODOs):**
+- `GameMenuView.swift` (line 79) - Import FEN action
+- `GameMenuView.swift` (line 85) - Import PGN action
+- `GameMenuView.swift` (line 91) - Share Game action
+- `GameMenuView.swift` (line 99) - Resign action
+- `QuickGameMenuView.swift` (line 110) - Resign action
+- `QuickGameMenuView.swift` (line 214) - FEN display implementation
+- `QuickGameMenuView.swift` (line 228) - PGN display implementation
 
 ## Recent Sessions (Last 3)
+
+**Session 19: Oct 17, 2025** - Critical AI Gameplay Bug Fixes
+- Fixed human move during AI turn (added turn validation guards)
+- Fixed AI double-move bug (resolved async race condition)
+- Fixed AI timeout on promotion/castling (enhanced UCI handling)
+- Fixed AI promotion piece selection (AI auto-selects Queen)
+- Fixed Setup Board captured pieces (added calculateCapturedPiecesFromFEN)
+- Fixed Setup Board game state reset (Save Current Game? prompt added)
+- TODO count: 9 → 8 (Setup Board save prompt implemented)
 
 **Session 18: Oct 17, 2025** - Position Evaluation & Hint System Complete
 - Priority 1: Position Evaluation Display (3 formats: centipawns, scaled,
@@ -43,29 +52,35 @@ integration, position evaluation, and hint system
 - AI engine initialization bug fix (CRITICAL)
 - Skill level depth mapping (0-20 → depth 1-15)
 
-**Session 16: Oct 14, 2025** - Stockfish Engine Foundation
-- ChessKitEngine Swift Package (v0.7.0)
-- ChessEngine protocol + StockfishEngine implementation
-- Stockfish 17 neural network files integrated
-- Fixed process management bugs (SIGPIPE crashes)
-- All 6 tests passing on all platforms
-
 ## Current Priorities
 
 **Next Up:**
-1. **Priority 3: Game Statistics Display** (IN PROGRESS)
-   - Move count display
+1. **File Management System** (HIGH PRIORITY)
+   - FEN/PGN import with position navigation
+   - Share Game feature (iOS share sheet)
+   - Auto-save system with toggles
+
+2. **Game Statistics Display** (MEDIUM PRIORITY)
+   - Move count display in ScoreView
    - Captured pieces already done (Session 14)
    - Time remaining already done (Session 15)
 
-2. **INVESTIGATE: Stockfish move time issue** (PENDING)
-   - 37 seconds at skill level 5 (expected ~2-3 seconds)
+3. **Resign Functionality** (LOW PRIORITY)
+   - Implement in both GameMenuView and QuickGameMenuView
+   - Game-ending alert with winner announcement
 
-**Future Phase 3:**
-- FEN/PGN import with navigation
-- Share Game feature
-- Resign functionality
-- Auto-save system
+## Known Issues
+
+**RESOLVED (Session 19):**
+- ✅ Human allowed to move during AI turn
+- ✅ AI making two moves on same turn
+- ✅ AI timeout on promotion/castling positions
+- ✅ Human promotion picker appearing for AI moves
+- ✅ Missing captured pieces after Setup Board
+- ✅ Timer continuing after Setup Board
+- ✅ No Save Current Game? prompt before Setup Board
+
+**NONE CURRENTLY OUTSTANDING**
 
 ## Phase Completion Status
 
@@ -82,6 +97,7 @@ integration, position evaluation, and hint system
 - ✅ Stockfish engine integration (Session 16)
 - ✅ AI move automation (Session 17)
 - ✅ Position evaluation & hints (Session 18)
+- ✅ Critical AI gameplay bugs fixed (Session 19)
 - 📋 Game statistics display
 - 📋 File management (import/export/share)
 
@@ -99,6 +115,7 @@ integration, position evaluation, and hint system
 - `HintView.swift` - 4-state hint UI
 - `ScoreView.swift` - Position evaluation display
 - `QuickGameMenuView.swift` - Quick actions (Start Game, Flip Board, Hint)
+- `GameMenuView.swift` - Setup Board, Import/Share (placeholders)
 
 ## Essential Standards
 
@@ -106,7 +123,7 @@ integration, position evaluation, and hint system
 2. **TODO Management** - Remove TODOs when features complete, update
    inventory immediately
 3. **Documentation** - Update CLAUDE.md and README.md after major features
-4. **Testing** - Verify in simulator after changes
+4. **Testing** - Verify in simulator AND physical device after AI changes
 5. **User Handles Git** - Never perform git operations
 
 ## Terminal Project Reference
@@ -119,7 +136,7 @@ integration, position evaluation, and hint system
 
 **TODO Scan:**
 ```bash
-grep -r "TODO" Claude_Chess/Claude_Chess/ | wc -l
+grep -r "TODO" Claude_Chess/Claude_Chess/ --include="*.swift" | wc -l
 ```
 
 **Recent Commits:**
@@ -135,9 +152,16 @@ xcodebuild -project Claude_Chess/Claude_Chess.xcodeproj \
 
 ---
 *Condensed session starter - Read full CLAUDE.md only when needed*
- 
- Next Session Workflow:
-  1. Read SESSION_START.md (~150 lines vs 1691) (this document)
-  2. Run git log -5 to see recent commits
-  3. Start working immediately
 
+Next Session Workflow:
+ 1. Read SESSION_START.md (~180 lines vs 1700+) (this document)
+ 2. Run git log -5 to see recent commits
+ 3. Start working immediately
+ 4. THIS IS HIGHEST PRIORITY BEFORE ANYTHING ELSE:  The Stockfish AI seems to be taking
+    way too much time to make it's moves.  For example at Skill Level 0 with me making
+    an opening move of e2e4 the Stockfish AI should come back almost instantly with it's
+    move but it isn't.  It's even worse at Skill Level 5 and I haven't even dared to try
+    skill level 20.  You had started investigating this and found a 200ms delay that you
+    had put in (I can't remember where) for debugging purposes that was still in the code
+    but this STILL wasn't/isn't the main cause of the AI Engine taking too long.  We need
+    to CAREFULLY investigate this issue and then PROPERLY RESOLVE IT..not 'patch' it.
