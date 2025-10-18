@@ -38,6 +38,7 @@ struct ChessBoardView: View {
     // User preferences
     @AppStorage("showPossibleMoves") private var showPossibleMoves: Bool = true
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
+    @AppStorage("showLastMoveHighlight") private var showLastMoveHighlight: Bool = true
 
     // Opponent settings for engine initialization
     @AppStorage("selectedEngine") private var selectedEngine = "human"
@@ -140,7 +141,9 @@ struct ChessBoardView: View {
                                     isLegalMove: legalMoveSquares.contains(position),
                                     isCapturable: capturablePositions.contains(position),
                                     isDragging: draggedPiece == position,
-                                    isKingInCheck: kingInCheckPosition == position
+                                    isKingInCheck: kingInCheckPosition == position,
+                                    isLastMoveOrigin: showLastMoveHighlight && game.lastMoveFrom == position,
+                                    isLastMoveDestination: showLastMoveHighlight && game.lastMoveTo == position
                                 )
                                 .frame(width: squareSize, height: squareSize)
                                 .onTapGesture(count: 2) {
@@ -219,6 +222,9 @@ struct ChessBoardView: View {
             resetBoardState()
         }
         .onChange(of: game.aiMoveCheckTrigger) { oldValue, newValue in
+            // Check game state when game starts (handles checkmate/stalemate in Setup Board positions)
+            checkGameEnd()
+
             // Check if AI should make a move when game starts or after Setup Board
             if game.gameInProgress && game.isAITurn {
                 triggerAIMove()
@@ -766,6 +772,17 @@ struct ChessBoardView: View {
 
     /// Check for game-ending conditions (checkmate, stalemate, 50-move rule, check) after a move
     private func checkGameEnd() {
+        // Only check game-ending conditions if game has been started
+        // This prevents alerts when setting up positions via Setup Board
+        guard game.gameInProgress else {
+            // Clear all alert states when game not in progress
+            kingInCheckPosition = nil
+            showingCheckmate = false
+            showingStalemate = false
+            showingFiftyMoveDraw = false
+            return
+        }
+
         // Check for 50-move rule draw (highest priority - automatic draw)
         if game.isFiftyMoveRuleDraw() {
             kingInCheckPosition = nil  // Clear check indicator
@@ -813,15 +830,109 @@ struct ChessSquareView: View {
     let isCapturable: Bool
     let isDragging: Bool
     let isKingInCheck: Bool
+    let isLastMoveOrigin: Bool
+    let isLastMoveDestination: Bool
 
     @State private var blinkOpacity: Double = 1.0
     @AppStorage("boardFlipped") private var boardFlipped: Bool = false
+
+    // Compute highlight color (complementary to square color)
+    private var highlightColor: SwiftUI.Color {
+        // For light squares, use darker highlight; for dark squares, use lighter highlight
+        return isLight ? SwiftUI.Color.orange.opacity(0.5) : SwiftUI.Color.yellow.opacity(0.5)
+    }
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 // Square background
                 (isLight ? lightColor : darkColor)
+
+                // Last move highlighting (destination square - more prominent)
+                if isLastMoveDestination {
+                    RoundedRectangle(cornerRadius: 0)
+                        .fill(highlightColor)
+
+                    // Corner triangles for maximum visibility (black contrasts with all themes)
+                    // Top-left triangle
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: 0))
+                        path.addLine(to: CGPoint(x: geometry.size.width * 0.25, y: 0))
+                        path.addLine(to: CGPoint(x: 0, y: geometry.size.height * 0.25))
+                        path.closeSubpath()
+                    }
+                    .fill(SwiftUI.Color.black)
+
+                    // Top-right triangle
+                    Path { path in
+                        path.move(to: CGPoint(x: geometry.size.width, y: 0))
+                        path.addLine(to: CGPoint(x: geometry.size.width * 0.75, y: 0))
+                        path.addLine(to: CGPoint(x: geometry.size.width, y: geometry.size.height * 0.25))
+                        path.closeSubpath()
+                    }
+                    .fill(SwiftUI.Color.black)
+
+                    // Bottom-left triangle
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: geometry.size.height))
+                        path.addLine(to: CGPoint(x: geometry.size.width * 0.25, y: geometry.size.height))
+                        path.addLine(to: CGPoint(x: 0, y: geometry.size.height * 0.75))
+                        path.closeSubpath()
+                    }
+                    .fill(SwiftUI.Color.black)
+
+                    // Bottom-right triangle
+                    Path { path in
+                        path.move(to: CGPoint(x: geometry.size.width, y: geometry.size.height))
+                        path.addLine(to: CGPoint(x: geometry.size.width * 0.75, y: geometry.size.height))
+                        path.addLine(to: CGPoint(x: geometry.size.width, y: geometry.size.height * 0.75))
+                        path.closeSubpath()
+                    }
+                    .fill(SwiftUI.Color.black)
+                }
+
+                // Last move highlighting (origin square - subtle)
+                if isLastMoveOrigin {
+                    RoundedRectangle(cornerRadius: 0)
+                        .fill(highlightColor.opacity(0.4))
+
+                    // Smaller corner triangles to distinguish from destination (black with opacity)
+                    // Top-left triangle
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: 0))
+                        path.addLine(to: CGPoint(x: geometry.size.width * 0.15, y: 0))
+                        path.addLine(to: CGPoint(x: 0, y: geometry.size.height * 0.15))
+                        path.closeSubpath()
+                    }
+                    .fill(SwiftUI.Color.black.opacity(0.6))
+
+                    // Top-right triangle
+                    Path { path in
+                        path.move(to: CGPoint(x: geometry.size.width, y: 0))
+                        path.addLine(to: CGPoint(x: geometry.size.width * 0.85, y: 0))
+                        path.addLine(to: CGPoint(x: geometry.size.width, y: geometry.size.height * 0.15))
+                        path.closeSubpath()
+                    }
+                    .fill(SwiftUI.Color.black.opacity(0.6))
+
+                    // Bottom-left triangle
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: geometry.size.height))
+                        path.addLine(to: CGPoint(x: geometry.size.width * 0.15, y: geometry.size.height))
+                        path.addLine(to: CGPoint(x: 0, y: geometry.size.height * 0.85))
+                        path.closeSubpath()
+                    }
+                    .fill(SwiftUI.Color.black.opacity(0.6))
+
+                    // Bottom-right triangle
+                    Path { path in
+                        path.move(to: CGPoint(x: geometry.size.width, y: geometry.size.height))
+                        path.addLine(to: CGPoint(x: geometry.size.width * 0.85, y: geometry.size.height))
+                        path.addLine(to: CGPoint(x: geometry.size.width, y: geometry.size.height * 0.85))
+                        path.closeSubpath()
+                    }
+                    .fill(SwiftUI.Color.black.opacity(0.6))
+                }
 
                 // Legal move indicator (green circle on empty squares)
                 if isLegalMove && piece == nil {

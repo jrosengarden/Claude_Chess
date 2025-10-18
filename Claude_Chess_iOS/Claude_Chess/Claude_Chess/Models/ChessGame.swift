@@ -24,6 +24,10 @@ class ChessGame: ObservableObject {
     /// Trigger for resetting UI state (increments when New Game is created)
     @Published var resetTrigger: Int = 0
 
+    /// Last move made (for highlighting in UI)
+    @Published var lastMoveFrom: Position?
+    @Published var lastMoveTo: Position?
+
     // MARK: - Game State Properties
 
     /// Position of white king (for check detection)
@@ -54,6 +58,16 @@ class ChessGame: ObservableObject {
 
     /// Complete move history for undo and PGN generation
     @Published var moveHistory: [MoveRecord] = []
+
+    // MARK: - Setup Board Captured Pieces
+
+    /// Pieces captured by White before game started (from Setup Board FEN)
+    /// These are preserved when calculating total captured pieces
+    private var initialCapturedByWhite: [Piece] = []
+
+    /// Pieces captured by Black before game started (from Setup Board FEN)
+    /// These are preserved when calculating total captured pieces
+    private var initialCapturedByBlack: [Piece] = []
 
     // MARK: - Time Controls
 
@@ -216,6 +230,12 @@ class ChessGame: ObservableObject {
         setupInitialPosition()
         // Clear move history (captured pieces tracking)
         moveHistory.removeAll()
+        // Clear initial captured pieces from Setup Board
+        initialCapturedByWhite.removeAll()
+        initialCapturedByBlack.removeAll()
+        // Clear last move highlighting
+        lastMoveFrom = nil
+        lastMoveTo = nil
         // Reset timer state
         moveStartTime = nil
         timeControlsDisabledByUndo = false
@@ -351,6 +371,11 @@ class ChessGame: ObservableObject {
         halfmoveClock = tempHalfmove
         fullmoveNumber = tempFullmove
 
+        // Calculate and store initial captured pieces from this FEN position
+        // This preserves captured piece display when moves are made after Setup Board
+        initialCapturedByWhite = calculateMissingPieces(for: .black)
+        initialCapturedByBlack = calculateMissingPieces(for: .white)
+
         return true
     }
 
@@ -407,41 +432,41 @@ class ChessGame: ObservableObject {
     // MARK: - Captured Pieces
 
     /// Get all pieces captured by White
-    /// Combines move history captures with pieces missing from Setup Board positions
+    /// Combines initial captures from Setup Board with captures from move history
     var capturedByWhite: [Piece] {
-        // If we have move history, use it (normal game flow)
-        if !moveHistory.isEmpty {
-            return moveHistory.compactMap { record in
-                // White captures when they move (player == .white)
-                if record.player == .white, let captured = record.capturedPiece {
-                    return captured
-                }
-                return nil
+        // Start with any pieces that were missing when FEN was loaded (Setup Board)
+        var captured = initialCapturedByWhite
+
+        // Add captures from move history (pieces captured during actual gameplay)
+        let historyCaptured = moveHistory.compactMap { record in
+            // White captures when they move (player == .white)
+            if record.player == .white, let capturedPiece = record.capturedPiece {
+                return capturedPiece
             }
+            return nil
         }
 
-        // No move history - calculate from board state (Setup Board scenario)
-        // Compare current board to starting position to find missing Black pieces
-        return calculateMissingPieces(for: .black)
+        captured.append(contentsOf: historyCaptured)
+        return captured
     }
 
     /// Get all pieces captured by Black
-    /// Combines move history captures with pieces missing from Setup Board positions
+    /// Combines initial captures from Setup Board with captures from move history
     var capturedByBlack: [Piece] {
-        // If we have move history, use it (normal game flow)
-        if !moveHistory.isEmpty {
-            return moveHistory.compactMap { record in
-                // Black captures when they move (player == .black)
-                if record.player == .black, let captured = record.capturedPiece {
-                    return captured
-                }
-                return nil
+        // Start with any pieces that were missing when FEN was loaded (Setup Board)
+        var captured = initialCapturedByBlack
+
+        // Add captures from move history (pieces captured during actual gameplay)
+        let historyCaptured = moveHistory.compactMap { record in
+            // Black captures when they move (player == .black)
+            if record.player == .black, let capturedPiece = record.capturedPiece {
+                return capturedPiece
             }
+            return nil
         }
 
-        // No move history - calculate from board state (Setup Board scenario)
-        // Compare current board to starting position to find missing White pieces
-        return calculateMissingPieces(for: .white)
+        captured.append(contentsOf: historyCaptured)
+        return captured
     }
 
     /// Calculate missing pieces of a given color compared to standard starting position
@@ -756,6 +781,10 @@ class ChessGame: ObservableObject {
         // Append to move history
         moveHistory.append(moveRecord)
 
+        // Track last move for UI highlighting
+        lastMoveFrom = from
+        lastMoveTo = to
+
         // Check status now handled by GameStateChecker after move execution
 
         return true
@@ -882,6 +911,10 @@ class ChessGame: ObservableObject {
 
         // Append to move history
         moveHistory.append(moveRecord)
+
+        // Track last move for UI highlighting
+        lastMoveFrom = from
+        lastMoveTo = to
 
         print("Promotion: \(movingPawn.color.displayName) pawn at \(from.algebraic) promoted to \(promotionPiece.displayName) at \(to.algebraic)")
         if isCapture {

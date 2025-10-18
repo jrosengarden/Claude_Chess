@@ -13,6 +13,7 @@ struct SettingsView: View {
     @AppStorage("boardThemeId") private var boardThemeId = "classic"
     @AppStorage("showPossibleMoves") private var showPossibleMoves: Bool = true
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
+    @AppStorage("showLastMoveHighlight") private var showLastMoveHighlight: Bool = true
 
     // Custom color storage
     @AppStorage("customLightRed") private var customLightRed: Double = 0.93
@@ -55,6 +56,8 @@ struct SettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
+
+                    Toggle("Highlight Last Move", isOn: $showLastMoveHighlight)
                 }
 
                 // Future sections will go here

@@ -67,11 +67,6 @@ struct GameMenuView: View {
                         Label("Time Controls", systemImage: "clock")
                             .foregroundColor(.accentColor)
                     }
-
-                    NavigationLink(destination: HintView(game: game)) {
-                        Label("Hint", systemImage: "lightbulb")
-                            .foregroundColor(.accentColor)
-                    }
                 }
 
                 Section(header: Text("Import Games")) {

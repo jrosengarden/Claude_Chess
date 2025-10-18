@@ -39,11 +39,12 @@ experience with SwiftUI.
 
 ## Features (Planned)
 
-### Complete Chess Implementation
-- All standard chess rules (castling, en passant, promotion, 50-move rule)
-- Check, checkmate, and stalemate detection
-- Visual board with intuitive touch controls
-- Move validation and legal move highlighting
+### Complete Chess Implementation ✅
+- ✅ All standard chess rules (castling, en passant, promotion, 50-move rule)
+- ✅ Check, checkmate, and stalemate detection
+- ✅ Visual board with intuitive touch controls (tap and drag-and-drop)
+- ✅ Move validation and legal move highlighting
+- ✅ Last move highlighting with corner triangles (user-toggleable)
 
 ### AI Opponent ✅ (Sessions 16-20 Complete)
 - ✅ Multiple difficulty levels (0-20 with UCI Skill Level control)
@@ -52,11 +53,15 @@ experience with SwiftUI.
 - ✅ Move hints and suggestions (UCI formatting)
 - ✅ Fast, responsive gameplay (optimized performance, race condition fixes)
 
-### Game Management
-- Save and load games
-- Game history with move navigation
-- FEN/PGN import and export
-- Opening library integration
+### Game Management ✅ (Partial - Sessions 13-21)
+- ✅ Setup Game Board (FEN import for testing positions)
+- ✅ Move history tracking with undo functionality
+- ✅ Captured pieces display (with Setup Board support)
+- ✅ New Game with engine initialization
+- Save and load games (planned)
+- FEN/PGN import with navigation (planned)
+- FEN/PGN export (planned)
+- Opening library integration (planned)
 
 ### Time Controls ✅ (Session 15 Complete)
 - ✅ Configurable time limits (0-60 minutes, 0-60 second increment)
@@ -68,13 +73,17 @@ experience with SwiftUI.
 - ✅ Game-start lock (prevents changes mid-game)
 - ✅ Undo disables time controls for remainder of game
 
-### iOS Features
-- Drag-and-drop piece movement
-- Smooth animations
-- Haptic feedback
-- Share functionality
+### iOS Features ✅ (Partial)
+- ✅ Drag-and-drop piece movement with ghost piece feedback
+- ✅ Haptic feedback (user-toggleable)
+- ✅ Board flipping for perspective change
+- ✅ Customizable board colors (7 themes + custom)
+- ✅ Professional SVG chess pieces (Cburnett)
+- ✅ Device-adaptive UI (iPhone/iPad/macOS)
+- Smooth animations (planned)
+- Share functionality (planned)
 - iCloud sync (planned)
-- Accessibility support
+- Accessibility support (planned)
 
 ## Requirements
 

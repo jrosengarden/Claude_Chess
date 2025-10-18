@@ -232,7 +232,7 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (9 total as of Oct 18, 2025 - Session 20):**
+**Current TODO Inventory (9 total as of Oct 18, 2025 - Session 21):**
 
 **Phase 3 - Move Validation & Game Logic (0 TODOs):**
 - ✅ All validation complete (2 castling TODOs removed in Session 15 post-session fixes)
@@ -241,17 +241,20 @@ prevent accumulation of technical debt.
 - `ScoreView.swift` (line 46) - Display game statistics
 
 **Phase 3 - Game Management (8 TODOs):**
-- `GameMenuView.swift` (line 79) - Import FEN action (load .fen files with position navigation + save prompt)
-- `GameMenuView.swift` (line 85) - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
-- `GameMenuView.swift` (line 91) - Share Game action (mid-game sharing via iOS share sheet)
-- `GameMenuView.swift` (line 99) - Resign action
-- `GameMenuView.swift` (line 149) - Save current game to file (Setup Board Phase 3 placeholder)
+- `GameMenuView.swift` (line 74) - Import FEN action (load .fen files with position navigation + save prompt)
+- `GameMenuView.swift` (line 80) - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
+- `GameMenuView.swift` (line 86) - Share Game action (mid-game sharing via iOS share sheet)
+- `GameMenuView.swift` (line 94) - Resign action
+- `GameMenuView.swift` (line 144) - Save current game to file (Setup Board Phase 3 placeholder)
 - `QuickGameMenuView.swift` (line 110) - Resign action
 - `QuickGameMenuView.swift` (line 214) - FEN display implementation
 - `QuickGameMenuView.swift` (line 228) - PGN display implementation
 
 **Future/Optional (0 TODOs):**
 - ✅ All optional TODOs removed
+
+**Changes in Session 21:**
+- Verified all 9 TODOs still valid, updated line numbers (GameMenuView lines shifted)
 
 **Changes in Session 20:**
 - Confirmed `GameMenuView.swift` (line 149) Setup Board save TODO is correct placeholder (re-added to inventory)
@@ -1218,6 +1221,21 @@ with Settings
 - **User testing** - No double-moves at any skill level, subtle difficulty differences
   visible, fast AI response times maintained
 - **TODO count:** 8 → 9 (Setup Board save TODO confirmed as correct Phase 3 placeholder)
+
+**Session 21: Oct 18, 2025** - Critical UX Fixes & Last Move Highlighting
+- **Fixed checkmate/stalemate alerts** - Now only trigger after "Start Game" tapped,
+  not immediately when FEN loaded via Setup Board (ChessBoardView.swift)
+- **Fixed captured pieces persistence** - Setup Board captured pieces now persist
+  after first move; added initialCapturedByWhite/Black properties (ChessGame.swift)
+- **Last move highlighting system** - Added corner triangle markers (black) + semi-
+  transparent overlay to show from/to squares; destination=large triangles (25%),
+  origin=small triangles (15%); user-toggleable in Settings → Board → "Highlight
+  Last Move" (default ON)
+- **Removed redundant HINT** - Deleted from GameMenuView hamburger menu, kept in
+  Quick Game Menu only
+- **UX polish** - Corner triangles visible on all color themes including custom
+  orange schemes; professional chess app standard pattern
+- **TODO count:** 9 total (no change, line numbers updated)
 
 ### Key Decisions
 
