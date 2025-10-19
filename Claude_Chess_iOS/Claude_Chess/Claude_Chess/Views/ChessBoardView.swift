@@ -398,9 +398,6 @@ struct ChessBoardView: View {
                         }
                         #endif
 
-                        let moveNotation = isCapture ? "\(position.algebraic) x \(dropPosition.algebraic)" : "\(position.algebraic) to \(dropPosition.algebraic)"
-                        print("Move executed (drag): \(moveNotation)")
-
                         // Update position evaluation (async)
                         Task {
                             await game.updatePositionEvaluation()
@@ -420,7 +417,6 @@ struct ChessBoardView: View {
                     warningHaptic.notificationOccurred(.warning)
                 }
                 #endif
-                print("Invalid drag move: \(position.algebraic) to \(dropPosition.algebraic)")
             }
         }
 
@@ -518,11 +514,6 @@ struct ChessBoardView: View {
                         }
                         #endif
 
-                        let moveNotation = isCapture ? "\(selected.algebraic) x \(position.algebraic)" : "\(selected.algebraic) to \(position.algebraic)"
-                        print("Move executed: \(moveNotation)")
-                        print("  Halfmove clock: \(game.halfmoveClock), Fullmove: \(game.fullmoveNumber)")
-                        print("  White King: \(game.whiteKingPos.algebraic), Black King: \(game.blackKingPos.algebraic)")
-                        print("  Current player: \(game.currentPlayer.displayName)")
                         clearSelection()
                         clearPreview()
 
@@ -536,8 +527,6 @@ struct ChessBoardView: View {
 
                         // Trigger AI move if playing against AI (terminal project parity)
                         triggerAIMove()
-                    } else {
-                        print("Move execution failed: \(selected.algebraic) to \(position.algebraic)")
                     }
                 }
             } else {
@@ -554,7 +543,6 @@ struct ChessBoardView: View {
                     }
                     #endif
 
-                    print("Illegal move: \(selected.algebraic) to \(position.algebraic)")
                     clearSelection()
                 }
             }
@@ -649,8 +637,6 @@ struct ChessBoardView: View {
             }
             #endif
 
-            print("Promotion executed: \(from.algebraic) to \(to.algebraic), promoted to \(piece.displayName)")
-
             // Update position evaluation (async)
             Task {
                 await game.updatePositionEvaluation()
@@ -661,8 +647,6 @@ struct ChessBoardView: View {
 
             // Trigger AI move if playing against AI (terminal project parity)
             triggerAIMove()
-        } else {
-            print("Promotion execution failed")
         }
 
         // Dismiss promotion picker
@@ -675,29 +659,23 @@ struct ChessBoardView: View {
     /// Trigger AI move response after human move
     /// Ported from terminal project's AI move automation logic
     private func triggerAIMove() {
-        NSLog("🔍 triggerAIMove() called - currentPlayer: %@, aiMoveInProgress: %d", String(describing: game.currentPlayer), aiMoveInProgress)
-
         // Prevent concurrent AI move requests
         guard !aiMoveInProgress else {
-            NSLog("⚠️ Blocked: aiMoveInProgress is true")
             return
         }
 
         // Only trigger if playing against AI engine
         guard game.isAIOpponent else {
-            NSLog("⚠️ Blocked: not AI opponent")
             return
         }
 
         // Only trigger if it's the AI's turn
         guard game.isAITurn else {
-            NSLog("⚠️ Blocked: not AI's turn")
             return
         }
 
         // Check if game is in progress
         guard game.gameInProgress else {
-            NSLog("⚠️ Blocked: game not in progress")
             return
         }
 
@@ -705,36 +683,27 @@ struct ChessBoardView: View {
         guard !GameStateChecker.isCheckmate(game: game, color: game.currentPlayer) &&
               !GameStateChecker.isStalemate(game: game, color: game.currentPlayer) &&
               !game.isFiftyMoveRuleDraw() else {
-            NSLog("⚠️ Blocked: game ended")
             return
         }
 
-        NSLog("✅ Triggering AI move - setting aiMoveInProgress = true")
         // Set flag to prevent concurrent requests
         aiMoveInProgress = true
 
         // Request and execute AI move asynchronously
         Task {
-            NSLog("🤖 AI Task started - requesting move from engine")
             do {
                 // Get AI move from engine
                 guard let uciMove = try await game.getAIMove() else {
-                    NSLog("❌ ERROR: AI engine returned no move")
                     print("ERROR: AI engine returned no move")
                     // Clear flag before returning
                     await MainActor.run {
-                        NSLog("🔓 Clearing aiMoveInProgress flag (no move)")
                         aiMoveInProgress = false
                     }
                     return
                 }
 
-                NSLog("🤖 AI engine returned move: %@", uciMove)
-
                 // Execute the AI move
                 let success = await game.executeAIMove(uciMove)
-
-                // NSLog("🤖 executeAIMove returned: %d, currentPlayer now: %@", success, String(describing: game.currentPlayer))
 
                 if success {
                     // Heavy haptic feedback for AI move
@@ -746,7 +715,6 @@ struct ChessBoardView: View {
                         #endif
                     }
                 } else {
-                    // NSLog("❌ ERROR: Failed to execute AI move: %@", uciMove)
                     print("ERROR: Failed to execute AI move: \(uciMove)")
                 }
 
@@ -754,19 +722,15 @@ struct ChessBoardView: View {
                 // This prevents race conditions where user input during state updates
                 // could trigger another AI move before the view fully stabilizes
                 await MainActor.run {
-                    // NSLog("🔓 Clearing aiMoveInProgress flag (after all operations)")
                     aiMoveInProgress = false
                 }
             } catch {
-                // NSLog("❌ ERROR: AI move request failed: %@", error.localizedDescription)
                 print("ERROR: AI move request failed: \(error)")
                 // Clear flag on error path too
                 await MainActor.run {
-                    // NSLog("🔓 Clearing aiMoveInProgress flag (error)")
                     aiMoveInProgress = false
                 }
             }
-            // NSLog("🤖 AI Task completed")
         }
     }
 

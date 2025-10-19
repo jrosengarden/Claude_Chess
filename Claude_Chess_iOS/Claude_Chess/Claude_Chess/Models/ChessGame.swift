@@ -916,11 +916,6 @@ class ChessGame: ObservableObject {
         lastMoveFrom = from
         lastMoveTo = to
 
-        print("Promotion: \(movingPawn.color.displayName) pawn at \(from.algebraic) promoted to \(promotionPiece.displayName) at \(to.algebraic)")
-        if isCapture {
-            print("  Captured: \(capturedPiece?.type.displayName ?? "unknown")")
-        }
-
         return true
     }
 
@@ -1061,8 +1056,6 @@ class ChessGame: ObservableObject {
 
         // Store engine reference
         engine = sharedEngine
-
-        print("Stockfish engine initialized at skill level \(skillLevel)")
     }
 
     /// Shutdown Stockfish engine with proper cleanup
@@ -1072,8 +1065,6 @@ class ChessGame: ObservableObject {
 
         await engine.shutdown()
         self.engine = nil
-
-        print("Stockfish engine shutdown complete")
     }
 
     /// Get AI move from Stockfish engine
@@ -1088,7 +1079,6 @@ class ChessGame: ObservableObject {
 
         // Convert current board to FEN string
         let fen = boardToFEN()
-        NSLog("📋 Sending FEN to engine: %@", fen)
 
         // Determine time limit based on time controls
         let timeLimit: Int?
@@ -1109,8 +1099,6 @@ class ChessGame: ObservableObject {
 
         // Request best move from engine
         let move = try await engine.getBestMove(position: fen, timeLimit: timeLimit)
-
-        print("AI move received: \(move ?? "none")")
         return move
     }
 

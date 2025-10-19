@@ -28,6 +28,10 @@ struct ContentView: View {
     @State private var showingTimeForfeitAlert = false
     @State private var timeForfeitWinner: Color?
 
+    // Hint system state
+    @State private var showingHintAlert = false
+    @State private var isRequestingHint = false
+
     // Opponent settings
     @AppStorage("selectedEngine") private var selectedEngine = "human"
     @AppStorage("stockfishSkillLevel") private var skillLevel = 5
@@ -123,65 +127,69 @@ struct ContentView: View {
 
                 Spacer()
 
-                // Undo button (always visible, disabled when no moves to undo)
-                Button {
-                    #if os(iOS)
-                    if hapticFeedbackEnabled {
-                        lightHaptic.impactOccurred()
-                    }
-                    #endif
-                    game.undoLastMove()
-                } label: {
-                    Image(systemName: "arrow.uturn.backward")
-                        .font(headerButtonFont)
-                        .foregroundColor(boardDarkColor)
-                }
-                .disabled(game.moveHistory.isEmpty)
-                .opacity(game.moveHistory.isEmpty ? 0.3 : 1.0)
-                .padding(.trailing, 8)
+                // Scrollable action buttons
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        // Undo button (always visible, disabled when no moves to undo)
+                        Button {
+                            #if os(iOS)
+                            if hapticFeedbackEnabled {
+                                lightHaptic.impactOccurred()
+                            }
+                            #endif
+                            game.undoLastMove()
+                        } label: {
+                            Image(systemName: "arrow.uturn.backward")
+                                .font(headerButtonFont)
+                                .foregroundColor(boardDarkColor)
+                        }
+                        .disabled(game.moveHistory.isEmpty)
+                        .opacity(game.moveHistory.isEmpty ? 0.3 : 1.0)
 
-                // Quick Game button (lightning bolt icon)
-                Button {
-                    #if os(iOS)
-                    if hapticFeedbackEnabled {
-                        lightHaptic.impactOccurred()
-                    }
-                    #endif
-                    showingQuickGame = true
-                } label: {
-                    Image(systemName: "bolt.fill")
-                        .font(headerButtonFont)
-                        .foregroundColor(boardDarkColor)
-                }
-                .padding(.trailing, 8)
+                        // Hint button (lightbulb icon - disabled until game starts and engine available)
+                        Button {
+                            #if os(iOS)
+                            if hapticFeedbackEnabled {
+                                lightHaptic.impactOccurred()
+                            }
+                            #endif
+                            requestHintAndShowAlert()
+                        } label: {
+                            Image(systemName: isRequestingHint ? "hourglass" : "lightbulb.fill")
+                                .font(headerButtonFont)
+                                .foregroundColor(.yellow)
+                        }
+                        .disabled(isRequestingHint || !game.gameInProgress || game.engine == nil)
+                        .opacity((isRequestingHint || !game.gameInProgress || game.engine == nil) ? 0.3 : 1.0)
 
-                // Game menu button (hamburger)
-                Button {
-                    #if os(iOS)
-                    if hapticFeedbackEnabled {
-                        lightHaptic.impactOccurred()
-                    }
-                    #endif
-                    showingGameMenu = true
-                } label: {
-                    Image(systemName: "line.3.horizontal")
-                        .font(headerButtonFont)
-                        .foregroundColor(.primary)
-                }
-                .padding(.trailing, 8)
+                        // Quick Game button (lightning bolt icon)
+                        Button {
+                            #if os(iOS)
+                            if hapticFeedbackEnabled {
+                                lightHaptic.impactOccurred()
+                            }
+                            #endif
+                            showingQuickGame = true
+                        } label: {
+                            Image(systemName: "bolt.fill")
+                                .font(headerButtonFont)
+                                .foregroundColor(boardDarkColor)
+                        }
 
-                // Settings button (gear)
-                Button {
-                    #if os(iOS)
-                    if hapticFeedbackEnabled {
-                        lightHaptic.impactOccurred()
+                        // Game menu button (hamburger)
+                        Button {
+                            #if os(iOS)
+                            if hapticFeedbackEnabled {
+                                lightHaptic.impactOccurred()
+                            }
+                            #endif
+                            showingGameMenu = true
+                        } label: {
+                            Image(systemName: "line.3.horizontal")
+                                .font(headerButtonFont)
+                                .foregroundColor(.primary)
+                        }
                     }
-                    #endif
-                    showingSettings = true
-                } label: {
-                    Image(systemName: "gearshape.fill")
-                        .font(headerButtonFont)
-                        .foregroundColor(.primary)
                 }
             }
             .padding(.horizontal)
@@ -426,6 +434,13 @@ struct ContentView: View {
                 Text("\(winner == .white ? "White" : "Black") wins by time forfeit!")
             }
         }
+        .alert(hintAlertTitle(), isPresented: $showingHintAlert) {
+            Button("OK") {
+                showingHintAlert = false
+            }
+        } message: {
+            Text(hintAlertMessage())
+        }
     }
 
     /// Computed property for opponent display text
@@ -486,6 +501,61 @@ struct ContentView: View {
             blackMinutes: blackMinutes,
             blackIncrement: blackIncrement
         )
+    }
+
+    // MARK: - Hint System
+
+    /// Request hint from AI and show alert with result
+    /// Note: Button is disabled when game not in progress or engine unavailable
+    private func requestHintAndShowAlert() {
+        // Request hint (button is disabled if preconditions not met)
+        isRequestingHint = true
+        Task {
+            await game.requestHint()
+            await MainActor.run {
+                isRequestingHint = false
+                showingHintAlert = true
+            }
+        }
+    }
+
+    /// Title for hint alert
+    private func hintAlertTitle() -> String {
+        return game.currentHint != nil ? "💡 Move Hint" : "Hint"
+    }
+
+    /// Message for hint alert
+    private func hintAlertMessage() -> String {
+        if let hint = game.currentHint {
+            return formatHintForAlert(hint)
+        }
+        return "No hint available."
+    }
+
+    /// Format UCI move notation for alert display
+    /// - Parameter uciMove: UCI move string (e.g., "e2e4", "e7e8q")
+    /// - Returns: Human-readable move notation
+    private func formatHintForAlert(_ uciMove: String) -> String {
+        guard uciMove.count >= 4 else { return uciMove }
+
+        let from = String(uciMove.prefix(2)).uppercased()
+        let to = String(uciMove.dropFirst(2).prefix(2)).uppercased()
+
+        // Check for promotion
+        if uciMove.count == 5 {
+            let promotionChar = uciMove.last!
+            let pieceName: String
+            switch promotionChar.lowercased() {
+            case "q": pieceName = "Queen"
+            case "r": pieceName = "Rook"
+            case "b": pieceName = "Bishop"
+            case "n": pieceName = "Knight"
+            default: pieceName = "?"
+            }
+            return "\(from) → \(to) (promote to \(pieceName))\n\nMove your piece from \(from) to \(to) and select \(pieceName) for promotion."
+        }
+
+        return "\(from) → \(to)\n\nMove your piece from \(from) to \(to)."
     }
 }
 

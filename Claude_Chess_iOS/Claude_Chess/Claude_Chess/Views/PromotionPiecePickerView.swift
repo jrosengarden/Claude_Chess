@@ -80,8 +80,6 @@ struct PromotionPiecePickerView: View {
 #Preview {
     ZStack {
         SwiftUI.Color.gray.opacity(0.3).ignoresSafeArea()
-        PromotionPiecePickerView(color: .white) { piece in
-            print("Selected: \(piece)")
-        }
+        PromotionPiecePickerView(color: .white) { _ in }
     }
 }

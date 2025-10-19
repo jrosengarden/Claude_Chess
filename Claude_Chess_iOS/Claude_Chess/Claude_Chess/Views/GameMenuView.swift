@@ -51,6 +51,11 @@ struct GameMenuView: View {
                         Label("Setup Game Board", systemImage: "square.grid.3x3")
                     }
 
+                    NavigationLink(destination: SettingsView()) {
+                        Label("Settings", systemImage: "gearshape.fill")
+                            .foregroundColor(.accentColor)
+                    }
+
                     NavigationLink(destination: AboutView()) {
                         Label("About", systemImage: "info.circle")
                             .foregroundColor(.accentColor)

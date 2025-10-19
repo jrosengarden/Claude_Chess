@@ -13,7 +13,6 @@ import SwiftUI
 struct QuickGameMenuView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var game: ChessGame
-    @State private var showingHint = false
     @State private var showingFEN = false
     @State private var showingPGN = false
 
@@ -86,21 +85,6 @@ struct QuickGameMenuView: View {
                         }
                     }
 
-                    Button {
-                        #if os(iOS)
-                        if hapticFeedbackEnabled {
-                            lightHaptic.impactOccurred()
-                        }
-                        #endif
-                        showingHint = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "lightbulb.fill")
-                                .foregroundColor(.yellow)
-                            Text("Hint")
-                        }
-                    }
-
                     Button(role: .destructive) {
                         #if os(iOS)
                         if hapticFeedbackEnabled {
@@ -164,18 +148,6 @@ struct QuickGameMenuView: View {
                         dismiss()
                     }
                 }
-            }
-        }
-        .sheet(isPresented: $showingHint) {
-            NavigationView {
-                HintView(game: game)
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") {
-                                showingHint = false
-                            }
-                        }
-                    }
             }
         }
         .sheet(isPresented: $showingFEN) {

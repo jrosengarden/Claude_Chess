@@ -125,7 +125,6 @@ class StockfishEngine: ChessEngine {
     func initialize() async throws {
         // Prevent multiple initializations
         if initialized {
-            print("⚠️ Warning: Engine already initialized. Shutting down first...")
             await shutdown()
         }
 
@@ -283,7 +282,6 @@ class StockfishEngine: ChessEngine {
         while currentBestMove == nil || responseGeneration != expectedGeneration {
             // Check if engine was shut down during wait
             guard initialized else {
-                print("⚠️ Engine shut down during getBestMove() wait")
                 return nil
             }
 
@@ -332,7 +330,6 @@ class StockfishEngine: ChessEngine {
         while currentBestMove == nil || responseGeneration != expectedGeneration {
             // Check if engine was shut down during wait
             guard initialized else {
-                print("⚠️ Engine shut down during getHint() wait")
                 return nil
             }
 
@@ -383,7 +380,6 @@ class StockfishEngine: ChessEngine {
         while currentEvaluation == nil || evalResponseGeneration != expectedGeneration {
             // Check if engine was shut down during wait
             guard initialized else {
-                print("⚠️ Engine shut down during evaluatePosition() wait")
                 return nil
             }
 
@@ -461,11 +457,10 @@ class StockfishEngine: ChessEngine {
         case .id(.name(let engineName)):
             // Capture engine version from UCI "id name" response
             engineVersion = engineName
-            print("✅ Detected engine: \(engineName)")
 
         case .id(.author(let authorName)):
             // Capture author information (optional, for future use)
-            print("ℹ️ Engine author: \(authorName)")
+            break
 
         default:
             // Ignore other responses (uciok, readyok, etc.)
@@ -535,15 +530,11 @@ class StockfishEngine: ChessEngine {
         // Configure EvalFile (large network)
         if let evalFilePath = bundle.path(forResource: "nn-1111cefa1111", ofType: "nnue") {
             await engine.send(command: .setoption(id: "EvalFile", value: evalFilePath))
-        } else {
-            print("⚠️ Warning: nn-1111cefa1111.nnue not found in bundle. Stockfish will use default evaluation.")
         }
 
         // Configure EvalFileSmall (small network)
         if let evalFileSmallPath = bundle.path(forResource: "nn-37f18f62d772", ofType: "nnue") {
             await engine.send(command: .setoption(id: "EvalFileSmall", value: evalFileSmallPath))
-        } else {
-            print("⚠️ Warning: nn-37f18f62d772.nnue not found in bundle. Stockfish will use default evaluation.")
         }
     }
 }
