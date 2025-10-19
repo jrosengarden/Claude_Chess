@@ -15,6 +15,9 @@ struct QuickGameMenuView: View {
     @ObservedObject var game: ChessGame
     @State private var showingFEN = false
     @State private var showingPGN = false
+    @State private var isEvaluatingDraw = false
+    @State private var showingDrawResult = false
+    @State private var drawAccepted = false
 
     // Board orientation (persisted across app restarts)
     @AppStorage("boardFlipped") private var boardFlipped: Bool = false
@@ -59,6 +62,12 @@ struct QuickGameMenuView: View {
 
                                 dismiss()
                             }
+
+                            // Wait for Quick Menu to dismiss and UI to settle
+                            try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
+
+                            // Update position evaluation after game starts
+                            await game.updatePositionEvaluation()
                         }
                     } label: {
                         HStack {
@@ -85,6 +94,36 @@ struct QuickGameMenuView: View {
                         }
                     }
 
+                    Button(action: {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            lightHaptic.impactOccurred()
+                        }
+                        #endif
+                        Task {
+                            isEvaluatingDraw = true
+                            drawAccepted = await game.offerDraw()
+                            isEvaluatingDraw = false
+                            showingDrawResult = true
+                        }
+                    }) {
+                        HStack {
+                            if isEvaluatingDraw {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                                    .scaleEffect(0.8)
+                                Text("Evaluating...")
+                            } else {
+                                Image(systemName: "equal.circle")
+                                    .foregroundColor(.red)
+                                Text("Offer Draw")
+                                    .foregroundColor(.red)
+                            }
+                        }
+                    }
+                    .disabled(!game.gameInProgress || game.selectedEngine == "human" || isEvaluatingDraw)
+                    .opacity((!game.gameInProgress || game.selectedEngine == "human" || isEvaluatingDraw) ? 0.3 : 1.0)
+
                     Button(role: .destructive) {
                         #if os(iOS)
                         if hapticFeedbackEnabled {
@@ -98,6 +137,8 @@ struct QuickGameMenuView: View {
                             Text("Resign Game")
                         }
                     }
+                    .disabled(!game.gameInProgress)
+                    .opacity(!game.gameInProgress ? 0.3 : 1.0)
                 }
 
                 Section("Position Info") {
@@ -108,6 +149,8 @@ struct QuickGameMenuView: View {
                             Text("Score")
                         }
                     }
+                    .disabled(!game.gameInProgress)
+                    .opacity(!game.gameInProgress ? 0.3 : 1.0)
 
                     Button {
                         #if os(iOS)
@@ -173,6 +216,22 @@ struct QuickGameMenuView: View {
                         }
                     }
             }
+        }
+        .alert(drawAccepted ? "Draw Accepted!" : "Draw Declined", isPresented: $showingDrawResult) {
+            Button("OK") {
+                if drawAccepted {
+                    // End game as draw
+                    game.gameInProgress = false
+                    dismiss()
+                } else {
+                    // Continue playing
+                    dismiss()
+                }
+            }
+        } message: {
+            Text(drawAccepted
+                 ? "Your opponent has accepted the draw offer. Game ends in a draw."
+                 : "Your opponent has declined the draw offer. The game continues.")
         }
     }
 }

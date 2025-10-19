@@ -53,15 +53,17 @@ experience with SwiftUI.
 - ✅ Move hints and suggestions (UCI formatting)
 - ✅ Fast, responsive gameplay (optimized performance, race condition fixes)
 
-### Game Management ✅ (Partial - Sessions 13-21)
+### Game Management ✅ (Partial - Sessions 13-22)
 - ✅ Setup Game Board (FEN import for testing positions)
 - ✅ Move history tracking with undo functionality
 - ✅ Captured pieces display (with Setup Board support)
 - ✅ New Game with engine initialization
+- ✅ Offer Draw (skill-aware AI acceptance)
 - Save and load games (planned)
 - FEN/PGN import with navigation (planned)
 - FEN/PGN export (planned)
 - Opening library integration (planned)
+- Resign functionality (planned)
 
 ### Time Controls ✅ (Session 15 Complete)
 - ✅ Configurable time limits (0-60 minutes, 0-60 second increment)
@@ -94,9 +96,18 @@ experience with SwiftUI.
 
 ## Development Status
 
-**Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 17, 2025)
+**Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 19, 2025)
 
-**Latest Progress (October 17, 2025 - Session 19):**
+**Latest Progress (October 19, 2025 - Session 22):**
+- ✅ Offer Draw system with skill-aware AI acceptance
+- ✅ Position evaluation fix (500ms delay after Start Game)
+- ✅ Code cleanup (removed debug statements)
+- ✅ HINT system UX revamp (4-tap → 2-tap alert)
+- ✅ Header layout fixes for smaller devices
+- ✅ Quick Menu button disabled states (Score/Offer Draw/Resign)
+- ✅ Responsive design validation (iPhone 11 through iPad Pro M4)
+
+**Session 19 Progress (October 17, 2025):**
 
 **✅ CRITICAL AI GAMEPLAY BUG FIXES - ALL RESOLVED:**
 - ✅ **Human move during AI turn** - Fixed bug allowing human to make Black's

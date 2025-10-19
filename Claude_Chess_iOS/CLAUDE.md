@@ -27,13 +27,13 @@ logic, features, and behavior.**
 
 ## Project Status
 
-**Current Phase:** Phase 3 IN PROGRESS 🔄 - Polish & UX Refinement
+**Current Phase:** Phase 3 IN PROGRESS 🔄 - Game Features & Polish
 **Created:** September 30, 2025
 **Last Updated:** October 19, 2025 (Session 22)
 **Development Stage:** Fully playable chess game with all core rules,
-complete Stockfish AI integration, position evaluation, hint system,
-and polished UX with responsive design verified across all device
-sizes (iPhone 11 through iPad Pro M4)
+complete Stockfish AI integration with skill-aware draw offer system,
+position evaluation, hint system, and polished UX with responsive
+design verified across all device sizes (iPhone 11 through iPad Pro M4)
 
 ## Build System
 
@@ -298,7 +298,7 @@ native format.
 **Reference**: `../CLAUDE.md` for complete terminal project specifications
 
 ### Summary Status
-- **✅ Fully Implemented:** 23 features (evaluation/hints complete in Session 18)
+- **✅ Fully Implemented:** 24 features (draw offer system complete in Session 22)
 - **🔄 Partially Implemented:** 0 features
 - **❌ Missing/Not Planned:** 12 features
 - **📋 iOS-Specific Adaptations Needed:** 6 features
@@ -318,8 +318,8 @@ native format.
 - ✅ Legal move highlighting
 - ✅ King position tracking
 
-**❌ Missing from iOS:**
-- ❌ **Draw offer system** - Terminal allows draw by agreement
+**✅ Fully Implemented in iOS (Session 22):**
+- ✅ **Draw offer system** - Skill-aware AI draw acceptance based on position evaluation
 
 ---
 
@@ -1232,11 +1232,8 @@ with Settings
   Last Move" (default ON)
 - **Removed redundant HINT** - Deleted from GameMenuView hamburger menu, kept in
   Quick Game Menu only
-- **UX polish** - Corner triangles visible on all color themes including custom
-  orange schemes; professional chess app standard pattern
-- **TODO count:** 9 total (no change, line numbers updated)
 
-**Session 22: Oct 19, 2025** - Code Cleanup & UX Polish
+**Session 22: Oct 19, 2025** - Code Cleanup, UX Polish & Offer Draw Feature
 - **Code cleanup complete** - Removed all debug print/NSLog statements from 5 files
   while preserving user-facing error messages (ChessBoardView, ChessGame,
   StockfishEngine, QuickGameMenuView, PromotionPiecePickerView)
@@ -1252,7 +1249,20 @@ with Settings
   grouping (Undo→Hint→QuickMenu→GameMenu)
 - **Responsive design validation** - Verified UI scales properly across all
   supported devices (iPhone 11 through iPad Pro M4) with Dynamic Type support
-- **TODO count:** 9 total (unchanged)
+- **Offer Draw implementation** - Complete skill-aware draw acceptance system
+  - AI evaluates position and decides based on evaluation + skill level
+  - Threshold formula: -(100 + skillLevel * 10) centipawns
+  - Lower skill = more willing to accept draws when losing
+  - UCI evaluation sign-flip fix (White perspective → Black perspective)
+  - Disabled/dimmed until game starts (matches Hint/Resign UX)
+- **Position evaluation fix** - Added 500ms delay after Start Game to allow engine
+  initialization, fixes "Evaluation Unavailable" issue
+- **UI refinements** - Moved Offer Draw and Resign to Quick Menu, removed from
+  Game Menu hamburger; added disabled states with 0.3 opacity for Score/Offer
+  Draw/Resign buttons
+- **Testing FEN strings** - Documented 5 validated positions for draw offer testing
+  (Queen endgames, opening positions, equal positions)
+- **TODO count:** 9 total (no change)
 
 ### Key Decisions
 
@@ -1531,6 +1541,45 @@ representation.
 - Scale selection with @AppStorage persistence (default: "scaled")
 - Conversion chart view (appears only when Scaled format selected)
 - Complete centipawn mapping from terminal project
+
+### Offer Draw System
+
+**Architecture:** Skill-aware AI draw acceptance based on position evaluation
+
+**Implementation:**
+```swift
+func offerDraw() async -> Bool {
+    // Evaluate position from Stockfish
+    let evaluation = try await engine.evaluatePosition(position: fen)
+
+    // UCI evals are from White's perspective, flip for Black (AI)
+    let blackEvaluation = -evaluation
+
+    // Skill-aware threshold (lower skill = more willing to accept)
+    let acceptThreshold = -(100 + (skillLevel * 10))
+
+    // Accept only if losing badly
+    return blackEvaluation < acceptThreshold
+}
+```
+
+**Thresholds by Skill Level:**
+- **Skill 5:** -150cp (accepts when losing 1.5+ pawns)
+- **Skill 10:** -200cp (accepts when losing 2+ pawns)
+- **Skill 20:** -300cp (accepts when losing 3+ pawns)
+
+**UI Integration:**
+- Located in Quick Game Menu between Flip Board and Resign
+- Disabled until game starts and when playing against human
+- Shows "Evaluating..." spinner during position analysis
+- Alert displays accept/decline decision with appropriate message
+- Red text matching Resign button style
+
+**Testing FEN Strings:**
+1. **White winning** (Black accepts): `8/8/8/8/4k3/8/8/3QK3 w - - 0 1`
+2. **Black winning** (Black declines): `7k/8/3K4/8/8/8/8/q7 w - - 0 1`
+3. **White minor edge** (Black declines): `rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1`
+4. **Equal position** (Black declines): `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1`
 
 ### FEN/PGN Navigation System (Phase 3 - Planned)
 

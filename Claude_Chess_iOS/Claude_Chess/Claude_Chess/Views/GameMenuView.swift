@@ -94,13 +94,6 @@ struct GameMenuView: View {
                     }
                 }
 
-                Section(header: Text("Actions")) {
-                    Button(role: .destructive, action: {
-                        // TODO: Resign action
-                    }) {
-                        Label("Resign", systemImage: "flag")
-                    }
-                }
             }
             .navigationTitle("Game Menu")
             .navigationBarTitleDisplayMode(.inline)

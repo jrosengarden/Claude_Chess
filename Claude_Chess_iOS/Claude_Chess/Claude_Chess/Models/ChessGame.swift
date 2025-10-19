@@ -108,6 +108,9 @@ class ChessGame: ObservableObject {
     /// Selected opponent engine from settings
     var selectedEngine: String = "human"
 
+    /// Stockfish skill level (0-20, only used when selectedEngine == "stockfish")
+    var skillLevel: Int = 5
+
     /// Whether current opponent is an AI engine (not human vs human)
     var isAIOpponent: Bool {
         return selectedEngine != "human"
@@ -242,6 +245,9 @@ class ChessGame: ObservableObject {
         gameInProgress = false  // User must explicitly start game
         // Increment reset trigger to notify UI to clear selection state
         resetTrigger += 1
+
+        // Store skill level for draw evaluation
+        self.skillLevel = skillLevel
 
         // Initialize AI engine if Stockfish is selected (terminal project parity)
         do {
@@ -1037,8 +1043,9 @@ class ChessGame: ObservableObject {
     ///   - skillLevel: Stockfish skill level (0-20)
     /// - Throws: Engine initialization errors
     func initializeEngine(selectedEngine: String, skillLevel: Int) async throws {
-        // Store selected engine
+        // Store selected engine and skill level
         self.selectedEngine = selectedEngine
+        self.skillLevel = skillLevel
 
         // Only initialize if Stockfish is selected
         guard selectedEngine == "stockfish" else {
@@ -1220,6 +1227,47 @@ class ChessGame: ObservableObject {
         } catch {
             print("ERROR: Hint request failed: \(error)")
             currentHint = nil
+        }
+    }
+
+    /// Offer draw to AI opponent and get response based on position evaluation
+    /// AI accepts draw only when losing badly, declines when equal or better
+    /// Threshold scales with skill level: weaker AI more willing to accept draws when losing
+    /// - Returns: True if AI accepts draw, false if AI declines
+    func offerDraw() async -> Bool {
+        // Only offer draw if playing against AI
+        guard let engine = engine else {
+            return false
+        }
+
+        do {
+            // Get current position evaluation from Stockfish
+            let fen = boardToFEN()
+
+            guard let evaluation = try await engine.evaluatePosition(position: fen) else {
+                return false
+            }
+
+            // UCI evaluations are always from White's perspective
+            // Stockfish plays Black, so flip the sign to get Black's perspective
+            // Positive White eval = Negative Black eval (Black losing)
+            // Negative White eval = Positive Black eval (Black winning)
+            let blackEvaluation = -evaluation
+
+            // Skill-aware threshold: lower skill = more willing to accept draws when losing
+            // Skill 5 = -150cp (losing by ~1.5 pawns), Skill 20 = -300cp (losing by ~3 pawns)
+            let acceptThreshold = -(100 + (skillLevel * 10))
+
+            // Accept draw ONLY if Stockfish (Black) is losing badly (negative evaluation below threshold)
+            // Examples:
+            //   White eval = +575cp → Black eval = -575cp → ACCEPT (Black losing badly)
+            //   White eval = -575cp → Black eval = +575cp → DECLINE (Black winning)
+            //   White eval = 0cp → Black eval = 0cp → DECLINE (equal, not losing badly)
+            //   White eval = +100cp → Black eval = -100cp → DECLINE for skill 5 (not losing badly enough)
+            return blackEvaluation < acceptThreshold
+        } catch {
+            print("ERROR: Draw offer evaluation failed: \(error)")
+            return false
         }
     }
 
