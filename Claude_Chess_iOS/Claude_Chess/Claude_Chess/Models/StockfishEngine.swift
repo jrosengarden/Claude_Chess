@@ -458,7 +458,7 @@ class StockfishEngine: ChessEngine {
             // Capture engine version from UCI "id name" response
             engineVersion = engineName
 
-        case .id(.author(let authorName)):
+        case .id(.author):
             // Capture author information (optional, for future use)
             break
 

@@ -386,9 +386,6 @@ struct ChessBoardView: View {
                     showingPromotionPicker = true
                 } else {
                     // Regular move execution
-                    let targetPiece = game.getPiece(at: dropPosition)
-                    let isCapture = targetPiece.type != .empty
-
                     let success = game.makeMove(from: position, to: dropPosition)
                     if success {
                         // Heavy haptic feedback for successful move
@@ -500,10 +497,6 @@ struct ChessBoardView: View {
                     clearPreview()
                 } else {
                     // Regular move execution
-                    // Check if this is a capture for display purposes
-                    let targetPiece = game.getPiece(at: position)
-                    let isCapture = targetPiece.type != .empty
-
                     // Execute the move with full game state updates
                     let success = game.makeMove(from: selected, to: position)
                     if success {

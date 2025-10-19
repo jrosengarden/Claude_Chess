@@ -852,7 +852,6 @@ class ChessGame: ObservableObject {
         // Get moving pawn and check for capture
         guard let movingPawn = board[from.row][from.col] else { return false }
         let capturedPiece = board[to.row][to.col]
-        let isCapture = capturedPiece != nil
 
         // Capture game state BEFORE making move (for undo and history)
         let previousState = CastlingRights(
