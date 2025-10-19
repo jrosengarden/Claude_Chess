@@ -26,6 +26,7 @@ struct GameMenuView: View {
     // Opponent settings from @AppStorage for engine initialization
     @AppStorage("selectedEngine") private var selectedEngine = "human"
     @AppStorage("stockfishSkillLevel") private var skillLevel = 5
+    @AppStorage("stockfishPlaysColor") private var stockfishPlaysColor = "black"
 
     var body: some View {
         NavigationView {
@@ -33,7 +34,7 @@ struct GameMenuView: View {
                 Section(header: Text("Game")) {
                     Button(action: {
                         Task {
-                            await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel)
+                            await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel, stockfishColor: stockfishPlaysColor)
                             dismiss()
                         }
                     }) {

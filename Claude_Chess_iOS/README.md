@@ -46,8 +46,9 @@ experience with SwiftUI.
 - ✅ Move validation and legal move highlighting
 - ✅ Last move highlighting with corner triangles (user-toggleable)
 
-### AI Opponent ✅ (Sessions 16-20 Complete)
+### AI Opponent ✅ (Sessions 16-23 Complete)
 - ✅ Multiple difficulty levels (0-20 with UCI Skill Level control)
+- ✅ **Color selection** - Choose to play White or Black against Stockfish
 - ✅ Proper skill variation (fixed depth 10, terminal project parity)
 - ✅ Position evaluation and analysis (3 display formats)
 - ✅ Move hints and suggestions (UCI formatting)
@@ -98,7 +99,16 @@ experience with SwiftUI.
 
 **Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 19, 2025)
 
-**Latest Progress (October 19, 2025 - Session 22):**
+**Latest Progress (October 19, 2025 - Session 23):**
+- ✅ **Stockfish Color Selection** - Choose which color AI plays (White or Black)
+- ✅ **Instant board flip** - Board orientation updates immediately when color
+  changed
+- ✅ **Practice openings** - Play Black against Stockfish to practice specific
+  openings as Black
+- ✅ **2-second delay** - When AI plays White, brief pause before first move
+- ✅ **Default setup** - Stockfish plays Black (human plays White) by default
+
+**Previous Session (October 19, 2025 - Session 22):**
 - ✅ Offer Draw system with skill-aware AI acceptance
 - ✅ Position evaluation fix (500ms delay after Start Game)
 - ✅ Code cleanup (removed debug statements)

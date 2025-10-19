@@ -1264,6 +1264,26 @@ with Settings
   (Queen endgames, opening positions, equal positions)
 - **TODO count:** 9 total (no change)
 
+**Session 23: Oct 19, 2025** - Stockfish Color Selection Feature
+- **Stockfish plays color selection** - Added segmented picker in Stockfish
+  Settings allowing user to choose which color AI plays (White or Black)
+- **Default setting** - Stockfish plays Black (human plays White) matching
+  traditional chess setup
+- **Immediate board flip** - Board orientation updates instantly when user
+  changes color selection (via .onChange modifier)
+- **Game-start lock** - Color selection disabled after game starts (matches
+  skill level lock pattern)
+- **AI turn logic updates** - ChessGame.isAITurn and isHumanTurn now respect
+  selected color (aiColor computed property)
+- **2-second delay** - When Stockfish plays White, 2-second delay before
+  first move gives user time to return to main view
+- **Model updates** - Added stockfishColor parameter to initializeEngine()
+  and resetGame() methods
+- **Settings integration** - StockfishSettingsView, QuickGameMenuView, and
+  GameMenuView all read and pass stockfishPlaysColor setting
+- **User feedback** - Settings show "You are playing White/Black" based on
+  selection
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -1367,6 +1387,7 @@ reference Stockfish 17.1 engine.
 - ✅ **Board move locking** (prevents moves until "Start Game" tapped)
 - ✅ **Position evaluation display** (3 formats with live updates - Session 18)
 - ✅ **Hint system implementation** (UCI formatting, 4-state UI - Session 18)
+- ✅ **Stockfish color selection** (choose White or Black, instant board flip - Session 23)
 - 📋 **Game statistics display** (move count, captures, time remaining)
 - 📋 **FEN/PGN import with position navigation** (matches terminal LOAD FEN/PGN)
 - 📋 FEN/PGN export

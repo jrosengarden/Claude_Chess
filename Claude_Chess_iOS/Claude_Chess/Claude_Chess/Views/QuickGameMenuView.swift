@@ -25,6 +25,7 @@ struct QuickGameMenuView: View {
     // Opponent settings for engine initialization
     @AppStorage("selectedEngine") private var selectedEngine = "human"
     @AppStorage("stockfishSkillLevel") private var skillLevel = 5
+    @AppStorage("stockfishPlaysColor") private var stockfishPlaysColor = "black"
 
     // Haptic feedback
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
@@ -47,7 +48,7 @@ struct QuickGameMenuView: View {
                         // Initialize AI engine if needed, THEN start game
                         Task {
                             do {
-                                try await game.initializeEngine(selectedEngine: selectedEngine, skillLevel: skillLevel)
+                                try await game.initializeEngine(selectedEngine: selectedEngine, skillLevel: skillLevel, stockfishColor: stockfishPlaysColor)
                             } catch {
                                 print("ERROR: Failed to initialize engine: \(error)")
                             }
@@ -57,10 +58,18 @@ struct QuickGameMenuView: View {
                                 game.gameInProgress = true
                                 game.startMoveTimer()
 
-                                // Trigger AI move check in case it's AI's turn (e.g., after Setup Board with Black to move)
-                                game.aiMoveCheckTrigger += 1
-
                                 dismiss()
+                            }
+
+                            // If Stockfish plays White, add 2-second delay before first move
+                            // This gives user time to return to main view
+                            if selectedEngine == "stockfish" && stockfishPlaysColor == "white" {
+                                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                            }
+
+                            // Trigger AI move check in case it's AI's turn
+                            await MainActor.run {
+                                game.aiMoveCheckTrigger += 1
                             }
 
                             // Wait for Quick Menu to dismiss and UI to settle

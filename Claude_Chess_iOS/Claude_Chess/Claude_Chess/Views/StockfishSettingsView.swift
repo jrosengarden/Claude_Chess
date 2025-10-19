@@ -15,6 +15,8 @@ import SwiftUI
 struct StockfishSettingsView: View {
     @AppStorage("selectedEngine") private var selectedEngine = "stockfish"
     @AppStorage("stockfishSkillLevel") private var skillLevel = 5
+    @AppStorage("stockfishPlaysColor") private var stockfishPlaysColor = "black" // "white" or "black"
+    @AppStorage("boardFlipped") private var boardFlipped: Bool = false
     @ObservedObject var game: ChessGame
 
     // Engine test state
@@ -55,6 +57,32 @@ struct StockfishSettingsView: View {
                 .buttonStyle(PlainButtonStyle())
                 .disabled(isSkillLevelLockEnabled)
                 .opacity(isSkillLevelLockEnabled ? 0.5 : 1.0)
+            }
+
+            Section(header: Text("Stockfish Plays")) {
+                Picker("Stockfish Plays", selection: $stockfishPlaysColor) {
+                    Text("White").tag("white")
+                    Text("Black").tag("black")
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .disabled(isSkillLevelLockEnabled)
+                .opacity(isSkillLevelLockEnabled ? 0.5 : 1.0)
+                .onChange(of: stockfishPlaysColor) { newValue in
+                    // Auto-flip board when Stockfish plays White (human plays Black)
+                    // Board normal orientation when Stockfish plays Black (human plays White)
+                    boardFlipped = (newValue == "white")
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(stockfishPlaysColor == "white" ? "You are playing Black" : "You are playing White")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("Color selection cannot be changed after the game starts.")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+                .padding(.top, 8)
             }
 
             Section(header: Text("Skill Level")) {

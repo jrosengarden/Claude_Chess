@@ -111,19 +111,30 @@ class ChessGame: ObservableObject {
     /// Stockfish skill level (0-20, only used when selectedEngine == "stockfish")
     var skillLevel: Int = 5
 
+    /// Which color Stockfish is playing ("white" or "black")
+    /// Default: "black" (human plays White)
+    var stockfishColor: String = "black"
+
     /// Whether current opponent is an AI engine (not human vs human)
     var isAIOpponent: Bool {
         return selectedEngine != "human"
     }
 
+    /// Which color the AI is playing
+    private var aiColor: Color? {
+        guard isAIOpponent else { return nil }
+        return stockfishColor == "white" ? .white : .black
+    }
+
     /// Whether it's currently the AI's turn to move
-    /// Returns true if AI opponent is enabled and it's Black's turn
+    /// Returns true if AI opponent is enabled and it's the AI's color turn
     var isAITurn: Bool {
-        return isAIOpponent && currentPlayer == .black
+        guard let aiColor = aiColor else { return false }
+        return currentPlayer == aiColor
     }
 
     /// Whether it's currently a human player's turn to move
-    /// Returns true if no AI opponent OR it's White's turn (human side)
+    /// Returns true if no AI opponent OR it's not the AI's turn
     var isHumanTurn: Bool {
         return !isAITurn
     }
@@ -229,7 +240,8 @@ class ChessGame: ObservableObject {
     /// - Parameters:
     ///   - selectedEngine: Engine selection from settings ("human", "stockfish", etc.)
     ///   - skillLevel: Stockfish skill level (0-20)
-    func resetGame(selectedEngine: String = "human", skillLevel: Int = 5) async {
+    ///   - stockfishColor: Which color Stockfish is playing ("white" or "black")
+    func resetGame(selectedEngine: String = "human", skillLevel: Int = 5, stockfishColor: String = "black") async {
         setupInitialPosition()
         // Clear move history (captured pieces tracking)
         moveHistory.removeAll()
@@ -251,7 +263,7 @@ class ChessGame: ObservableObject {
 
         // Initialize AI engine if Stockfish is selected (terminal project parity)
         do {
-            try await initializeEngine(selectedEngine: selectedEngine, skillLevel: skillLevel)
+            try await initializeEngine(selectedEngine: selectedEngine, skillLevel: skillLevel, stockfishColor: stockfishColor)
         } catch {
             print("ERROR: Failed to initialize engine: \(error)")
         }
@@ -1040,11 +1052,13 @@ class ChessGame: ObservableObject {
     /// - Parameters:
     ///   - selectedEngine: Engine selection from settings ("human", "stockfish", etc.)
     ///   - skillLevel: Stockfish skill level (0-20)
+    ///   - stockfishColor: Which color Stockfish is playing ("white" or "black")
     /// - Throws: Engine initialization errors
-    func initializeEngine(selectedEngine: String, skillLevel: Int) async throws {
-        // Store selected engine and skill level
+    func initializeEngine(selectedEngine: String, skillLevel: Int, stockfishColor: String = "black") async throws {
+        // Store selected engine, skill level, and color
         self.selectedEngine = selectedEngine
         self.skillLevel = skillLevel
+        self.stockfishColor = stockfishColor
 
         // Only initialize if Stockfish is selected
         guard selectedEngine == "stockfish" else {
