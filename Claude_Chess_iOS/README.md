@@ -103,6 +103,8 @@ experience with SwiftUI.
 - ✅ **Stockfish Color Selection** - Choose which color AI plays (White or Black)
 - ✅ **Instant board flip** - Board orientation updates immediately when color
   changed
+- ✅ **Auto time control swap** - Time allocations swap automatically so human
+  always gets intended time
 - ✅ **Practice openings** - Play Black against Stockfish to practice specific
   openings as Black
 - ✅ **2-second delay** - When AI plays White, brief pause before first move

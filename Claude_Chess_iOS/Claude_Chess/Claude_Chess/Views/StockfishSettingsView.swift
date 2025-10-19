@@ -17,6 +17,13 @@ struct StockfishSettingsView: View {
     @AppStorage("stockfishSkillLevel") private var skillLevel = 5
     @AppStorage("stockfishPlaysColor") private var stockfishPlaysColor = "black" // "white" or "black"
     @AppStorage("boardFlipped") private var boardFlipped: Bool = false
+
+    // Time control settings (need to swap when color changes)
+    @AppStorage("whiteMinutes") private var whiteMinutes = 30
+    @AppStorage("whiteIncrement") private var whiteIncrement = 10
+    @AppStorage("blackMinutes") private var blackMinutes = 5
+    @AppStorage("blackIncrement") private var blackIncrement = 0
+
     @ObservedObject var game: ChessGame
 
     // Engine test state
@@ -71,6 +78,19 @@ struct StockfishSettingsView: View {
                     // Auto-flip board when Stockfish plays White (human plays Black)
                     // Board normal orientation when Stockfish plays Black (human plays White)
                     boardFlipped = (newValue == "white")
+
+                    // Swap time controls so user always gets the "White" time allocation
+                    // When Stockfish plays White: human plays Black, so give human the White time
+                    // When Stockfish plays Black: human plays White, keep normal allocation
+                    let tempWhiteMin = whiteMinutes
+                    let tempWhiteInc = whiteIncrement
+                    let tempBlackMin = blackMinutes
+                    let tempBlackInc = blackIncrement
+
+                    whiteMinutes = tempBlackMin
+                    whiteIncrement = tempBlackInc
+                    blackMinutes = tempWhiteMin
+                    blackIncrement = tempWhiteInc
                 }
 
                 VStack(alignment: .leading, spacing: 4) {

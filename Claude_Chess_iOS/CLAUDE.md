@@ -1271,6 +1271,8 @@ with Settings
   traditional chess setup
 - **Immediate board flip** - Board orientation updates instantly when user
   changes color selection (via .onChange modifier)
+- **Automatic time control swap** - Time allocations swap when color changes
+  so human always gets intended time (White time → Black time when playing Black)
 - **Game-start lock** - Color selection disabled after game starts (matches
   skill level lock pattern)
 - **AI turn logic updates** - ChessGame.isAITurn and isHumanTurn now respect
