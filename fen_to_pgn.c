@@ -1,6 +1,9 @@
+#define _GNU_SOURCE        // Required for Linux (strcasecmp)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <ctype.h>
 #include <time.h>
 

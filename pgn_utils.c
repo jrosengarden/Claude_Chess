@@ -16,12 +16,15 @@
  *   - char_to_piece_type() from chess.c for FEN parsing
  */
 
+#define _GNU_SOURCE        // Required for Linux (strdup, strcasecmp)
+
 #include "pgn_utils.h"
 
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 /**
  * convert_fen_to_pgn_string() - Convert FEN log file to PGN format string
