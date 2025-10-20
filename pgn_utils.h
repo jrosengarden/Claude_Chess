@@ -27,6 +27,8 @@
  * Used for real-time PGN display during gameplay.
  *
  * @param fen_filename: Path to the FEN log file to convert
+ * @param game_result: Game result string ("1-0" for White wins, "0-1" for Black wins,
+ *                     "1/2-1/2" for draw, "*" for in-progress/unknown)
  * @return: Dynamically allocated string containing PGN notation, or NULL on error
  *          Caller must free() the returned string
  *
@@ -36,6 +38,6 @@
  * - Memory management: Returns malloc'd string that caller must free
  * - Error handling: Returns NULL if file cannot be opened or memory allocation fails
  */
-char* convert_fen_to_pgn_string(const char* fen_filename);
+char* convert_fen_to_pgn_string(const char* fen_filename, const char* game_result);
 
 #endif // PGN_UTILS_H

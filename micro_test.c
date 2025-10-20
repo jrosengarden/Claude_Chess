@@ -614,12 +614,13 @@ void test_pgn_conversion() {
     fprintf(test_file, "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2\n");
     fclose(test_file);
 
-    char* pgn_result = convert_fen_to_pgn_string(test_filename);
+    char* pgn_result = convert_fen_to_pgn_string(test_filename, "*");
     assert(pgn_result != NULL);
 
     assert(strstr(pgn_result, "[Event \"Current Game\"]") != NULL);
     assert(strstr(pgn_result, "[White \"Player\"]") != NULL);
     assert(strstr(pgn_result, "[Black \"AI\"]") != NULL);
+    assert(strstr(pgn_result, "[Result \"*\"]") != NULL);
     assert(strstr(pgn_result, "1. e4") != NULL);
     assert(strstr(pgn_result, "e5") != NULL);
     assert(strstr(pgn_result, "2. Nf3") != NULL);

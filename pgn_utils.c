@@ -31,6 +31,8 @@
  * Used for real-time PGN display during gameplay.
  *
  * @param fen_filename: Path to the FEN log file to convert
+ * @param game_result: Game result string ("1-0" for White wins, "0-1" for Black wins,
+ *                     "1/2-1/2" for draw, "*" for in-progress/unknown)
  * @return: Dynamically allocated string containing PGN notation, or NULL on error
  *          Caller must free() the returned string
  *
@@ -41,7 +43,7 @@
  * - Memory management: Returns malloc'd string that caller must free
  * - Error handling: Returns NULL if file cannot be opened or memory allocation fails
  */
-char* convert_fen_to_pgn_string(const char* fen_filename) {
+char* convert_fen_to_pgn_string(const char* fen_filename, const char* game_result) {
     #define MAX_LINE_LENGTH 256
     #define MAX_MOVES 1000
     #define MAX_PGN_SIZE 8192
@@ -81,6 +83,8 @@ char* convert_fen_to_pgn_string(const char* fen_filename) {
     strftime(date_str, sizeof(date_str), "%Y.%m.%d", timeinfo);
 
     // Initial headers (FEN headers will be added later if needed)
+    // Use provided game_result or default to "*" (in-progress) if NULL
+    const char* result = (game_result && game_result[0] != '\0') ? game_result : "*";
     snprintf(pgn_string, MAX_PGN_SIZE,
         "[Event \"Current Game\"]\n"
         "[Site \"Claude Chess\"]\n"
@@ -88,7 +92,7 @@ char* convert_fen_to_pgn_string(const char* fen_filename) {
         "[Round \"?\"]\n"
         "[White \"Player\"]\n"
         "[Black \"AI\"]\n"
-        "[Result \"*\"]\n", date_str);
+        "[Result \"%s\"]\n", date_str, result);
 
     Piece prev_board[BOARD_SIZE][BOARD_SIZE];
     Piece curr_board[BOARD_SIZE][BOARD_SIZE];
@@ -331,8 +335,8 @@ char* convert_fen_to_pgn_string(const char* fen_filename) {
         }
     }
 
-    if (remaining > 5) {
-        strcat(pos, "*\n");
+    if (remaining > 10) {
+        snprintf(pos, remaining, "%s\n", result);
     }
 
     return pgn_string;

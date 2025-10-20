@@ -51,7 +51,7 @@ Color char_to_color(char c);
 void detect_special_moves(Piece old_board[BOARD_SIZE][BOARD_SIZE], 
                          Piece new_board[BOARD_SIZE][BOARD_SIZE], Move* move);
 char* move_to_algebraic(Move* move, Piece board[BOARD_SIZE][BOARD_SIZE]);
-void write_pgn(const char* filename, Move moves[], int move_count, const char* first_fen);
+void write_pgn(const char* filename, Move moves[], int move_count, const char* first_fen, const char* game_result);
 char* get_base_filename(const char* filepath);
 
 int main() {
@@ -135,8 +135,8 @@ int main() {
     
     fclose(input_file);
 
-    // Write PGN file
-    write_pgn(output_filename, moves, move_count, first_fen);
+    // Write PGN file - use "*" as default result for standalone utility
+    write_pgn(output_filename, moves, move_count, first_fen, "*");
 
     printf("Conversion complete! Output written to: %s\n", output_filename);
     printf("Converted %d moves\n", move_count);
@@ -411,7 +411,7 @@ char* move_to_algebraic(Move* move, Piece board[BOARD_SIZE][BOARD_SIZE] __attrib
     return algebraic;
 }
 
-void write_pgn(const char* filename, Move moves[], int move_count, const char* first_fen) {
+void write_pgn(const char* filename, Move moves[], int move_count, const char* first_fen, const char* game_result) {
     FILE* output_file = fopen(filename, "w");
     if (!output_file) {
         fprintf(stderr, "Error: Cannot create output file '%s'\n", filename);
@@ -424,13 +424,16 @@ void write_pgn(const char* filename, Move moves[], int move_count, const char* f
     char date_str[20];
     strftime(date_str, sizeof(date_str), "%Y.%m.%d", timeinfo);
 
+    // Use provided game_result or default to "*" (in-progress) if NULL
+    const char* result = (game_result && game_result[0] != '\0') ? game_result : "*";
+
     fprintf(output_file, "[Event \"Converted Game\"]\n");
     fprintf(output_file, "[Site \"?\"]\n");
     fprintf(output_file, "[Date \"%s\"]\n", date_str);
     fprintf(output_file, "[Round \"?\"]\n");
     fprintf(output_file, "[White \"Player\"]\n");
     fprintf(output_file, "[Black \"AI\"]\n");
-    fprintf(output_file, "[Result \"*\"]\n");
+    fprintf(output_file, "[Result \"%s\"]\n", result);
 
     // Check if starting position is non-standard and add FEN headers if needed
     // Standard starting position FEN (piece placement only):
@@ -476,8 +479,8 @@ void write_pgn(const char* filename, Move moves[], int move_count, const char* f
             fprintf(output_file, "\n");
         }
     }
-    
-    fprintf(output_file, "*\n");
+
+    fprintf(output_file, "%s\n", result);
     fclose(output_file);
 }
 

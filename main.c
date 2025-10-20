@@ -160,7 +160,7 @@ void update_persistent_pgn_file() {
         return;  // No PGN window is active, skip update
     }
 
-    char* pgn_content = convert_fen_to_pgn_string(g_session.fen_log_filename);
+    char* pgn_content = convert_fen_to_pgn_string(g_session.fen_log_filename, "*");
     if (!pgn_content) {
         return;  // Could not generate PGN content
     }
@@ -597,7 +597,7 @@ bool is_starting_position_only_fen_file(const char* filename) {
  * This function performs the conversion silently without user prompts.
  * Skips conversion and removes files if only starting position exists.
  */
-void convert_fen_to_pgn() {
+void convert_fen_to_pgn(const char* game_result) {
     // Check if FEN file contains only the starting position
     if (is_starting_position_only_fen_file(g_session.fen_log_filename)) {
         // Remove the FEN file - no point keeping starting position only
@@ -625,14 +625,19 @@ void convert_fen_to_pgn() {
         // FEN file doesn't exist or can't be opened, exit silently
         return;
     }
-
-    // Use system call to run fen_to_pgn utility with input redirection
-    // This avoids duplicating the complex conversion logic
-    char command[512];
-    snprintf(command, sizeof(command), "echo '%s' | ./fen_to_pgn > /dev/null 2>&1", g_session.fen_log_filename);
-    system(command);
-
     fclose(fen_file);
+
+    // We can't pass game_result through the command-line utility easily,
+    // so we'll use the convert_fen_to_pgn_string() function and write it directly
+    char* pgn_content = convert_fen_to_pgn_string(g_session.fen_log_filename, game_result);
+    if (pgn_content) {
+        FILE* pgn_file = fopen(pgn_filename, "w");
+        if (pgn_file) {
+            fprintf(pgn_file, "%s", pgn_content);
+            fclose(pgn_file);
+        }
+        free(pgn_content);
+    }
 }
 
 /**
@@ -2170,7 +2175,8 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
         cleanup_persistent_pgn_file();
 
         if (!g_session.runtime.suppress_pgn_creation) {
-            convert_fen_to_pgn();
+            // Game is incomplete when user quits, so result is "*"
+            convert_fen_to_pgn("*");
         }
 
         if (g_session.runtime.delete_fen_on_exit) {
@@ -2307,7 +2313,7 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
         printf("\nGenerating current game PGN notation...");
         fflush(stdout);
 
-        char* pgn_content = convert_fen_to_pgn_string(g_session.fen_log_filename);
+        char* pgn_content = convert_fen_to_pgn_string(g_session.fen_log_filename, "*");
         if (pgn_content) {
             if (display_pgn_in_new_window(pgn_content)) {
                 printf("Close the PGN window when you're done viewing.\n");
@@ -2483,7 +2489,8 @@ bool handle_game_commands(const char *input, ChessGame *game, StockfishEngine *e
             cleanup_persistent_pgn_file();
 
             if (!g_session.runtime.suppress_pgn_creation) {
-                convert_fen_to_pgn();
+                // White resigns, so Black wins: "0-1"
+                convert_fen_to_pgn("0-1");
             }
 
             if (g_session.runtime.delete_fen_on_exit) {
@@ -2922,7 +2929,8 @@ int main(int argc, char *argv[]) {
 
             // Create PGN file unless suppressed by PGNOFF
             if (!g_session.runtime.suppress_pgn_creation) {
-                convert_fen_to_pgn();
+                // Pass the appropriate result: "1-0" for White wins, "0-1" for Black wins
+                convert_fen_to_pgn(winner == WHITE ? "1-0" : "0-1");
             }
 
             // Delete FEN file if requested by FENOFF (after PGN creation)
@@ -2947,7 +2955,8 @@ int main(int argc, char *argv[]) {
 
             // Create PGN file unless suppressed by PGNOFF
             if (!g_session.runtime.suppress_pgn_creation) {
-                convert_fen_to_pgn();
+                // Pass the appropriate result: "1-0" for White wins, "0-1" for Black wins
+                convert_fen_to_pgn(winner == WHITE ? "1-0" : "0-1");
             }
 
             // Delete FEN file if requested by FENOFF (after PGN creation)
@@ -2970,7 +2979,8 @@ int main(int argc, char *argv[]) {
 
             // Create PGN file unless suppressed by PGNOFF
             if (!g_session.runtime.suppress_pgn_creation) {
-                convert_fen_to_pgn();
+                // Pass "1/2-1/2" for draw result
+                convert_fen_to_pgn("1/2-1/2");
             }
 
             // Delete FEN file if requested by FENOFF (after PGN creation)
@@ -2994,7 +3004,8 @@ int main(int argc, char *argv[]) {
 
             // Create PGN file unless suppressed by PGNOFF
             if (!g_session.runtime.suppress_pgn_creation) {
-                convert_fen_to_pgn();
+                // Pass "1/2-1/2" for draw result
+                convert_fen_to_pgn("1/2-1/2");
             }
 
             // Delete FEN file if requested by FENOFF (after PGN creation)
