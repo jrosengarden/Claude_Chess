@@ -47,7 +47,20 @@ professional UX with custom game-ending alerts, FEN/PGN display/export with stan
 - GameMenuView.swift (line 92) - Share Game action (mid-game sharing via iOS share sheet)
 - GameMenuView.swift (line 143) - Save current game to file (Phase 3 - file operations)
 
-## Agenda for Session 25
+## Known Bugs to Fix
+
+**Time Forfeit Alert UI Issue:**
+- **Problem:** When time expires, alert shows only "OK" button which clears
+  board to starting position and locks the board (can't review final position,
+  view PGN/FEN, etc.)
+- **Expected Behavior:** Match Resign alert pattern with two buttons:
+  - "OK" - Returns to game board for review (board locked, "Start Game"
+    disabled, can still view PGN/FEN)
+  - "New Game" - Immediately starts fresh game
+- **File:** ChessBoardView.swift (time forfeit alert)
+- **Priority:** High - UX regression discovered in Session 25
+
+## Agenda for Session 26
 
 **Priority Items (User to decide):**
 
@@ -107,7 +120,11 @@ professional UX with custom game-ending alerts, FEN/PGN display/export with stan
 
 ## Reference Documents
 
-**Read 6 Latest Git Commits:**
+**Read 6 Latest Git Commits for the iOS project:**
+- Read the 6 latest commits for the iOS project.  There might be commits that are
+  for the Terminal App so continue reading the git log until you've read the last
+  6 commits for the iOS project.  (NOTE:  Any commits related to the Terminal project
+  state so at the start of the commit message)
 - Command: `git log -6`
 - This will catch you up on the latest work
 

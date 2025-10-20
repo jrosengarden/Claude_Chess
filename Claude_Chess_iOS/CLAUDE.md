@@ -1303,6 +1303,36 @@ with Settings
   New Game (standard position)
 - **TODO count:** 9 → 5 total (removed Resign, FEN display, PGN display TODOs)
 
+**Session 25: Oct 20, 2025** - Critical Bug Fix: Position Evaluation Consistency
+- **Bug discovered:** Draw offer system showing inconsistent behavior - AI declined draw
+  when losing badly (+639cp White advantage reported, but evaluation varied wildly on
+  subsequent tests: -179cp, -377cp, -627cp for same position at Skill Level 5)
+- **Root cause analysis:** Two compounding bugs in evaluation system:
+  1. **Skill Level applied to evaluations** - iOS evaluated at configured Skill Level
+     (0-20), causing unreliable results at low skills; terminal project always evaluates
+     at full strength regardless of play skill
+  2. **Random depth capture** - iOS captured evaluation from any depth that happened to
+     arrive (depth 3, 7, 10, etc.); terminal project only uses deepest depth (depth 15)
+- **Fix 1: Skill Level boost for evaluations** - `StockfishEngine.evaluatePosition()`
+  now temporarily sets skill to 20 before evaluation, restores original skill after
+  (matches terminal project behavior where evaluations are always full strength)
+- **Fix 2: Depth-based filtering** - Added `currentEvaluationDepth` tracking; only
+  accepts evaluation scores from deepest depth seen; waits for depth 15 before returning
+  (matches terminal `max_depth_seen` logic)
+- **Fix 3: Proper wait timing** - Modified while loop condition to wait until
+  `currentEvaluationDepth >= 15` before restoring skill level (prevents premature
+  skill restoration that was causing evaluations to complete at wrong skill)
+- **Testing results:** Evaluations now consistent at -550cp to -620cp (±35cp variance
+  is normal per terminal project comments), all map to scaled score -8 matching terminal
+  app; draw offer correctly declines when AI winning; verified on iPhone 17 Pro simulator
+  and iPhone 14 Pro physical device
+- **Bug discovered during session:** Time forfeit alert only shows "OK" button which
+  clears board; should match Resign pattern with "OK" (return to board for review) and
+  "New Game" (immediate reset) - documented in SESSION_START.md for Session 26
+- **Files modified:** `StockfishEngine.swift` (evaluation skill boost + depth tracking),
+  `ChessGame.swift` (draw offer color handling), `SESSION_START.md` (time forfeit bug)
+- **TODO count:** 5 (unchanged)
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-

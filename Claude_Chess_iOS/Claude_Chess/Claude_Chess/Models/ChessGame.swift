@@ -1386,24 +1386,35 @@ class ChessGame: ObservableObject {
             }
 
             // UCI evaluations are always from White's perspective
-            // Stockfish plays Black, so flip the sign to get Black's perspective
-            // Positive White eval = Negative Black eval (Black losing)
-            // Negative White eval = Positive Black eval (Black winning)
-            let blackEvaluation = -evaluation
+            // Need to flip to AI's perspective based on which color Stockfish is playing
+            let aiEvaluation: Int
+            if stockfishColor == "white" {
+                // Stockfish is White, keep evaluation as-is (White's perspective)
+                aiEvaluation = evaluation
+            } else {
+                // Stockfish is Black, flip to Black's perspective
+                // Positive White eval = Negative Black eval (Black losing)
+                // Negative White eval = Positive Black eval (Black winning)
+                aiEvaluation = -evaluation
+            }
 
             // Skill-aware threshold: lower skill = more willing to accept draws when losing
             // Skill 5 = -150cp (losing by ~1.5 pawns), Skill 20 = -300cp (losing by ~3 pawns)
             let acceptThreshold = -(100 + (skillLevel * 10))
 
-            // Accept draw ONLY if Stockfish (Black) is losing badly (negative evaluation below threshold)
-            // Examples:
-            //   White eval = +575cp → Black eval = -575cp → ACCEPT (Black losing badly)
-            //   White eval = -575cp → Black eval = +575cp → DECLINE (Black winning)
-            //   White eval = 0cp → Black eval = 0cp → DECLINE (equal, not losing badly)
-            //   White eval = +100cp → Black eval = -100cp → DECLINE for skill 5 (not losing badly enough)
-            return blackEvaluation < acceptThreshold
+            let decision = aiEvaluation < acceptThreshold
+
+            // Accept draw ONLY if Stockfish is losing badly (negative evaluation below threshold)
+            // Examples (Stockfish plays BLACK):
+            //   White eval = +575cp → AI eval = -575cp → ACCEPT (Stockfish losing badly)
+            //   White eval = -575cp → AI eval = +575cp → DECLINE (Stockfish winning)
+            //   White eval = 0cp → AI eval = 0cp → DECLINE (equal, not losing badly)
+            //   White eval = +100cp → AI eval = -100cp → DECLINE for skill 5 (not losing badly enough)
+            // Examples (Stockfish plays WHITE):
+            //   White eval = +575cp → AI eval = +575cp → DECLINE (Stockfish winning)
+            //   White eval = -575cp → AI eval = -575cp → ACCEPT (Stockfish losing badly)
+            return decision
         } catch {
-            print("ERROR: Draw offer evaluation failed: \(error)")
             return false
         }
     }

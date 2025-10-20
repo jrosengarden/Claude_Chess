@@ -74,6 +74,9 @@ class StockfishEngine: ChessEngine {
     /// Current evaluation score in centipawns
     private var currentEvaluation: Int?
 
+    /// Maximum depth seen for current evaluation (terminal project: only use deepest depth)
+    private var currentEvaluationDepth: Int = 0
+
     /// Generation counter to track which bestmove responses are valid
     /// Increments every time we start a new move search to invalidate stale responses
     private var requestGeneration: Int = 0
@@ -356,14 +359,24 @@ class StockfishEngine: ChessEngine {
             throw ChessEngineError.initializationFailed("Engine not initialized")
         }
 
-        // Reset current evaluation
+        // Reset current evaluation and depth tracking
         currentEvaluation = nil
+        currentEvaluationDepth = 0
 
         // Stop any ongoing analysis
         await engine.send(command: .stop)
 
         // Delay to let stop command process (increased from 10ms)
         try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+
+        // CRITICAL FIX: Temporarily set skill to maximum (20) for accurate evaluation
+        // Terminal project evaluates at full strength regardless of play skill level
+        // This prevents unreliable/varying evaluations from low skill levels (Session 25 bug fix)
+        let savedSkillLevel = skillLevel
+        if savedSkillLevel < 20 {
+            await engine.send(command: .setoption(id: "Skill Level", value: "20"))
+            try await Task.sleep(nanoseconds: 50_000_000) // 50ms for setting to apply
+        }
 
         // Set position
         await engine.send(command: .position(.fen(position)))
@@ -376,8 +389,9 @@ class StockfishEngine: ChessEngine {
         await engine.send(command: .go(depth: 15))
 
         // Wait for evaluation response from THIS generation
+        // AND wait for depth 15 to be reached (terminal project behavior)
         let startTime = Date()
-        while currentEvaluation == nil || evalResponseGeneration != expectedGeneration {
+        while currentEvaluation == nil || evalResponseGeneration != expectedGeneration || currentEvaluationDepth < 15 {
             // Check if engine was shut down during wait
             guard initialized else {
                 return nil
@@ -388,8 +402,14 @@ class StockfishEngine: ChessEngine {
 
             // Timeout check
             if Date().timeIntervalSince(startTime) > 20.0 {
-                throw ChessEngineError.timeout
+                break  // Use whatever depth we got instead of failing completely
             }
+        }
+
+        // Restore original skill level for gameplay
+        if savedSkillLevel < 20 {
+            await engine.send(command: .setoption(id: "Skill Level", value: "\(savedSkillLevel)"))
+            try await Task.sleep(nanoseconds: 50_000_000) // 50ms for setting to apply
         }
 
         return currentEvaluation
@@ -437,20 +457,26 @@ class StockfishEngine: ChessEngine {
 
         case .info(let info):
             // Extract evaluation score if available
-            if let score = info.score {
-                // Score can be centipawns (Double?) or mate (Int?)
-                if let cp = score.cp {
-                    // Centipawn score (terminal project: used for evaluation display)
-                    // Convert Double to Int
-                    currentEvaluation = Int(cp)
-                    // Mark this evaluation with current request generation
-                    evalResponseGeneration = evalRequestGeneration
-                } else if let mate = score.mate {
-                    // Mate in N moves (terminal project: convert to large centipawn value)
-                    // Positive = White mates, Negative = Black mates
-                    currentEvaluation = mate > 0 ? 10000 : -10000
-                    // Mark this evaluation with current request generation
-                    evalResponseGeneration = evalRequestGeneration
+            // Terminal project: only use score from deepest depth to ensure most accurate evaluation
+            if let score = info.score, let depth = info.depth {
+                // Only update evaluation if this depth is >= current max depth
+                if depth >= currentEvaluationDepth {
+                    currentEvaluationDepth = depth
+
+                    // Score can be centipawns (Double?) or mate (Int?)
+                    if let cp = score.cp {
+                        // Centipawn score (terminal project: used for evaluation display)
+                        // Convert Double to Int
+                        currentEvaluation = Int(cp)
+                        // Mark this evaluation with current request generation
+                        evalResponseGeneration = evalRequestGeneration
+                    } else if let mate = score.mate {
+                        // Mate in N moves (terminal project: convert to large centipawn value)
+                        // Positive = White mates, Negative = Black mates
+                        currentEvaluation = mate > 0 ? 10000 : -10000
+                        // Mark this evaluation with current request generation
+                        evalResponseGeneration = evalRequestGeneration
+                    }
                 }
             }
 
