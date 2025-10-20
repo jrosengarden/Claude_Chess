@@ -418,6 +418,52 @@ rule draw alert.
 
   Test in order - #5 first to confirm castling still works, then #1-4 to verify the 
   new restrictions!
+  
+### Additional FEN Strings for Testing Offering Draw
+ 1. White CLEAR advantage - Black should ACCEPT ✓
+
+  8/8/8/8/4k3/8/8/3QK3 w - - 0 1
+  Position: White Queen on d1, White King on e1, Black King on e4 (Queen vs lone King)
+  Expected eval: ~+543cp to +900cp (White) → -543cp to -900cp (Black)
+  	Expected result: ACCEPT (Black losing badly, well below -150cp threshold)
+
+  ---
+  2. Black CLEAR advantage - Black should DECLINE ✓
+
+  7k/8/3K4/8/8/8/8/q7 w - - 0 1
+  Position: Black Queen on a1, Black King on h8, White King on d6 (Queen vs lone King)
+  Expected eval: ~-900cp (White) → +900cp (Black)
+  	Expected result: DECLINE (Black winning)
+
+  ---
+  3. White MINOR advantage - Black should DECLINE ✓
+
+  rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1
+  Position: After 1.e4 (standard opening)Expected eval: ~+30cp (White) → -30cp (Black)
+  	Expected result: DECLINE
+  (-30cp > -150cp threshold, not losing badly enough)
+
+  ---
+  4. Black MINOR advantage - Black should DECLINE ✓
+
+  rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2
+  Position: After 1.e4 e5 (symmetric opening)Expected eval: ~0cp to +20cp (White) 
+  → approximately 0cp (Black)
+  	Expected result: DECLINE (roughly equal, not losing badly)
+
+  ---
+  5. Starting position - Black should DECLINE ✓
+
+  rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+  Position: Standard starting positionExpected eval: ~0cp
+  	Expected result: DECLINE (equal position, no reason to accept draw)
+
+ 	Draw Testing Instructions:
+  		1. Game Menu → Setup Game Board → paste FEN
+  		2. Quick Menu (⚡) → Start Game
+  		3. Quick Menu (⚡) → Offer Draw
+  		4. Check Score view to see evaluation
+  		5. Verify accept/decline matches expected result
 
 
 ## Xcode Project Structure

@@ -231,7 +231,7 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (9 total as of Oct 19, 2025 - Session 22):**
+**Current TODO Inventory (5 total as of Oct 19, 2025 - Session 23):**
 
 **Phase 3 - Move Validation & Game Logic (0 TODOs):**
 - ✅ All validation complete (2 castling TODOs removed in Session 15 post-session fixes)
@@ -239,21 +239,18 @@ prevent accumulation of technical debt.
 **Phase 3 - UI & Display (1 TODO):**
 - `ScoreView.swift` (line 46) - Display game statistics
 
-**Phase 3 - Game Management (8 TODOs):**
-- `GameMenuView.swift` (line 79) - Import FEN action (load .fen files with position navigation + save prompt)
-- `GameMenuView.swift` (line 85) - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
-- `GameMenuView.swift` (line 91) - Share Game action (mid-game sharing via iOS share sheet)
-- `GameMenuView.swift` (line 99) - Resign action
-- `GameMenuView.swift` (line 149) - Save current game to file (Setup Board Phase 3 placeholder)
-- `QuickGameMenuView.swift` (line 94) - Resign action
-- `QuickGameMenuView.swift` (line 186) - FEN display implementation
-- `QuickGameMenuView.swift` (line 200) - PGN display implementation
+**Phase 3 - Game Management (4 TODOs):**
+- `GameMenuView.swift` (line 80) - Import FEN action (load .fen files with position navigation + save prompt)
+- `GameMenuView.swift` (line 86) - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
+- `GameMenuView.swift` (line 92) - Share Game action (mid-game sharing via iOS share sheet)
+- `GameMenuView.swift` (line 143) - Save current game to file (Setup Board Phase 3 placeholder)
 
 **Future/Optional (0 TODOs):**
 - ✅ All optional TODOs removed
 
-**Changes in Session 22:**
-- Verified all 9 TODOs still valid, updated line numbers (Settings added to GameMenuView shifted some lines)
+**Changes in Session 23:**
+- Removed 4 TODOs: Resign (completed in QuickGameMenuView), FEN display (completed), PGN display (completed)
+- Total reduced from 9 to 5 TODOs
 
 **Changes in Session 20:**
 - Confirmed `GameMenuView.swift` (line 149) Setup Board save TODO is correct placeholder (re-added to inventory)
@@ -1286,6 +1283,26 @@ with Settings
 - **User feedback** - Settings show "You are playing White/Black" based on
   selection
 
+**Session 24: Oct 19, 2025** - Game-Ending Alerts, FEN/PGN Display & PGN Standard Features
+- **Resign functionality complete** - Full resign confirmation with custom alert overlay
+  showing winner's pawn (Cburnett SVG), Cancel returns to main view
+- **Custom game-ending alerts** - Replaced standard SwiftUI alerts with professional
+  custom overlays for all game endings: Checkmate (winning king), Stalemate (both kings),
+  50-Move Rule Draw (handshake icon), Resignation (winner's pawn)
+- **FEN display implementation** - Custom alert overlay with horizontal scrolling,
+  Copy button with 1-second confirmation auto-dismiss, Cancel button returns to main view
+- **PGN display implementation** - Custom alert overlay with move history, Copy button
+  with 1-second confirmation, proper game result tracking (1-0, 0-1, 1/2-1/2, *)
+- **PGN result fix** - Added checkmateWinner property to distinguish checkmate from draws;
+  generatePGN() now checks resignation, then checkmate, then draws for accurate results
+- **PGN standard FEN headers** - Added `[SetUp "1"]` and `[FEN "..."]` headers when game
+  started from Setup Board (PGN standard for custom positions, universally supported)
+- **Setup Board bug fixes** - Fixed persistent last-move indicators and disabled "Start Game"
+  button; setupFromFEN() now clears lastMoveFrom/To, gameInProgress, gameHasEnded, and timer state
+- **startingFEN tracking** - Added property to store FEN when using Setup Board; cleared on
+  New Game (standard position)
+- **TODO count:** 9 → 5 total (removed Resign, FEN display, PGN display TODOs)
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -1390,11 +1407,17 @@ reference Stockfish 17.1 engine.
 - ✅ **Position evaluation display** (3 formats with live updates - Session 18)
 - ✅ **Hint system implementation** (UCI formatting, 4-state UI - Session 18)
 - ✅ **Stockfish color selection** (choose White or Black, instant board flip - Session 23)
+- ✅ **Resign functionality** (custom alert with winner's pawn, Cancel returns to main - Session 24)
+- ✅ **Game-ending alerts** (custom overlays for checkmate/stalemate/draw/resignation - Session 24)
+- ✅ **FEN display** (custom alert with horizontal scroll, copy with auto-dismiss - Session 24)
+- ✅ **PGN display** (custom alert with move history, proper result tracking - Session 24)
+- ✅ **PGN FEN headers** (SetUp/FEN tags for Setup Board positions - Session 24)
+- ✅ **Draw offer system** (skill-aware AI acceptance based on evaluation - Session 22)
 - 📋 **Game statistics display** (move count, captures, time remaining)
 - 📋 **FEN/PGN import with position navigation** (matches terminal LOAD FEN/PGN)
-- 📋 FEN/PGN export
 - 📋 **"Save current game" prompts before loading positions**
 - 📋 Game save/load (iOS document picker)
+- 📋 Share Game feature (iOS share sheet)
 
 ### Board Color Theme System
 

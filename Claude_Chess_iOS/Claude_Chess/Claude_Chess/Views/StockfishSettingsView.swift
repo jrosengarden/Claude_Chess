@@ -74,7 +74,7 @@ struct StockfishSettingsView: View {
                 .pickerStyle(SegmentedPickerStyle())
                 .disabled(isSkillLevelLockEnabled)
                 .opacity(isSkillLevelLockEnabled ? 0.5 : 1.0)
-                .onChange(of: stockfishPlaysColor) { newValue in
+                .onChange(of: stockfishPlaysColor) { oldValue, newValue in
                     // Auto-flip board when Stockfish plays White (human plays Black)
                     // Board normal orientation when Stockfish plays Black (human plays White)
                     boardFlipped = (newValue == "white")

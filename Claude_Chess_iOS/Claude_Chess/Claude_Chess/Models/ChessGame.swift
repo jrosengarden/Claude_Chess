@@ -96,9 +96,25 @@ class ChessGame: ObservableObject {
     /// Timer doesn't run until user taps "Start Game"
     @Published var gameInProgress: Bool = false
 
+    /// Whether the game has ended (checkmate/stalemate/resignation/draw)
+    /// Prevents restarting game via "Start Game" button after conclusion
+    @Published var gameHasEnded: Bool = false
+
+    /// Game result tracking for resignation
+    /// Format: "White" or "Black" for winner, or nil if game still active
+    @Published var resignationWinner: String?
+
+    /// Checkmate winner tracking
+    /// Format: Color of winner, or nil if no checkmate
+    @Published var checkmateWinner: Color?
+
     /// Trigger to check if AI should make first move (after Start Game or Setup Board)
     /// Increments when we need to check for AI's turn
     @Published var aiMoveCheckTrigger: Int = 0
+
+    /// Starting FEN position if game was initiated from Setup Board
+    /// Nil if game started from standard position
+    var startingFEN: String?
 
     // MARK: - AI Engine Integration
 
@@ -255,6 +271,12 @@ class ChessGame: ObservableObject {
         moveStartTime = nil
         timeControlsDisabledByUndo = false
         gameInProgress = false  // User must explicitly start game
+        gameHasEnded = false    // Clear game-ended flag for new game
+        // Clear game result tracking
+        resignationWinner = nil
+        checkmateWinner = nil
+        // Clear starting FEN (standard position)
+        startingFEN = nil
         // Increment reset trigger to notify UI to clear selection state
         resetTrigger += 1
 
@@ -393,6 +415,26 @@ class ChessGame: ObservableObject {
         // This preserves captured piece display when moves are made after Setup Board
         initialCapturedByWhite = calculateMissingPieces(for: .black)
         initialCapturedByBlack = calculateMissingPieces(for: .white)
+
+        // Clear last move highlighting from previous game
+        lastMoveFrom = nil
+        lastMoveTo = nil
+
+        // Clear move history for new position
+        moveHistory.removeAll()
+
+        // Reset game state flags so "Start Game" button is enabled
+        gameInProgress = false
+        gameHasEnded = false
+        resignationWinner = nil
+        checkmateWinner = nil
+
+        // Reset timer state
+        moveStartTime = nil
+        timeControlsDisabledByUndo = false
+
+        // Store the starting FEN for PGN generation
+        startingFEN = trimmedFen
 
         return true
     }
@@ -1125,7 +1167,7 @@ class ChessGame: ObservableObject {
     /// Convert current board state to FEN string
     /// Ported from terminal project stockfish.c:board_to_fen()
     /// - Returns: Complete FEN string with all 6 components
-    private func boardToFEN() -> String {
+    func boardToFEN() -> String {
         var fen = ""
 
         // 1. Piece placement (rank by rank from rank 8 to rank 1)
@@ -1187,6 +1229,88 @@ class ChessGame: ObservableObject {
         fen += " \(fullmoveNumber)"
 
         return fen
+    }
+
+    /// Generate PGN (Portable Game Notation) string from move history
+    /// - Returns: Complete PGN with headers and move list
+    func generatePGN() -> String {
+        guard !moveHistory.isEmpty else {
+            return "No moves played yet."
+        }
+
+        var pgn = ""
+
+        // Add PGN headers
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy.MM.dd"
+        let today = dateFormatter.string(from: Date())
+
+        pgn += "[Event \"iPhone Game\"]\n"
+        pgn += "[Site \"Claude Chess iOS\"]\n"
+        pgn += "[Date \"\(today)\"]\n"
+        pgn += "[Round \"1\"]\n"
+
+        // Determine player names based on opponent
+        let whiteName: String
+        let blackName: String
+        if selectedEngine == "stockfish" {
+            if stockfishColor == "white" {
+                whiteName = "Stockfish (Level \(skillLevel))"
+                blackName = "Player"
+            } else {
+                whiteName = "Player"
+                blackName = "Stockfish (Level \(skillLevel))"
+            }
+        } else {
+            whiteName = "White"
+            blackName = "Black"
+        }
+
+        pgn += "[White \"\(whiteName)\"]\n"
+        pgn += "[Black \"\(blackName)\"]\n"
+
+        // Game result
+        let result: String
+        if let winner = resignationWinner {
+            // Resignation
+            result = winner == "White" ? "1-0" : "0-1"
+        } else if let winner = checkmateWinner {
+            // Checkmate
+            result = winner == .white ? "1-0" : "0-1"
+        } else if gameHasEnded {
+            // Draw (stalemate, 50-move rule, etc.)
+            result = "1/2-1/2"
+        } else {
+            // Game in progress
+            result = "*"
+        }
+        pgn += "[Result \"\(result)\"]\n"
+
+        // Add FEN headers if game started from custom position (PGN standard)
+        if let startFEN = startingFEN {
+            pgn += "[SetUp \"1\"]\n"
+            pgn += "[FEN \"\(startFEN)\"]\n"
+        }
+
+        pgn += "\n"
+
+        // Add move list
+        var moveNumber = 1
+        for (index, move) in moveHistory.enumerated() {
+            if index % 2 == 0 {
+                // White's move
+                pgn += "\(moveNumber). \(move.notation) "
+            } else {
+                // Black's move
+                pgn += "\(move.notation) "
+                moveNumber += 1
+            }
+        }
+
+        // Add result at end
+        pgn += result
+
+        return pgn
     }
 
     /// Update position evaluation using Stockfish engine

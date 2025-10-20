@@ -18,6 +18,7 @@ struct QuickGameMenuView: View {
     @State private var isEvaluatingDraw = false
     @State private var showingDrawResult = false
     @State private var drawAccepted = false
+    @State private var showingResignConfirmation = false
 
     // Board orientation (persisted across app restarts)
     @AppStorage("boardFlipped") private var boardFlipped: Bool = false
@@ -85,7 +86,7 @@ struct QuickGameMenuView: View {
                             Text("Start Game")
                         }
                     }
-                    .disabled(game.gameInProgress)
+                    .disabled(game.gameInProgress || game.gameHasEnded)
 
                     Button {
                         #if os(iOS)
@@ -139,7 +140,7 @@ struct QuickGameMenuView: View {
                             lightHaptic.impactOccurred()
                         }
                         #endif
-                        // TODO: Implement resign action
+                        showingResignConfirmation = true
                     } label: {
                         HStack {
                             Image(systemName: "flag.fill")
@@ -202,28 +203,22 @@ struct QuickGameMenuView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingFEN) {
-            NavigationView {
-                FENDisplayView()
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") {
-                                showingFEN = false
-                            }
-                        }
-                    }
+        .overlay {
+            if showingFEN {
+                FENDisplayView(
+                    game: game,
+                    isPresented: $showingFEN,
+                    dismissParent: dismiss
+                )
             }
         }
-        .sheet(isPresented: $showingPGN) {
-            NavigationView {
-                PGNDisplayView()
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") {
-                                showingPGN = false
-                            }
-                        }
-                    }
+        .overlay {
+            if showingPGN {
+                PGNDisplayView(
+                    game: game,
+                    isPresented: $showingPGN,
+                    dismissParent: dismiss
+                )
             }
         }
         .alert(drawAccepted ? "Draw Accepted!" : "Draw Declined", isPresented: $showingDrawResult) {
@@ -231,6 +226,7 @@ struct QuickGameMenuView: View {
                 if drawAccepted {
                     // End game as draw
                     game.gameInProgress = false
+                    game.gameHasEnded = true
                     dismiss()
                 } else {
                     // Continue playing
@@ -242,34 +238,202 @@ struct QuickGameMenuView: View {
                  ? "Your opponent has accepted the draw offer. Game ends in a draw."
                  : "Your opponent has declined the draw offer. The game continues.")
         }
+        .alert("Resign Game", isPresented: $showingResignConfirmation) {
+            Button("Cancel", role: .cancel) {
+                // Return to main view (dismiss Quick Menu)
+                dismiss()
+            }
+            Button("Resign", role: .destructive) {
+                // Determine winner (opponent of current player)
+                let winner = game.currentPlayer == .white ? "Black" : "White"
+
+                // Set resignation winner for alert display
+                game.resignationWinner = winner
+
+                // End game permanently
+                game.gameInProgress = false
+                game.gameHasEnded = true
+                game.stopMoveTimer()
+
+                dismiss()
+            }
+        } message: {
+            Text("Are you sure you want to resign? Your opponent will win the game.")
+        }
     }
 }
 
-/// Placeholder view for FEN display
+/// Custom FEN display overlay with copy functionality
 struct FENDisplayView: View {
+    @ObservedObject var game: ChessGame
+    @Binding var isPresented: Bool
+    let dismissParent: DismissAction
+    @State private var showingCopiedConfirmation = false
+
     var body: some View {
-        VStack {
-            Text("FEN Display")
-                .font(.title)
-            Text("TODO: Display current board FEN string")
-                .foregroundColor(.secondary)
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Current Position (FEN)")
+                    .font(.headline)
+                    .padding(.top)
+
+                VStack(spacing: 12) {
+                    ScrollView(.horizontal, showsIndicators: true) {
+                        Text(game.boardToFEN())
+                            .font(.system(.body, design: .monospaced))
+                            .padding()
+                            .lineLimit(1)
+                    }
+                    .frame(height: 50)
+                    .background(SwiftUI.Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(8)
+
+                    if showingCopiedConfirmation {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text("Copied to clipboard!")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                        .transition(.opacity)
+                    }
+                }
+                .padding()
+
+                VStack(spacing: 12) {
+                    Button(action: {
+                        // Copy FEN to clipboard
+                        UIPasteboard.general.string = game.boardToFEN()
+
+                        // Show confirmation briefly
+                        withAnimation {
+                            showingCopiedConfirmation = true
+                        }
+
+                        // Dismiss alert and parent Quick Menu after showing confirmation
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            withAnimation {
+                                showingCopiedConfirmation = false
+                            }
+                            isPresented = false
+                            dismissParent()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "doc.on.doc")
+                            Text("Copy FEN")
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button("Cancel") {
+                        isPresented = false
+                        dismissParent()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
+            .frame(width: 340)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
         }
-        .navigationTitle("FEN Position")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-/// Placeholder view for PGN display
+/// Custom PGN display overlay with copy functionality
 struct PGNDisplayView: View {
+    @ObservedObject var game: ChessGame
+    @Binding var isPresented: Bool
+    let dismissParent: DismissAction
+    @State private var showingCopiedConfirmation = false
+
     var body: some View {
-        VStack {
-            Text("PGN Display")
-                .font(.title)
-            Text("TODO: Display game move history in PGN format")
-                .foregroundColor(.secondary)
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Move History (PGN)")
+                    .font(.headline)
+                    .padding(.top)
+
+                VStack(spacing: 12) {
+                    ScrollView {
+                        Text(game.generatePGN())
+                            .font(.system(.body, design: .monospaced))
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(height: 200)
+                    .background(SwiftUI.Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(8)
+
+                    if showingCopiedConfirmation {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text("Copied to clipboard!")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                        .transition(.opacity)
+                    }
+                }
+                .padding()
+
+                VStack(spacing: 12) {
+                    Button(action: {
+                        // Copy PGN to clipboard
+                        UIPasteboard.general.string = game.generatePGN()
+
+                        // Show confirmation briefly
+                        withAnimation {
+                            showingCopiedConfirmation = true
+                        }
+
+                        // Dismiss alert and parent Quick Menu after showing confirmation
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            withAnimation {
+                                showingCopiedConfirmation = false
+                            }
+                            isPresented = false
+                            dismissParent()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "doc.on.doc")
+                            Text("Copy PGN")
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button("Cancel") {
+                        isPresented = false
+                        dismissParent()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
+            .frame(width: 340)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
         }
-        .navigationTitle("PGN Notation")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

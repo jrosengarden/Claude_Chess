@@ -43,11 +43,13 @@ struct ChessBoardView: View {
     // Opponent settings for engine initialization
     @AppStorage("selectedEngine") private var selectedEngine = "human"
     @AppStorage("stockfishSkillLevel") private var skillLevel = 5
+    @AppStorage("stockfishPlaysColor") private var stockfishPlaysColor = "black"
 
     // Game-ending alerts
     @State private var showingCheckmate = false
     @State private var showingStalemate = false
     @State private var showingFiftyMoveDraw = false
+    @State private var showingResignation = false
     @State private var winnerColor: Color?
 
     // Check indicator
@@ -230,40 +232,69 @@ struct ChessBoardView: View {
                 triggerAIMove()
             }
         }
-        .alert("Checkmate!", isPresented: $showingCheckmate) {
-            Button("New Game") {
-                Task {
-                    await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel)
-                    resetBoardState()
-                }
-            }
-            Button("OK", role: .cancel) { }
-        } message: {
-            if let winner = winnerColor {
-                Text("\(winner.displayName) wins!")
+        .onChange(of: game.resignationWinner) { oldValue, newValue in
+            // Check for resignation alert when resignationWinner is set
+            if newValue != nil {
+                checkGameEnd()
             }
         }
-        .alert("Stalemate!", isPresented: $showingStalemate) {
-            Button("New Game") {
-                Task {
-                    await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel)
-                    resetBoardState()
-                }
+        // Custom checkmate alert with fallen king icon
+        .overlay {
+            if showingCheckmate, let winner = winnerColor {
+                CheckmateAlertView(
+                    winner: winner,
+                    isPresented: $showingCheckmate,
+                    onNewGame: {
+                        Task {
+                            await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel, stockfishColor: stockfishPlaysColor)
+                            resetBoardState()
+                        }
+                    }
+                )
             }
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("The game is a draw.")
         }
-        .alert("50-Move Rule Draw!", isPresented: $showingFiftyMoveDraw) {
-            Button("New Game") {
-                Task {
-                    await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel)
-                    resetBoardState()
-                }
+        // Custom stalemate alert with both kings
+        .overlay {
+            if showingStalemate {
+                StalemateAlertView(
+                    isPresented: $showingStalemate,
+                    onNewGame: {
+                        Task {
+                            await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel, stockfishColor: stockfishPlaysColor)
+                            resetBoardState()
+                        }
+                    }
+                )
             }
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("The game is a draw. 50 moves have been made without a pawn move or capture.")
+        }
+        // Custom 50-move draw alert with both kings
+        .overlay {
+            if showingFiftyMoveDraw {
+                FiftyMoveDrawAlertView(
+                    isPresented: $showingFiftyMoveDraw,
+                    onNewGame: {
+                        Task {
+                            await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel, stockfishColor: stockfishPlaysColor)
+                            resetBoardState()
+                        }
+                    }
+                )
+            }
+        }
+        // Custom resignation alert with chess piece icon
+        .overlay {
+            if showingResignation {
+                ResignationAlertView(
+                    winner: game.resignationWinner ?? "White",
+                    isPresented: $showingResignation,
+                    onNewGame: {
+                        Task {
+                            await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel, stockfishColor: stockfishPlaysColor)
+                            resetBoardState()
+                        }
+                    }
+                )
+            }
         }
         .alert("Check!", isPresented: $showingCheckAlert) {
             Button("OK", role: .cancel) {
@@ -727,8 +758,15 @@ struct ChessBoardView: View {
         }
     }
 
-    /// Check for game-ending conditions (checkmate, stalemate, 50-move rule, check) after a move
+    /// Check for game-ending conditions (checkmate, stalemate, 50-move rule, resignation, check) after a move
     private func checkGameEnd() {
+        // Check for resignation (happens when game ends but not in progress)
+        if !game.gameInProgress && game.resignationWinner != nil {
+            kingInCheckPosition = nil
+            showingResignation = true
+            return
+        }
+
         // Only check game-ending conditions if game has been started
         // This prevents alerts when setting up positions via Setup Board
         guard game.gameInProgress else {
@@ -737,12 +775,14 @@ struct ChessBoardView: View {
             showingCheckmate = false
             showingStalemate = false
             showingFiftyMoveDraw = false
+            showingResignation = false
             return
         }
 
         // Check for 50-move rule draw (highest priority - automatic draw)
         if game.isFiftyMoveRuleDraw() {
             kingInCheckPosition = nil  // Clear check indicator
+            game.gameHasEnded = true
             showingFiftyMoveDraw = true
             return
         }
@@ -750,7 +790,9 @@ struct ChessBoardView: View {
         // Check if current player is in checkmate
         if GameStateChecker.isCheckmate(game: game, color: game.currentPlayer) {
             winnerColor = game.currentPlayer.opposite
+            game.checkmateWinner = game.currentPlayer.opposite  // Store winner in game model
             kingInCheckPosition = nil  // Clear check indicator
+            game.gameHasEnded = true
             showingCheckmate = true
             return
         }
@@ -758,6 +800,7 @@ struct ChessBoardView: View {
         // Check if current player is in stalemate
         if GameStateChecker.isStalemate(game: game, color: game.currentPlayer) {
             kingInCheckPosition = nil  // Clear check indicator
+            game.gameHasEnded = true
             showingStalemate = true
             return
         }
@@ -956,6 +999,223 @@ struct ChessSquareView: View {
                 .repeatForever(autoreverses: true)
         ) {
             blinkOpacity = 0.3
+        }
+    }
+}
+
+/// Custom checkmate alert with winning king icon
+struct CheckmateAlertView: View {
+    let winner: Color
+    @Binding var isPresented: Bool
+    let onNewGame: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Checkmate!")
+                    .font(.headline)
+                    .padding(.top)
+
+                VStack(spacing: 12) {
+                    // Show winner's king standing upright (victorious)
+                    Image(winner == .white ? "Chess_klt45" : "Chess_kdt45")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 60, height: 60)
+
+                    Text("\(winner.displayName) wins!")
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+
+                HStack(spacing: 12) {
+                    Button("OK") {
+                        isPresented = false
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+
+                    Button("New Game") {
+                        isPresented = false
+                        onNewGame()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+    }
+}
+
+/// Custom stalemate alert with both kings
+struct StalemateAlertView: View {
+    @Binding var isPresented: Bool
+    let onNewGame: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Stalemate!")
+                    .font(.headline)
+                    .padding(.top)
+
+                VStack(spacing: 12) {
+                    HStack(spacing: 20) {
+                        Image("Chess_klt45")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 50, height: 50)
+
+                        Image("Chess_kdt45")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 50, height: 50)
+                    }
+
+                    Text("The game is a draw.")
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+
+                HStack(spacing: 12) {
+                    Button("OK") {
+                        isPresented = false
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+
+                    Button("New Game") {
+                        isPresented = false
+                        onNewGame()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+    }
+}
+
+/// Custom 50-move rule draw alert with both kings
+struct FiftyMoveDrawAlertView: View {
+    @Binding var isPresented: Bool
+    let onNewGame: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("50-Move Rule Draw!")
+                    .font(.headline)
+                    .padding(.top)
+
+                VStack(spacing: 12) {
+                    HStack(spacing: 20) {
+                        Image("Chess_klt45")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 50, height: 50)
+
+                        Image("Chess_kdt45")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 50, height: 50)
+                    }
+
+                    Text("The game is a draw. 50 moves have been made without a pawn move or capture.")
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+
+                HStack(spacing: 12) {
+                    Button("OK") {
+                        isPresented = false
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+
+                    Button("New Game") {
+                        isPresented = false
+                        onNewGame()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+    }
+}
+
+/// Custom resignation alert with chess piece icon
+struct ResignationAlertView: View {
+    let winner: String
+    @Binding var isPresented: Bool
+    let onNewGame: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Game Over - Resignation")
+                    .font(.headline)
+                    .padding(.top)
+
+                VStack(spacing: 12) {
+                    Image(winner == "White" ? "Chess_plt45" : "Chess_pdt45")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 50, height: 50)
+
+                    Text("\(winner) wins by resignation!")
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+
+                HStack(spacing: 12) {
+                    Button("OK") {
+                        isPresented = false
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+
+                    Button("New Game") {
+                        isPresented = false
+                        onNewGame()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
         }
     }
 }

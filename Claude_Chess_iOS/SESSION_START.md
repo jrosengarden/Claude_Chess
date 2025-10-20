@@ -1,126 +1,118 @@
-# Claude Chess iOS - Session Start Guide
+# Session 25 Start - Claude Chess iOS
 
-**Last Updated:** October 19, 2025 (Session 22)
-**Current Phase:** Phase 3 IN PROGRESS - File Management & Game Features
+**Date:** October 19, 2025
+**Previous Session:** Session 24 (Game-Ending Alerts, FEN/PGN Display & PGN Standard Features)
 
-## Quick Status
+## Session Startup Protocol
 
-**Development Stage:** Fully playable chess game with complete AI integration, polished UX, and responsive design verified across all device sizes (iPhone 11+, iPad, macOS)
+1. ✅ Read this SESSION_START.md document
+2. ✅ Review last 6 git log entries for recent changes context
+3. ✅ Scan CLAUDE.md Session History (Session 19-24) for current state
+4. ✅ Check TODO Tracking section (currently 5 TODOs)
 
-## Active TODO Inventory (9 total)
+## Project Status Summary
+
+**Current Phase:** Phase 3 IN PROGRESS 🔄 - Game Features & Polish
+**Created:** September 30, 2025
+**Last Session:** October 19, 2025 (Session 24)
+**Development Stage:** Fully playable chess game with complete Stockfish AI integration,
+professional UX with custom game-ending alerts, FEN/PGN display/export with standard headers
+
+## Session 24 Accomplishments
+
+**Major Features Completed:**
+1. ✅ **Resign functionality** - Custom alert overlay with winner's pawn
+2. ✅ **Game-ending alerts** - Professional custom overlays for all endings (checkmate/stalemate/draw/resignation)
+3. ✅ **FEN display** - Custom alert with horizontal scroll, copy with auto-dismiss
+4. ✅ **PGN display** - Custom alert with move history, proper result tracking
+5. ✅ **PGN FEN headers** - Standard `[SetUp "1"]` and `[FEN "..."]` tags for Setup Board positions
+6. ✅ **Setup Board bug fixes** - Cleared last-move indicators and enabled Start Game button
+
+**Files Modified:**
+- QuickGameMenuView.swift - Resign, FEN display, PGN display implementations
+- ChessBoardView.swift - Custom game-ending alert overlays
+- ChessGame.swift - checkmateWinner property, generatePGN() with FEN headers, setupFromFEN() fixes
+- StockfishSettingsView.swift - Fixed deprecated onChange syntax
+
+**TODO Count:** 9 → 5 (removed Resign, FEN display, PGN display TODOs)
+
+## Current TODO Inventory (5 Total)
 
 **Phase 3 - UI & Display (1 TODO):**
-- `ScoreView.swift` (line 46) - Display game statistics
+- ScoreView.swift (line 46) - Display game statistics
 
-**Phase 3 - Game Management (8 TODOs):**
-- `GameMenuView.swift` (line 79) - Import FEN action
-- `GameMenuView.swift` (line 85) - Import PGN action
-- `GameMenuView.swift` (line 91) - Share Game action
-- `GameMenuView.swift` (line 99) - Resign action
-- `GameMenuView.swift` (line 149) - Save current game to file (Setup Board)
-- `QuickGameMenuView.swift` (line 94) - Resign action
-- `QuickGameMenuView.swift` (line 186) - FEN display implementation
-- `QuickGameMenuView.swift` (line 200) - PGN display implementation
+**Phase 3 - Game Management (4 TODOs):**
+- GameMenuView.swift (line 80) - Import FEN action (load .fen files with position navigation + save prompt)
+- GameMenuView.swift (line 86) - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
+- GameMenuView.swift (line 92) - Share Game action (mid-game sharing via iOS share sheet)
+- GameMenuView.swift (line 143) - Save current game to file (Phase 3 - file operations)
 
-## Recent Sessions (Last 3)
+## Agenda for Session 25
 
-**Session 22: Oct 19, 2025** - Code Cleanup & UX Polish
-- Removed all debug messages (5 files cleaned)
-- HINT system UX revamp (4-tap → 2-tap alert popup)
-- Horizontal ScrollView for header buttons
-- Settings moved to Game Menu
-- Hint button disabled state UX
-- Responsive design validation complete
+**Priority Items (User to decide):**
 
-**Session 21: Oct 18, 2025** - Critical UX Fixes & Last Move Highlighting
-- Fixed checkmate/stalemate alerts timing
-- Fixed captured pieces persistence after Setup Board
-- Implemented last move highlighting with corner triangles
-- Removed redundant HINT from GameMenu
+**Option 1: File Management Features**
+- Import FEN files with position navigation (terminal LOAD FEN parity)
+- Import PGN files with move-by-move navigation (terminal LOAD PGN parity)
+- Share Game feature (iOS share sheet for FEN/PGN)
+- Save current game to file (iOS document picker)
 
-**Session 20: Oct 18, 2025** - Performance Optimization & Race Condition Fix
-- Fixed Stockfish AI slow response times
-- Implemented generation counter system (race condition fix)
-- Fixed skill level implementation (fixed depth 10)
+**Option 2: Game Statistics Display**
+- ScoreView enhancements: move count, capture count, time elapsed
+- Game statistics panel with detailed metrics
 
-## Priority Work Items for Next Session
+**Option 3: Testing & Polish**
+- Comprehensive testing of all Phase 3 features
+- UI/UX refinements based on user testing
+- Performance optimization if needed
 
-### 1. FEN/PGN Display in Quick Menu (Medium Priority)
-**Goal:** Implement simple FEN/PGN display views to show current position and move history
+**Option 4: User's Choice**
+- User may have specific feature requests or bug reports
 
-**Scope:**
-- `QuickGameMenuView.swift` line 186 - FEN display (show current board FEN string)
-- `QuickGameMenuView.swift` line 200 - PGN display (show game move history)
+## Technical Context
 
-**Implementation:**
-- FENDisplayView: Display current board FEN with copy-to-clipboard button
-- PGNDisplayView: Display move history in standard PGN notation
-- Both views already have sheet presentation wired up in QuickGameMenuView
+**Key Architecture:**
+- SwiftUI with MVVM pattern
+- ChessEngine protocol for multi-engine support (Stockfish implemented)
+- @Published properties for reactive UI updates
+- @AppStorage for persistence (board theme, settings, time controls)
+- Custom alert overlays using ZStack + semi-transparent backgrounds
+- Cburnett SVG chess pieces from Wikimedia Commons
 
-**Files to Modify:**
-- `QuickGameMenuView.swift` - Implement FENDisplayView and PGNDisplayView bodies
-- `ChessGame.swift` - May need PGN generation helper if not already present
+**Recent Technical Decisions:**
+- PGN standard FEN headers (`[SetUp "1"]` and `[FEN "..."]`) universally supported by chess programs
+- Custom alert overlays preferred over standard SwiftUI alerts for better UX
+- 1-second confirmation with auto-dismiss for copy actions
+- setupFromFEN() must clear all game state (last move, flags, timer) to prevent bugs
 
-### 2. Resign Functionality (Medium Priority)
-**Goal:** Allow players to resign the current game
+**Testing Protocol:**
+- User performs all builds and testing
+- Zero-warning compilation required
+- Test on iPhone simulator (iPhone 14 Pro minimum)
+- Verify responsive design across device sizes
 
-**Scope:**
-- `GameMenuView.swift` (line 99) - Resign action in hamburger menu
-- `QuickGameMenuView.swift` (line 94) - Resign action in Quick Menu
+## Development Standards Reminder
 
-**Implementation:**
-- Add confirmation alert ("Are you sure you want to resign?")
-- Update game state to mark as completed with winner
-- Display appropriate "Game Over" message
-- Option to start new game
+1. **Zero Warnings** - All code must compile with zero warnings
+2. **User Handles Git** - Developer never performs git operations
+3. **TODO Management** - Update tracking section immediately when adding/removing TODOs
+4. **Documentation Line Length** - 80 characters maximum in .md files
+5. **Incremental Development** - Test after every significant change
 
-### 3. Game Statistics Display (Low Priority)
-**Goal:** Show useful game statistics in ScoreView
+## Questions for User
 
-**Scope:**
-- `ScoreView.swift` (line 46) - Display game statistics
-
-**Statistics to Show:**
-- Move count (fullmove number)
-- Captured pieces count for each side
-- Time elapsed (if time controls enabled)
-- Halfmove clock (for 50-move rule awareness)
-
-### 4. Optional Enhancements
-- Share Game action (GameMenuView line 91)
-- Import FEN/PGN actions (GameMenuView lines 79, 85)
-- Save current game (GameMenuView line 149)
-
-## Testing Priorities
-
-**Before Next Development Work:**
-- Verify header buttons work correctly on all devices
-- Verify hint button disabled/enabled states
-- Quick smoke test of AI gameplay
-- Test Dynamic Type scaling (larger text sizes)
-
-## Key Development Notes
-
-**User Handles:**
-- All builds and simulator testing
-- All git operations (commits, pushes, branches)
-- Device testing (real iPhone/iPad)
-
-**Developer Responsibilities:**
-- Code implementation only
-- Documentation updates
-- Testing suggestions (user executes)
-
-**Development Standards:**
-- Zero compilation warnings required
-- All code must be professionally documented
-- TODO tracking actively maintained
-- Line length: 80 chars max in .md files
+1. Which priority area should we focus on for Session 25?
+2. Any bugs or issues discovered during Session 24 testing?
+3. Any specific feature requests or UX improvements?
 
 ## Reference Documents
 
-**Complete Documentation:** `CLAUDE.md` (1300+ lines)
-- Full session history (Sessions 1-22)
+**Read 6 Latest Git Commits:**
+- Command: `git log -6`
+- This will catch you up on the latest work
+
+**Complete Documentation:** `CLAUDE.md` (1400+ lines)
+- Full session history (Sessions 1-24)
 - Complete feature documentation
 - Architecture decisions
 - TODO tracking protocol
@@ -136,4 +128,4 @@
 - Edge case documentation
 
 ---
-**Ready to Continue!** Start next session by implementing FEN/PGN display views or resign functionality.
+**Ready to begin Session 25!** 🚀
