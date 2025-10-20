@@ -80,6 +80,7 @@ char* convert_fen_to_pgn_string(const char* fen_filename) {
     char date_str[20];
     strftime(date_str, sizeof(date_str), "%Y.%m.%d", timeinfo);
 
+    // Initial headers (FEN headers will be added later if needed)
     snprintf(pgn_string, MAX_PGN_SIZE,
         "[Event \"Current Game\"]\n"
         "[Site \"Claude Chess\"]\n"
@@ -87,7 +88,7 @@ char* convert_fen_to_pgn_string(const char* fen_filename) {
         "[Round \"?\"]\n"
         "[White \"Player\"]\n"
         "[Black \"AI\"]\n"
-        "[Result \"*\"]\n\n", date_str);
+        "[Result \"*\"]\n", date_str);
 
     Piece prev_board[BOARD_SIZE][BOARD_SIZE];
     Piece curr_board[BOARD_SIZE][BOARD_SIZE];
@@ -95,6 +96,7 @@ char* convert_fen_to_pgn_string(const char* fen_filename) {
     int move_count = 0;
 
     char line[MAX_LINE_LENGTH];
+    char first_fen[MAX_LINE_LENGTH] = {0};
     bool first_position = true;
 
     while (fgets(line, sizeof(line), input_file) && move_count < MAX_MOVES) {
@@ -121,6 +123,8 @@ char* convert_fen_to_pgn_string(const char* fen_filename) {
         }
 
         if (first_position) {
+            // Save the first FEN string for PGN headers
+            strncpy(first_fen, line, sizeof(first_fen) - 1);
             memcpy(prev_board, curr_board, sizeof(curr_board));
             first_position = false;
             continue;
@@ -227,7 +231,43 @@ char* convert_fen_to_pgn_string(const char* fen_filename) {
 
     fclose(input_file);
 
+    // Check if starting position is non-standard and add FEN headers if needed
+    // Standard starting position FEN (first component only):
+    // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
+    const char* standard_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+
+    if (first_fen[0] != '\0') {
+        // Extract just the piece placement part (before first space)
+        char fen_pieces[MAX_LINE_LENGTH] = {0};
+        const char* space_pos = strchr(first_fen, ' ');
+        if (space_pos) {
+            size_t len = space_pos - first_fen;
+            if (len < sizeof(fen_pieces)) {
+                strncpy(fen_pieces, first_fen, len);
+                fen_pieces[len] = '\0';
+            }
+        } else {
+            strncpy(fen_pieces, first_fen, sizeof(fen_pieces) - 1);
+        }
+
+        // Compare with standard position (case-insensitive)
+        bool is_standard = (strcasecmp(fen_pieces, standard_position) == 0);
+
+        if (!is_standard) {
+            // Add PGN standard FEN headers for custom starting position
+            size_t current_len = strlen(pgn_string);
+            snprintf(pgn_string + current_len, MAX_PGN_SIZE - current_len,
+                "[SetUp \"1\"]\n[FEN \"%s\"]\n", first_fen);
+        }
+    }
+
+    // Add blank line before moves
     size_t current_len = strlen(pgn_string);
+    if (current_len < MAX_PGN_SIZE - 2) {
+        strcat(pgn_string, "\n");
+        current_len++;
+    }
+
     char* pos = pgn_string + current_len;
     size_t remaining = MAX_PGN_SIZE - current_len;
 

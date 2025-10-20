@@ -51,7 +51,7 @@ Color char_to_color(char c);
 void detect_special_moves(Piece old_board[BOARD_SIZE][BOARD_SIZE], 
                          Piece new_board[BOARD_SIZE][BOARD_SIZE], Move* move);
 char* move_to_algebraic(Move* move, Piece board[BOARD_SIZE][BOARD_SIZE]);
-void write_pgn(const char* filename, Move moves[], int move_count);
+void write_pgn(const char* filename, Move moves[], int move_count, const char* first_fen);
 char* get_base_filename(const char* filepath);
 
 int main() {
@@ -90,20 +90,23 @@ int main() {
     int halfmove, fullmove;
     
     printf("Converting FEN positions to PGN moves...\n");
-    
+
     // Read first FEN position as the starting position
     int first_position = 1;
-    
+    char first_fen[MAX_LINE_LENGTH] = {0};
+
     // Read FEN positions line by line
     while (fgets(line, sizeof(line), input_file)) {
         // Remove newline and whitespace
         line[strcspn(line, "\n")] = 0;
         if (strlen(line) == 0) continue;
-        
+
         // Parse current FEN position
         parse_fen(line, curr_board, &to_move, castling, en_passant, &halfmove, &fullmove);
-        
+
         if (first_position) {
+            // Save the first FEN string for PGN headers
+            strncpy(first_fen, line, sizeof(first_fen) - 1);
             // First position becomes our starting point - no move to analyze yet
             copy_board(curr_board, prev_board);
             first_position = 0;
@@ -131,10 +134,10 @@ int main() {
     }
     
     fclose(input_file);
-    
+
     // Write PGN file
-    write_pgn(output_filename, moves, move_count);
-    
+    write_pgn(output_filename, moves, move_count, first_fen);
+
     printf("Conversion complete! Output written to: %s\n", output_filename);
     printf("Converted %d moves\n", move_count);
     
@@ -408,19 +411,19 @@ char* move_to_algebraic(Move* move, Piece board[BOARD_SIZE][BOARD_SIZE] __attrib
     return algebraic;
 }
 
-void write_pgn(const char* filename, Move moves[], int move_count) {
+void write_pgn(const char* filename, Move moves[], int move_count, const char* first_fen) {
     FILE* output_file = fopen(filename, "w");
     if (!output_file) {
         fprintf(stderr, "Error: Cannot create output file '%s'\n", filename);
         return;
     }
-    
+
     // Write PGN headers
     time_t now = time(0);
     struct tm* timeinfo = localtime(&now);
     char date_str[20];
     strftime(date_str, sizeof(date_str), "%Y.%m.%d", timeinfo);
-    
+
     fprintf(output_file, "[Event \"Converted Game\"]\n");
     fprintf(output_file, "[Site \"?\"]\n");
     fprintf(output_file, "[Date \"%s\"]\n", date_str);
@@ -428,6 +431,36 @@ void write_pgn(const char* filename, Move moves[], int move_count) {
     fprintf(output_file, "[White \"Player\"]\n");
     fprintf(output_file, "[Black \"AI\"]\n");
     fprintf(output_file, "[Result \"*\"]\n");
+
+    // Check if starting position is non-standard and add FEN headers if needed
+    // Standard starting position FEN (piece placement only):
+    // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
+    const char* standard_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+
+    if (first_fen && first_fen[0] != '\0') {
+        // Extract just the piece placement part (before first space)
+        char fen_pieces[MAX_LINE_LENGTH] = {0};
+        const char* space_pos = strchr(first_fen, ' ');
+        if (space_pos) {
+            size_t len = space_pos - first_fen;
+            if (len < sizeof(fen_pieces)) {
+                strncpy(fen_pieces, first_fen, len);
+                fen_pieces[len] = '\0';
+            }
+        } else {
+            strncpy(fen_pieces, first_fen, sizeof(fen_pieces) - 1);
+        }
+
+        // Compare with standard position (case-insensitive)
+        int is_standard = (strcasecmp(fen_pieces, standard_position) == 0);
+
+        if (!is_standard) {
+            // Add PGN standard FEN headers for custom starting position
+            fprintf(output_file, "[SetUp \"1\"]\n");
+            fprintf(output_file, "[FEN \"%s\"]\n", first_fen);
+        }
+    }
+
     fprintf(output_file, "\n");
     
     // Write moves

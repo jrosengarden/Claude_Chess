@@ -31,6 +31,24 @@ make install-deps      # Install Stockfish dependency
 - `regenerate_openings` - Authentic opening sequence and tactical
     position generator
 
+### PGN Generation System
+**Automatic FEN Headers for Custom Starting Positions:**
+- Both `pgn_utils.c` and `fen_to_pgn.c` automatically detect non-
+  standard starting positions
+- Standard position: `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR`
+- When SETUP command used, PGN includes standard headers:
+  - `[SetUp "1"]` - Indicates custom starting position
+  - `[FEN "..."]` - Complete FEN string of starting position
+- Universal compatibility with chess programs (Lichess, Chess.com,
+  ChessBase, etc.)
+- Works for both PGN command (during game) and auto-save PGN (on exit)
+
+**Implementation:**
+- `convert_fen_to_pgn_string()` - Runtime PGN generation (pgn_utils.c)
+- `write_pgn()` - File-based PGN generation (fen_to_pgn.c)
+- Both functions share identical FEN header logic
+- Case-insensitive comparison of piece placement component
+
 ### Key Entry Points
 - `get_possible_moves()` - Main move generation (chess.c)
 - `is_valid_move()` - Move validation with check prevention (chess.c)

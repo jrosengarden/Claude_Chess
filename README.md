@@ -27,7 +27,10 @@ A complete terminal chess game with AI opponent and comprehensive study
 - Position evaluation with visual scoring scale (-9 to +9)
 - **Live PGN display** in side-by-side terminal windows that updates
   automatically after each move
-- Custom board setup using FEN notation
+- Custom board setup using FEN notation (SETUP command)
+- **PGN files automatically include FEN headers** when starting from
+  custom positions (universal compatibility with Lichess, Chess.com,
+  ChessBase, etc.)
 - Interactive game loading with arrow key navigation
 - **Verified classical opening library** (12 authenticated openings)
 - **Verified demonstration opening library** (12 authenticated
