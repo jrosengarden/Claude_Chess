@@ -62,25 +62,48 @@ professional UX with custom game-ending alerts, FEN/PGN display/export with stan
 
 ## Agenda for Session 26
 
-**Priority Items (User to decide):**
+**PRIORITY ORDER - Core Features Before Online Features:**
 
-**Option 1: File Management Features**
-- Import FEN files with position navigation (terminal LOAD FEN parity)
-- Import PGN files with move-by-move navigation (terminal LOAD PGN parity)
-- Share Game feature (iOS share sheet for FEN/PGN)
-- Save current game to file (iOS document picker)
+The correct development sequence is to complete ALL core/local features
+BEFORE implementing online opponents (Lichess/Chess.com). Online APIs
+add network complexity that should only be tackled after the local
+foundation is solid and fully tested.
 
-**Option 2: Game Statistics Display**
+**#1: File Management Features (HIGHEST PRIORITY - Terminal Parity)**
+- **Auto-save settings** - Settings toggles for auto-save FEN/PGN on
+  game end (matches terminal FENON/FENOFF, PGNON/PGNOFF)
+- **Save location picker** - Settings option to choose iCloud Drive vs
+  On My iPhone as default save location
+- **Auto-save on game end** - Automatically save FEN/PGN when game ends
+  (checkmate/stalemate/resignation/draw/time forfeit) if toggles enabled
+- **Import FEN with navigation** - Load .fen files with position-by-
+  position navigation (terminal LOAD FEN parity)
+- **Import PGN with navigation** - Load .pgn files with move-by-move
+  navigation (terminal LOAD PGN parity)
+- **Share Game feature** - iOS share sheet for mid-game FEN/PGN sharing
+  (AirDrop, Messages, Email, Clipboard)
+- **Manual save** - Save current game to file via iOS document picker
+
+**#2: Time Forfeit UI Fix**
+- Match Resign alert pattern (OK vs New Game buttons)
+- OK returns to board for review, New Game starts fresh
+
+**#3: Opening Library Integration**
+- Load 24 validated FEN files from terminal project
+- Browse and select openings for study/practice
+
+**#4: Game Statistics Display**
 - ScoreView enhancements: move count, capture count, time elapsed
-- Game statistics panel with detailed metrics
 
-**Option 3: Testing & Polish**
-- Comprehensive testing of all Phase 3 features
-- UI/UX refinements based on user testing
-- Performance optimization if needed
+**THEN: Online Opponents (Phase 3 - Later)**
+- Lichess API integration
+- Chess.com API integration
+- Multi-engine testing with all 4 opponents
 
-**Option 4: User's Choice**
-- User may have specific feature requests or bug reports
+**Rationale:** File operations are core functionality needed regardless
+of opponent type. Users need to save/load games whether playing against
+Stockfish offline or online opponents. Complete local features first,
+then add network complexity.
 
 ## Technical Context
 
@@ -114,9 +137,9 @@ professional UX with custom game-ending alerts, FEN/PGN display/export with stan
 
 ## Questions for User
 
-1. Which priority area should we focus on for Session 25?
-2. Any bugs or issues discovered during Session 24 testing?
-3. Any specific feature requests or UX improvements?
+1. Ready to tackle File Management features (highest priority)?
+2. Any bugs or issues discovered since last session?
+3. Any questions about file save locations (iCloud vs On Device)?
 
 ## Reference Documents
 
