@@ -8,11 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		88B598192E9E8D0300BB8FF8 /* ChessKitEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 88B598182E9E8D0300BB8FF8 /* ChessKitEngine */; };
-		88C792372EAAA5F80067E893 /* UserGuide.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 88C792362EAAA5F80067E893 /* UserGuide.pdf */; };
+		88D14E172EAAD8EA003B5AA5 /* UserGuide.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 88D14E162EAAD8EA003B5AA5 /* UserGuide.pdf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		88C792362EAAA5F80067E893 /* UserGuide.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = UserGuide.pdf; sourceTree = "<group>"; };
+		88D14E162EAAD8EA003B5AA5 /* UserGuide.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = UserGuide.pdf; sourceTree = "<group>"; };
 		88DC082F2E898EFA0046AC8B /* Claude_Chess.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Claude_Chess.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -41,7 +41,7 @@
 			children = (
 				88DC08312E898EFA0046AC8B /* Claude_Chess */,
 				88DC08302E898EFA0046AC8B /* Products */,
-				88C792362EAAA5F80067E893 /* UserGuide.pdf */,
+				88D14E162EAAD8EA003B5AA5 /* UserGuide.pdf */,
 			);
 			sourceTree = "<group>";
 		};
@@ -121,7 +121,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				88C792372EAAA5F80067E893 /* UserGuide.pdf in Resources */,
+				88D14E172EAAD8EA003B5AA5 /* UserGuide.pdf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
