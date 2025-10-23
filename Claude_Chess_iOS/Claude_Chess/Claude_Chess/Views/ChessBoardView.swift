@@ -664,9 +664,10 @@ struct ChessBoardView: View {
             #endif
 
             // Update position evaluation (async)
-            Task {
-                await game.updatePositionEvaluation()
-            }
+            // TEMPORARILY DISABLED FOR DEBUGGING - Session 26 diagnostic
+            // Task {
+            //     await game.updatePositionEvaluation()
+            // }
 
             // Check for game-ending conditions
             checkGameEnd()

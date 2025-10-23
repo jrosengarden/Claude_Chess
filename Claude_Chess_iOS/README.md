@@ -83,8 +83,10 @@ experience with SwiftUI.
 - ✅ Customizable board colors (7 themes + custom)
 - ✅ Professional SVG chess pieces (Cburnett)
 - ✅ Device-adaptive UI (iPhone/iPad/macOS)
+- ✅ **In-app PDF User Guide** with share functionality (AirDrop, email, save to Files, print)
+- ✅ **Contact Developer** feature with categorized feedback (Feedback/Bug Report/Feature Request)
 - Smooth animations (planned)
-- Share functionality (planned)
+- Game sharing functionality (planned - mid-game FEN/PGN export)
 - iCloud sync (planned)
 - Accessibility support (planned)
 

@@ -29,11 +29,13 @@ logic, features, and behavior.**
 
 **Current Phase:** Phase 3 IN PROGRESS 🔄 - Game Features & Polish
 **Created:** September 30, 2025
-**Last Updated:** October 19, 2025 (Session 22)
+**Last Updated:** October 23, 2025 (Session 26)
 **Development Stage:** Fully playable chess game with all core rules,
 complete Stockfish AI integration with skill-aware draw offer system,
-position evaluation, hint system, and polished UX with responsive
-design verified across all device sizes (iPhone 11 through iPad Pro M4)
+position evaluation, hint system, in-app PDF User Guide with share
+functionality, and Contact Developer feature. Polished UX with
+responsive design verified across all device sizes (iPhone 11 through
+iPad Pro M4)
 
 ## Build System
 
@@ -98,7 +100,8 @@ xcodebuild clean -project Claude_Chess/Claude_Chess.xcodeproj \
 - `Views/ScoreView.swift` - Position evaluation display with scale settings
 - `Views/ScaleView.swift` - Evaluation scale format selection
 - `Views/ScoreConversionChartView.swift` - Centipawn to scaled conversion table
-- `Views/AboutView.swift` - App information and licenses
+- `Views/AboutView.swift` - App information, licenses, Help & Feedback section with User Guide and Contact Developer
+- `Views/PDFViewerView.swift` - PDF document viewer using PDFKit for User Guide display with share functionality
 - `Views/OpponentView.swift` - AI engine selection (Stockfish/Lichess/Chess.com)
 - `Views/StockfishSettingsView.swift` - Stockfish skill level configuration
 - `Views/ChessComSettingsView.swift` - Chess.com settings (placeholder)
@@ -1331,6 +1334,26 @@ with Settings
   "New Game" (immediate reset) - documented in SESSION_START.md for Session 26
 - **Files modified:** `StockfishEngine.swift` (evaluation skill boost + depth tracking),
   `ChessGame.swift` (draw offer color handling), `SESSION_START.md` (time forfeit bug)
+- **TODO count:** 5 (unchanged)
+
+**Session 26: Oct 23, 2025** - User Guide & Contact Developer Features
+- **PDF User Guide viewer** - Implemented in-app PDF viewer using native PDFKit
+  - Created `PDFViewerView.swift` with SwiftUI/UIViewRepresentable wrapper
+  - Native PDF rendering with automatic scaling, zoom, and scroll support
+  - Share button in toolbar for AirDrop, email, save to Files, print
+  - Easy updates: replace UserGuide.pdf file and rebuild
+- **Contact Developer feature** - Email feedback system with categorization
+  - Added "Help & Feedback" section in AboutView (between App Information and Credits)
+  - Moved User Guide to new section for logical grouping
+  - Action sheet with 3 options: Feedback, Bug Report, Feature Request
+  - Uses `mailto:` URL to open user's mail app with pre-filled recipient and subject
+  - Email address easily changeable for future Gmail migration
+- **AboutView refactoring** - Reorganized structure for better UX
+  - New section: "Help & Feedback" containing User Guide and Contact Developer
+  - User Guide moved from App Information to new section
+  - Professional help/support workflow matching App Store best practices
+- **Files created:** `PDFViewerView.swift`
+- **Files modified:** `AboutView.swift`
 - **TODO count:** 5 (unchanged)
 
 ### Key Decisions

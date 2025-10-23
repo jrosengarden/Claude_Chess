@@ -11,10 +11,12 @@ import SwiftUI
 
 /// About view displaying app credits, licenses, and attribution
 /// - App version and build information
+/// - Help & Feedback section with User Guide and Contact Developer
 /// - Development credits
 /// - Third-party license information (chess pieces, Stockfish, etc.)
 struct AboutView: View {
     @State private var stockfishVersion: String = "Unknown"
+    @State private var showingContactOptions = false
 
     var body: some View {
         List {
@@ -50,10 +52,19 @@ struct AboutView: View {
                     Text("Jeff Rosengarden")
                         .foregroundColor(.secondary)
                 }
+            }
 
+            Section(header: Text("Help & Feedback")) {
                 // User Guide navigation button
                 NavigationLink(destination: PDFViewerView(pdfName: "UserGuide")) {
                     Text("User Guide")
+                }
+
+                // Contact Developer button with action sheet
+                Button(action: {
+                    showingContactOptions = true
+                }) {
+                    Text("Contact Developer")
                 }
             }
 
@@ -135,6 +146,20 @@ struct AboutView: View {
         }
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog("Contact Developer", isPresented: $showingContactOptions, titleVisibility: .visible) {
+            Button("Feedback") {
+                sendEmail(type: "Feedback")
+            }
+            Button("Bug Report") {
+                sendEmail(type: "Bug Report")
+            }
+            Button("Feature Request") {
+                sendEmail(type: "Feature Request")
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("What would you like to send?")
+        }
         .onAppear {
             // Get Stockfish version from shared engine instance
             Task {
@@ -156,6 +181,21 @@ struct AboutView: View {
                     // Engine already initialized, just use the version
                     stockfishVersion = currentVersion
                 }
+            }
+        }
+    }
+
+    // MARK: - Helper Functions
+
+    /// Open mail app with pre-filled recipient and subject based on feedback type
+    private func sendEmail(type: String) {
+        let email = "jrosengarden@mac.com"
+        let subject = "Claude Chess - \(type)"
+        let urlString = "mailto:\(email)?subject=\(subject)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+
+        if let url = URL(string: urlString) {
+            if UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
             }
         }
     }

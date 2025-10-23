@@ -268,14 +268,20 @@ class StockfishEngine: ChessEngine {
         requestGeneration += 1
         let expectedGeneration = requestGeneration
 
+        // DEBUG: Log when we send the go command
+        NSLog("[STOCKFISH DEBUG] Sending go command (gen: \(expectedGeneration), skill: \(skillLevel))")
+        let goCommandTime = Date()
+
         // Send go command based on time limit
         if let timeLimit = timeLimit {
             // Time-based search (terminal project: uses 1/20th of remaining time)
+            NSLog("[STOCKFISH DEBUG] Sending: go movetime \(timeLimit)")
             await engine.send(command: .go(movetime: timeLimit))
         } else {
             // Depth-based search (terminal project: fixed depth 10, skill controlled by UCI option)
             // Stockfish's "Skill Level" UCI option handles strength variation internally
             // Using consistent depth ensures Stockfish can see tactics and choose when to make mistakes
+            NSLog("[STOCKFISH DEBUG] Sending: go depth 10")
             await engine.send(command: .go(depth: 10))
         }
 
@@ -296,6 +302,10 @@ class StockfishEngine: ChessEngine {
                 throw ChessEngineError.timeout
             }
         }
+
+        // DEBUG: Log when we exit the wait loop
+        let elapsedTime = Date().timeIntervalSince(goCommandTime)
+        NSLog("[STOCKFISH DEBUG] Got bestmove '\(currentBestMove ?? "nil")' after \(String(format: "%.3f", elapsedTime))s (gen: \(responseGeneration))")
 
         return currentBestMove
     }
@@ -450,6 +460,9 @@ class StockfishEngine: ChessEngine {
     private func handleEngineResponse(_ response: EngineResponse) {
         switch response {
         case .bestmove(let move, _):
+            // DEBUG: Log when bestmove response arrives from engine
+            NSLog("[STOCKFISH DEBUG] Received bestmove '\(move)' from engine (setting responseGen to \(requestGeneration))")
+
             // Extract move string (terminal project: parse "bestmove e2e4")
             // Update the move AND mark this response with current request generation
             currentBestMove = move
@@ -483,6 +496,7 @@ class StockfishEngine: ChessEngine {
         case .id(.name(let engineName)):
             // Capture engine version from UCI "id name" response
             engineVersion = engineName
+            NSLog("[STOCKFISH DEBUG] Engine identified as: \(engineName)")
 
         case .id(.author):
             // Capture author information (optional, for future use)
