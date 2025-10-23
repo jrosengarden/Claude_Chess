@@ -76,8 +76,9 @@ struct QuickGameMenuView: View {
                             // Wait for Quick Menu to dismiss and UI to settle
                             try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
 
+                            // TEMPORARILY COMMENTED OUT FOR TESTING
                             // Update position evaluation after game starts
-                            await game.updatePositionEvaluation()
+                            // await game.updatePositionEvaluation()
                         }
                     } label: {
                         HStack {

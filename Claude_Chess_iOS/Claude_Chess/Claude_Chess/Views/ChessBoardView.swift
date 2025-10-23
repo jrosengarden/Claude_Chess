@@ -426,10 +426,11 @@ struct ChessBoardView: View {
                         }
                         #endif
 
+                        // TEMPORARILY COMMENTED OUT FOR TESTING
                         // Update position evaluation (async)
-                        Task {
-                            await game.updatePositionEvaluation()
-                        }
+                        // Task {
+                        //     await game.updatePositionEvaluation()
+                        // }
 
                         // Check for game-ending conditions
                         checkGameEnd()
@@ -541,10 +542,11 @@ struct ChessBoardView: View {
                         clearSelection()
                         clearPreview()
 
+                        // TEMPORARILY COMMENTED OUT FOR TESTING
                         // Update position evaluation (async)
-                        Task {
-                            await game.updatePositionEvaluation()
-                        }
+                        // Task {
+                        //     await game.updatePositionEvaluation()
+                        // }
 
                         // Check for game-ending conditions
                         checkGameEnd()

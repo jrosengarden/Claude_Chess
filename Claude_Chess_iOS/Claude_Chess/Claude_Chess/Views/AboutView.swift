@@ -50,6 +50,11 @@ struct AboutView: View {
                     Text("Jeff Rosengarden")
                         .foregroundColor(.secondary)
                 }
+
+                // User Guide navigation button
+                NavigationLink(destination: PDFViewerView(pdfName: "UserGuide")) {
+                    Text("User Guide")
+                }
             }
 
             Section(header: Text("Credits")) {
