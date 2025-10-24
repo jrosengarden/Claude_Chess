@@ -234,13 +234,13 @@ standards prevent this issue.
 **Purpose:** Monitor in-code TODO comments to ensure completion and
 prevent accumulation of technical debt.
 
-**Current TODO Inventory (5 total as of Oct 19, 2025 - Session 23):**
+**Current TODO Inventory (5 total as of Oct 23, 2025 - Session 26):**
 
 **Phase 3 - Move Validation & Game Logic (0 TODOs):**
 - ✅ All validation complete (2 castling TODOs removed in Session 15 post-session fixes)
 
 **Phase 3 - UI & Display (1 TODO):**
-- `ScoreView.swift` (line 46) - Display game statistics
+- `ScoreView.swift` (line 58) - Display game statistics
 
 **Phase 3 - Game Management (4 TODOs):**
 - `GameMenuView.swift` (line 80) - Import FEN action (load .fen files with position navigation + save prompt)
@@ -251,15 +251,13 @@ prevent accumulation of technical debt.
 **Future/Optional (0 TODOs):**
 - ✅ All optional TODOs removed
 
+**Changes in Session 26:**
+- No TODO additions or removals - inventory remains stable at 5 TODOs
+- Updated line numbers after code changes
+
 **Changes in Session 23:**
 - Removed 4 TODOs: Resign (completed in QuickGameMenuView), FEN display (completed), PGN display (completed)
 - Total reduced from 9 to 5 TODOs
-
-**Changes in Session 20:**
-- Confirmed `GameMenuView.swift` (line 149) Setup Board save TODO is correct placeholder (re-added to inventory)
-
-**Changes in Session 19:**
-- Removed `AboutView.swift` (line 97) - Third-party libraries placeholder (not needed with ChessKitEngine already documented)
 
 **Active Maintenance Protocol (MANDATORY):**
 
@@ -1354,6 +1352,31 @@ with Settings
   - Professional help/support workflow matching App Store best practices
 - **Files created:** `PDFViewerView.swift`
 - **Files modified:** `AboutView.swift`
+- **TODO count:** 5 (unchanged)
+
+**Session 26 (continued): Oct 24, 2025** - PGN Notation, Evaluation Freeze Fix, Time Forfeit Improvements
+- **PGN check/checkmate notation** - Added `+` and `#` symbols to move notation
+  - Added `causedCheck` and `causedCheckmate` properties to MoveRecord
+  - Detection logic in ChessGame after move execution
+  - Updated notation property to append appropriate symbols
+- **Evaluation freeze bug SOLVED** - Implemented on-demand evaluation (Occam's Razor victory!)
+  - Root cause: Concurrent UCI requests to single Stockfish instance
+  - Solution: Evaluation only when user opens ScoreView (`.onAppear` trigger)
+  - Removed all automatic evaluation calls from game flow
+  - Shows "Evaluating position..." spinner during 3-5 second calculation
+  - **End of 4-5 session debugging saga** - simple solution was best all along
+- **Time forfeit alert improvements** - Custom overlay matching resign pattern
+  - Created TimeForfeitAlertView with winner's pawn icon
+  - Two-button design: "OK" (review board) vs "New Game" (reset)
+  - Fixed re-triggering bug with gameHasEnded flag
+- **Time forfeit PGN fix** - Correct winner shown in game result
+  - Added timeForfeitWinner property to ChessGame
+  - Updated generatePGN() to check time forfeit before other conditions
+- **Debug cleanup** - Removed all NSLog statements from StockfishEngine.swift
+  - Kept ERROR print statements for production debugging
+  - Clean console output during gameplay
+- **Files modified:** `MoveRecord.swift`, `ChessGame.swift`, `ChessBoardView.swift`,
+  `ContentView.swift`, `ScoreView.swift`, `StockfishEngine.swift`
 - **TODO count:** 5 (unchanged)
 
 ### Key Decisions

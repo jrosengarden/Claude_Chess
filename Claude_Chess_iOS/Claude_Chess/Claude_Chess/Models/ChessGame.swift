@@ -108,6 +108,10 @@ class ChessGame: ObservableObject {
     /// Format: Color of winner, or nil if no checkmate
     @Published var checkmateWinner: Color?
 
+    /// Time forfeit winner tracking
+    /// Format: "White" or "Black" for winner, or nil if no time forfeit
+    @Published var timeForfeitWinner: String?
+
     /// Trigger to check if AI should make first move (after Start Game or Setup Board)
     /// Increments when we need to check for AI's turn
     @Published var aiMoveCheckTrigger: Int = 0
@@ -275,6 +279,7 @@ class ChessGame: ObservableObject {
         // Clear game result tracking
         resignationWinner = nil
         checkmateWinner = nil
+        timeForfeitWinner = nil
         // Clear starting FEN (standard position)
         startingFEN = nil
         // Increment reset trigger to notify UI to clear selection state
@@ -428,6 +433,7 @@ class ChessGame: ObservableObject {
         gameHasEnded = false
         resignationWinner = nil
         checkmateWinner = nil
+        timeForfeitWinner = nil
 
         // Reset timer state
         moveStartTime = nil
@@ -1295,6 +1301,9 @@ class ChessGame: ObservableObject {
         let result: String
         if let winner = resignationWinner {
             // Resignation
+            result = winner == "White" ? "1-0" : "0-1"
+        } else if let winner = timeForfeitWinner {
+            // Time forfeit
             result = winner == "White" ? "1-0" : "0-1"
         } else if let winner = checkmateWinner {
             // Checkmate

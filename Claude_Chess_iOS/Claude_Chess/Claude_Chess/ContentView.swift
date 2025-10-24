@@ -394,10 +394,18 @@ struct ContentView: View {
                     // Update timer every second
                     game.updateTimer()
 
-                    // Check for time forfeit
-                    if game.checkTimeForfeit() {
+                    // Check for time forfeit (only if game hasn't ended and alert not already showing)
+                    if !game.gameHasEnded && !showingTimeForfeitAlert && game.checkTimeForfeit() {
+                        // Mark game as ended
+                        game.gameHasEnded = true
+
                         // Determine winner (opposite of current player who ran out of time)
-                        timeForfeitWinner = game.currentPlayer == .white ? .black : .white
+                        let winner = game.currentPlayer == .white ? Color.black : Color.white
+                        timeForfeitWinner = winner
+
+                        // Store winner in game for PGN generation
+                        game.timeForfeitWinner = winner == .white ? "White" : "Black"
+
                         showingTimeForfeitAlert = true
                     }
                 }
@@ -422,16 +430,18 @@ struct ContentView: View {
             // Re-initialize time controls when settings change
             initializeTimeControls()
         }
-        .alert("Time Forfeit!", isPresented: $showingTimeForfeitAlert) {
-            Button("OK") {
-                // Reset game after time forfeit (onChange will re-initialize time controls)
-                Task {
-                    await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel)
-                }
-            }
-        } message: {
-            if let winner = timeForfeitWinner {
-                Text("\(winner == .white ? "White" : "Black") wins by time forfeit!")
+        // Custom time forfeit alert with chess piece icon
+        .overlay {
+            if showingTimeForfeitAlert, let winner = timeForfeitWinner {
+                TimeForfeitAlertView(
+                    winner: winner,
+                    isPresented: $showingTimeForfeitAlert,
+                    onNewGame: {
+                        Task {
+                            await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel)
+                        }
+                    }
+                )
             }
         }
         .alert(hintAlertTitle(), isPresented: $showingHintAlert) {

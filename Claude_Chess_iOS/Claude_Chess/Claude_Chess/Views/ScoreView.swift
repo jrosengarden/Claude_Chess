@@ -12,14 +12,23 @@ import SwiftUI
 /// Score view displaying position evaluation and game score
 /// - Shows current position evaluation from chess engine
 /// - Provides access to scale settings for evaluation display
+/// - Evaluation is triggered on-demand when user opens this view
 struct ScoreView: View {
     @ObservedObject var game: ChessGame
     @AppStorage("evaluationScale") private var evaluationScale = "scaled"
+    @State private var isEvaluating = false
 
     var body: some View {
         List {
             Section(header: Text("Position Evaluation")) {
-                if let evaluation = game.positionEvaluation {
+                if isEvaluating {
+                    HStack {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                        Text("Evaluating position...")
+                            .foregroundColor(.secondary)
+                    }
+                } else if let evaluation = game.positionEvaluation {
                     // Display evaluation based on selected format
                     HStack {
                         Text("Current Position:")
@@ -33,11 +42,14 @@ struct ScoreView: View {
                     Text(evaluationInterpretation(evaluation))
                         .font(.caption)
                         .foregroundColor(.secondary)
-                } else if game.isAIOpponent {
-                    Text("Evaluation unavailable")
+                } else if !game.isAIOpponent {
+                    Text("Start a game against AI to see position evaluation")
+                        .foregroundColor(.secondary)
+                } else if !game.gameInProgress {
+                    Text("Tap 'Start Game' to begin")
                         .foregroundColor(.secondary)
                 } else {
-                    Text("Start a game against AI to see position evaluation")
+                    Text("Evaluation unavailable")
                         .foregroundColor(.secondary)
                 }
             }
@@ -57,6 +69,17 @@ struct ScoreView: View {
         }
         .navigationTitle("Score")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // Trigger evaluation when view appears (on-demand only)
+            // This is the ONLY place in the app that triggers evaluation
+            if game.isAIOpponent && game.gameInProgress && !isEvaluating {
+                Task {
+                    isEvaluating = true
+                    await game.updatePositionEvaluation()
+                    isEvaluating = false
+                }
+            }
+        }
     }
 
     /// Format evaluation based on selected scale

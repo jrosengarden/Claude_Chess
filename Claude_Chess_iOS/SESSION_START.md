@@ -1,66 +1,69 @@
-# Session 25 Start - Claude Chess iOS
+# Session 27 Start - Claude Chess iOS
 
-**Date:** October 19, 2025
-**Previous Session:** Session 24 (Game-Ending Alerts, FEN/PGN Display & PGN Standard Features)
+**Date:** October 24, 2025
+**Previous Session:** Session 26 (User Guide, Contact Developer, PGN Notation, Evaluation Freeze Fix, Time Forfeit Improvements)
 
 ## Session Startup Protocol
 
 1. ✅ Read this SESSION_START.md document
 2. ✅ Review last 6 git log entries for recent changes context
-3. ✅ Scan CLAUDE.md Session History (Session 19-24) for current state
+3. ✅ Scan CLAUDE.md Session History (Session 20-26) for current state
 4. ✅ Check TODO Tracking section (currently 5 TODOs)
 
 ## Project Status Summary
 
 **Current Phase:** Phase 3 IN PROGRESS 🔄 - Game Features & Polish
 **Created:** September 30, 2025
-**Last Session:** October 19, 2025 (Session 24)
-**Development Stage:** Fully playable chess game with complete Stockfish AI integration,
-professional UX with custom game-ending alerts, FEN/PGN display/export with standard headers
+**Last Session:** October 24, 2025 (Session 26 continued)
+**Development Stage:** Fully playable chess game with complete Stockfish AI
+integration, on-demand position evaluation, professional UX with custom
+game-ending alerts, FEN/PGN display/export with standard headers, in-app
+User Guide with share functionality, and Contact Developer feature
 
-## Session 24 Accomplishments
+## Session 26 Accomplishments
 
-**Major Features Completed:**
-1. ✅ **Resign functionality** - Custom alert overlay with winner's pawn
-2. ✅ **Game-ending alerts** - Professional custom overlays for all endings (checkmate/stalemate/draw/resignation)
-3. ✅ **FEN display** - Custom alert with horizontal scroll, copy with auto-dismiss
-4. ✅ **PGN display** - Custom alert with move history, proper result tracking
-5. ✅ **PGN FEN headers** - Standard `[SetUp "1"]` and `[FEN "..."]` tags for Setup Board positions
-6. ✅ **Setup Board bug fixes** - Cleared last-move indicators and enabled Start Game button
+**Part 1 (Oct 23): User Guide & Contact Developer:**
+1. ✅ **PDF User Guide viewer** - In-app PDF viewer with share functionality
+2. ✅ **Contact Developer feature** - Email feedback system with categories
+3. ✅ **AboutView refactoring** - Professional help/support workflow
+
+**Part 2 (Oct 24): Critical Bug Fixes & Improvements:**
+1. ✅ **PGN check/checkmate notation** - Added `+` and `#` symbols to moves
+2. ✅ **EVALUATION FREEZE BUG SOLVED** - On-demand evaluation (Occam's Razor!)
+   - Root cause: Concurrent UCI requests to single Stockfish instance
+   - Solution: Evaluation ONLY when user opens ScoreView
+   - End of 4-5 session debugging saga
+3. ✅ **Time forfeit alert improvements** - Custom overlay with OK vs New Game
+4. ✅ **Time forfeit PGN fix** - Correct winner shown in game result
+5. ✅ **Debug cleanup** - Removed all NSLog statements
 
 **Files Modified:**
-- QuickGameMenuView.swift - Resign, FEN display, PGN display implementations
-- ChessBoardView.swift - Custom game-ending alert overlays
-- ChessGame.swift - checkmateWinner property, generatePGN() with FEN headers, setupFromFEN() fixes
-- StockfishSettingsView.swift - Fixed deprecated onChange syntax
+- Session 26 Part 1: PDFViewerView.swift (created), AboutView.swift
+- Session 26 Part 2: MoveRecord.swift, ChessGame.swift, ChessBoardView.swift,
+  ContentView.swift, ScoreView.swift, StockfishEngine.swift
 
-**TODO Count:** 9 → 5 (removed Resign, FEN display, PGN display TODOs)
+**TODO Count:** 5 (unchanged - all future Phase 3 features)
 
 ## Current TODO Inventory (5 Total)
 
 **Phase 3 - UI & Display (1 TODO):**
-- ScoreView.swift (line 46) - Display game statistics
+- ScoreView.swift (line 58) - Display game statistics
 
 **Phase 3 - Game Management (4 TODOs):**
-- GameMenuView.swift (line 80) - Import FEN action (load .fen files with position navigation + save prompt)
-- GameMenuView.swift (line 86) - Import PGN action (load .pgn files with move-by-move navigation + save prompt)
-- GameMenuView.swift (line 92) - Share Game action (mid-game sharing via iOS share sheet)
-- GameMenuView.swift (line 143) - Save current game to file (Phase 3 - file operations)
+- GameMenuView.swift (line 80) - Import FEN action (load .fen files with
+  position navigation + save prompt)
+- GameMenuView.swift (line 86) - Import PGN action (load .pgn files with
+  move-by-move navigation + save prompt)
+- GameMenuView.swift (line 92) - Share Game action (mid-game sharing via
+  iOS share sheet)
+- GameMenuView.swift (line 143) - Save current game to file (Phase 3 -
+  file operations)
 
 ## Known Bugs to Fix
 
-**Time Forfeit Alert UI Issue:**
-- **Problem:** When time expires, alert shows only "OK" button which clears
-  board to starting position and locks the board (can't review final position,
-  view PGN/FEN, etc.)
-- **Expected Behavior:** Match Resign alert pattern with two buttons:
-  - "OK" - Returns to game board for review (board locked, "Start Game"
-    disabled, can still view PGN/FEN)
-  - "New Game" - Immediately starts fresh game
-- **File:** ChessBoardView.swift (time forfeit alert)
-- **Priority:** High - UX regression discovered in Session 25
+**None!** ✅ All known bugs fixed in Session 26.
 
-## Agenda for Session 26
+## Agenda for Session 27
 
 **PRIORITY ORDER - Core Features Before Online Features:**
 
@@ -69,7 +72,19 @@ BEFORE implementing online opponents (Lichess/Chess.com). Online APIs
 add network complexity that should only be tackled after the local
 foundation is solid and fully tested.
 
-**#1: File Management Features (HIGHEST PRIORITY - Terminal Parity)**
+**#1: USER TESTING (HIGHEST PRIORITY)**
+- **Full Stockfish vs Stockfish games** - User plays multiple complete
+  games to validate all features work correctly under normal gameplay
+- **Test scenarios:**
+  - Multiple games with time controls
+  - Games ending in checkmate, stalemate, resignation, time forfeit
+  - Verify score evaluation on-demand works without freezing
+  - Test draw offers at various skill levels
+  - Verify PGN notation includes check/checkmate symbols
+  - Test all game-ending alerts and board review functionality
+- **Goal:** Confirm app is stable and bug-free before adding new features
+
+**#2: File Management Features (Terminal Parity)**
 - **Auto-save settings** - Settings toggles for auto-save FEN/PGN on
   game end (matches terminal FENON/FENOFF, PGNON/PGNOFF)
 - **Save location picker** - Settings option to choose iCloud Drive vs
@@ -84,10 +99,6 @@ foundation is solid and fully tested.
   (AirDrop, Messages, Email, Clipboard)
 - **Manual save** - Save current game to file via iOS document picker
 
-**#2: Time Forfeit UI Fix**
-- Match Resign alert pattern (OK vs New Game buttons)
-- OK returns to board for review, New Game starts fresh
-
 **#3: Opening Library Integration**
 - Load 24 validated FEN files from terminal project
 - Browse and select openings for study/practice
@@ -100,10 +111,11 @@ foundation is solid and fully tested.
 - Chess.com API integration
 - Multi-engine testing with all 4 opponents
 
-**Rationale:** File operations are core functionality needed regardless
-of opponent type. Users need to save/load games whether playing against
-Stockfish offline or online opponents. Complete local features first,
-then add network complexity.
+**Rationale:** User testing ensures stability before adding complexity.
+File operations are core functionality needed regardless of opponent type.
+Users need to save/load games whether playing against Stockfish offline
+or online opponents. Complete local features first, then add network
+complexity.
 
 ## Technical Context
 
@@ -114,45 +126,54 @@ then add network complexity.
 - @AppStorage for persistence (board theme, settings, time controls)
 - Custom alert overlays using ZStack + semi-transparent backgrounds
 - Cburnett SVG chess pieces from Wikimedia Commons
+- **On-demand evaluation** - Position evaluation only when user opens
+  ScoreView (prevents concurrent UCI requests)
 
-**Recent Technical Decisions:**
-- PGN standard FEN headers (`[SetUp "1"]` and `[FEN "..."]`) universally supported by chess programs
-- Custom alert overlays preferred over standard SwiftUI alerts for better UX
-- 1-second confirmation with auto-dismiss for copy actions
-- setupFromFEN() must clear all game state (last move, flags, timer) to prevent bugs
+**Recent Technical Decisions (Session 26):**
+- **Occam's Razor victory** - On-demand evaluation is simpler and better
+  than automatic background evaluation
+- PGN check/checkmate notation matches chess standards (`+` and `#`)
+- Time forfeit alerts match resign pattern for consistent UX
+- Debug statements removed for clean console output (kept ERROR prints
+  for production debugging)
 
 **Testing Protocol:**
 - User performs all builds and testing
 - Zero-warning compilation required
 - Test on iPhone simulator (iPhone 14 Pro minimum)
 - Verify responsive design across device sizes
+- **Extended gameplay testing** - Multiple complete games to verify stability
 
 ## Development Standards Reminder
 
 1. **Zero Warnings** - All code must compile with zero warnings
 2. **User Handles Git** - Developer never performs git operations
-3. **TODO Management** - Update tracking section immediately when adding/removing TODOs
+3. **TODO Management** - Update tracking section immediately when
+   adding/removing TODOs
 4. **Documentation Line Length** - 80 characters maximum in .md files
 5. **Incremental Development** - Test after every significant change
+6. **Occam's Razor** - Simple solutions preferred; if fighting same bug
+   for 2+ sessions, question the approach
 
 ## Questions for User
 
-1. Ready to tackle File Management features (highest priority)?
-2. Any bugs or issues discovered since last session?
-3. Any questions about file save locations (iCloud vs On Device)?
+1. Ready for extended user testing (multiple complete games)?
+2. Any issues discovered since evaluation freeze fix?
+3. Should we proceed with File Management features after testing confirms
+   stability?
 
 ## Reference Documents
 
 **Read 6 Latest Git Commits for the iOS project:**
-- Read the 6 latest commits for the iOS project.  There might be commits that are
-  for the Terminal App so continue reading the git log until you've read the last
-  6 commits for the iOS project.  (NOTE:  Any commits related to the Terminal project
-  state so at the start of the commit message)
+- Read the 6 latest commits for the iOS project. There might be commits
+  that are for the Terminal App so continue reading the git log until
+  you've read the last 6 commits for the iOS project. (NOTE: Any commits
+  related to the Terminal project state so at the start of the commit message)
 - Command: `git log -6`
 - This will catch you up on the latest work
 
 **Complete Documentation:** `CLAUDE.md` (1400+ lines)
-- Full session history (Sessions 1-24)
+- Full session history (Sessions 1-26)
 - Complete feature documentation
 - Architecture decisions
 - TODO tracking protocol
@@ -168,4 +189,4 @@ then add network complexity.
 - Edge case documentation
 
 ---
-**Ready to begin Session 25!** 🚀
+**Ready to begin Session 27!** 🚀

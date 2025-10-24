@@ -733,9 +733,9 @@ struct ChessBoardView: View {
                         #endif
                     }
 
-                    // Update position evaluation AFTER AI move completes
-                    // Safe to call now since Stockfish finished calculating the move
-                    await game.updatePositionEvaluation()
+                    // NOTE: Position evaluation NOT done automatically
+                    // Evaluation only happens on-demand when user opens ScoreView (see ScoreView.swift)
+                    // This prevents concurrent UCI requests that caused AI freeze bugs
                 } else {
                     print("ERROR: Failed to execute AI move: \(uciMove)")
                 }
@@ -1190,6 +1190,57 @@ struct ResignationAlertView: View {
                         .frame(width: 50, height: 50)
 
                     Text("\(winner) wins by resignation!")
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+
+                HStack(spacing: 12) {
+                    Button("OK") {
+                        isPresented = false
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+
+                    Button("New Game") {
+                        isPresented = false
+                        onNewGame()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+    }
+}
+
+/// Custom time forfeit alert with chess piece icon
+struct TimeForfeitAlertView: View {
+    let winner: Color
+    @Binding var isPresented: Bool
+    let onNewGame: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Game Over - Time Forfeit")
+                    .font(.headline)
+                    .padding(.top)
+
+                VStack(spacing: 12) {
+                    Image(winner == .white ? "Chess_plt45" : "Chess_pdt45")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 50, height: 50)
+
+                    Text("\(winner.displayName) wins by time forfeit!")
                         .font(.body)
                         .multilineTextAlignment(.center)
                 }
