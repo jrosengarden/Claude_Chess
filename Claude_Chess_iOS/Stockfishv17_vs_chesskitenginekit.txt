@@ -1,0 +1,83 @@
+Game #1:Both our iOS app and the Stockfish app were set at Skill Level 20
+		Both our iOS app and the Stockfish app had time controls off
+		The Stockfish app was giving me the moves for White
+		The iOS app's AI Engine (Stockfish) was making the moves for Black
+		Result: White (Stockfish app) beat our iOS App but it took 36 moves
+		NOTE:  The Stockfish app was winning most of the way but the AI Engine (Black)
+				was making decent moves and fighting back.  I think me giving the
+				Stockfish app a minimum of 30 seconds to calculate it's move was
+				the advantage it "used" to win!!  Additionally the Stockfish app's
+				advantage started getting very large (+5~, +6~, +7~) in the later
+				moves so it got to a point where it was clear our iOS app's AI
+				Engine was not, could not, win.
+
+[Event "iPhone Game"]
+[Site "Claude Chess iOS"]
+[Date "2025.10.23"]
+[Round "1"]
+[White "Player"]
+[Black "Stockfish (Level 20)"]
+[Result "1-0"]
+
+1. e2-e4 c7-c5 2. Ng1-f3 e7-e6 3. d2-d4 c5xd4 4. Nf3xd4 Ng8-f6 5. Nb1-c3 Nb8-c6 
+6. Nd4xc6 b7xc6 7. e4-e5 Nf6-d5 8. Nc3-e4 Qd8-c7 9. f2-f4 Qc7-a5 10. Bc1-d2 Qa5-b6 
+11. Bf1-d3 Nd5-b4 12. Qd1-e2 Ra8-b8 13. Ra1-d1 c6-c5 14. c2-c4 Nb4xd3 15. Qe2xd3 Qb6xb2 
+16. Ne4-c3 Rb8-b6 17. O-O Bf8-e7 18. f4-f5 f7-f6 19. Bd2-c1 Qb2-b4 20. f5xe6 d7xe6 
+21. e5xf6 g7xf6 22. Qd3-f3 Rh8-f8 23. Qf3-h5 Rf8-f7 24. Nc3-e4 e6-e5 25. Bc1-g5 Qb4xc4 
+26. Ne4xf6 Rb6xf6 27. Rf1xf6 a7-a5 28. Rf6-b6 Qc4xa2 29. Bg5xe7 Qa2-f2 
+30. Kg1-h1 Qf2-d4 31. Rd1xd4 e5xd4 32. Be7-f6 h7-h6 33. Rb6-b8 a5-a4 34. Qh5-e5 Ke8-d7 
+35. Qe5-d5 Kd7-e8 36. Rb8xc8 1-0
+
+
+Game #2:Both our iOS app and the Stockfish app were set at Skill Level 20
+		The time controls were: 30/10/5/0
+		The Stockfish app was giving me the moves for White
+		The iOS app's AI Engine (Stockfish) was making the moves for Black
+		Result: White lost on a time forfeit (shock!)  Black still had about 23
+				seconds remaining (which was phenomenal use of the 5 minutes
+				it had started with..."managing" it's 5 minutes thru 61 moves!)
+		NOTES:  I was giving the Stockfish app at least 30 seconds per move
+				for it to calculate the move that it was giving me
+				
+				The game was fairly even up thru about move 20 (or so) and
+				then the Stockfish app started VERY SLOWLY pulling ahead.  This
+				is kind of clear since the game was at 61 moves before the time
+				forfeit.  However, even at the time of White's forfeit it was only
+				showing a "decent" advantage of roughly 2.7 (can't remember exactly).
+				It never achieved the HUGE advantage(s) that it was gaining in the
+				previous game.
+				I'm only guessing here but I think that if White (me) hadn't run
+				out of time this game would have would up as King vs King with 
+				nothing else on the board!
+				
+1. e4 c5 2. Nf3 Nc6 3. Bb5 g6 4. O-O Bg7 5. c3 Nf6 6. Re1 O-O 7. d4 d5 8. e5 Ne4 
+9. Be3 cxd4 10. cxd4 Qb6 11. Qe2 Bd7 12. Ba4 Rfd8 13. Nc3 Bg4 14. Rab1 e6 15. h3 Bxf3 
+16. Qxf3 Rac8 17. Qd1 Qa6 18. Ne2 Na5 19. Bc2 Nc4 20. Bc1 Qb6 21. Rf1 f6 22. f3 Ng5 
+23. b3 Na5 24. Kh1 Re8 25. Bd3 Qd8 26. Be3 Nc6 27. b4 Bh6 28. b5 Na5 29. exf6 Qxf6 
+30. Qd2 Nc4 31. Bxc4 Rxc4 32. Bf4 b6 33. Rbc1 Rec8 34. a4 Nf7 35. Bxh6 g5 36. Bxg5 Qxg5 
+37. f4 Qf6 38. Rxc4 Rxc4 39. f5 e5 40. a5 exd4 41. Nf4 Qxf5 42. Qe2 Ne5 43. Nxd5 d3 
+44. Qe1 Qg5 45. Qf2 Rc8 46. axb6 axb6 47. Nf6+ Kg7 48. Ne4 Qe7 49. Qxb6 Rd8 50. Ng3 Kh8 
+51. Nf5 Qf8 52. Qc7 Qf6 53. b6 d2 54. Rd1 Nc6 55. b7 h6 56. Nxh6 Re8 57. Rxd2 Qxh6 
+58. Rc2 Nb8 59. Rc5 Na6 60. Rc6 Nxc7 61. Rxh6+ Kg7
+		
+			
+iOS App Notes (things we need to fix):	
+	1.	We are not including + sign, in the PGN, when there is a check
+		Example: e5xf6+  -this indicates that the move resulted in check
+	2.	We are not including # sign, in the PGN, when there is a checkmate
+		Example:  e5xf6# -this indicates that the moves resulted in checkmate
+	
+Conclusion: I think our AI Engine is playing smart and strong.  
+			When there were no time controls it took the Stockfish app 36 moves to 
+			checkmate our iOS app AI engine.
+			When there were time controls (30/10/5/0) the iOS Stockfish engine played an
+			awfully strong game considering it started with 5 minutes and due to our
+			coded controls (1/20th of the remaining time I think) it started moving
+			quicker and quicker and quicker...but STILL played strong...to the point of
+			White wound up with a time forfeit (mostly because I was purposly giving the
+			Stockfish app a minimum of 30 seconds per move so it could dive as deep as
+			possible in that 30 seconds..so White inadvertently ran out of time)
+			
+	
+	
+	

@@ -426,14 +426,11 @@ struct ChessBoardView: View {
                         }
                         #endif
 
-                        // TEMPORARILY COMMENTED OUT FOR TESTING
-                        // Update position evaluation (async)
-                        // Task {
-                        //     await game.updatePositionEvaluation()
-                        // }
-
                         // Check for game-ending conditions
                         checkGameEnd()
+
+                        // NOTE: Position evaluation NOT done here to avoid concurrent UCI requests
+                        // Evaluation happens AFTER AI move completes (see triggerAIMove)
 
                         // Trigger AI move if playing against AI (terminal project parity)
                         triggerAIMove()
@@ -542,14 +539,11 @@ struct ChessBoardView: View {
                         clearSelection()
                         clearPreview()
 
-                        // TEMPORARILY COMMENTED OUT FOR TESTING
-                        // Update position evaluation (async)
-                        // Task {
-                        //     await game.updatePositionEvaluation()
-                        // }
-
                         // Check for game-ending conditions
                         checkGameEnd()
+
+                        // NOTE: Position evaluation NOT done here to avoid concurrent UCI requests
+                        // Evaluation happens AFTER AI move completes (see triggerAIMove)
 
                         // Trigger AI move if playing against AI (terminal project parity)
                         triggerAIMove()
@@ -663,14 +657,11 @@ struct ChessBoardView: View {
             }
             #endif
 
-            // Update position evaluation (async)
-            // TEMPORARILY DISABLED FOR DEBUGGING - Session 26 diagnostic
-            // Task {
-            //     await game.updatePositionEvaluation()
-            // }
-
             // Check for game-ending conditions
             checkGameEnd()
+
+            // NOTE: Position evaluation NOT done here to avoid concurrent UCI requests
+            // Evaluation happens AFTER AI move completes (see triggerAIMove)
 
             // Trigger AI move if playing against AI (terminal project parity)
             triggerAIMove()
@@ -741,6 +732,10 @@ struct ChessBoardView: View {
                         }
                         #endif
                     }
+
+                    // Update position evaluation AFTER AI move completes
+                    // Safe to call now since Stockfish finished calculating the move
+                    await game.updatePositionEvaluation()
                 } else {
                     print("ERROR: Failed to execute AI move: \(uciMove)")
                 }
