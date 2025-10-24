@@ -841,6 +841,17 @@ class ChessGame: ObservableObject {
         // Append to move history
         moveHistory.append(moveRecord)
 
+        // Check if this move put opponent in check or checkmate
+        // (must be done AFTER player switch, so currentPlayer is now the opponent)
+        let inCheck = GameStateChecker.isInCheck(game: self, color: currentPlayer)
+        let inCheckmate = inCheck && GameStateChecker.isCheckmate(game: self, color: currentPlayer)
+
+        // Update the move record with check/checkmate information
+        if !moveHistory.isEmpty {
+            moveHistory[moveHistory.count - 1].causedCheck = inCheck
+            moveHistory[moveHistory.count - 1].causedCheckmate = inCheckmate
+        }
+
         // Track last move for UI highlighting
         lastMoveFrom = from
         lastMoveTo = to
@@ -970,6 +981,17 @@ class ChessGame: ObservableObject {
 
         // Append to move history
         moveHistory.append(moveRecord)
+
+        // Check if this move put opponent in check or checkmate
+        // (must be done AFTER player switch, so currentPlayer is now the opponent)
+        let inCheck = GameStateChecker.isInCheck(game: self, color: currentPlayer)
+        let inCheckmate = inCheck && GameStateChecker.isCheckmate(game: self, color: currentPlayer)
+
+        // Update the move record with check/checkmate information
+        if !moveHistory.isEmpty {
+            moveHistory[moveHistory.count - 1].causedCheck = inCheck
+            moveHistory[moveHistory.count - 1].causedCheckmate = inCheckmate
+        }
 
         // Track last move for UI highlighting
         lastMoveFrom = from

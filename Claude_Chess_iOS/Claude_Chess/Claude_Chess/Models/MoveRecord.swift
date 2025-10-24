@@ -42,6 +42,12 @@ struct MoveRecord {
     /// Piece type the pawn was promoted to (nil if not a promotion)
     let promotedTo: PieceType?
 
+    /// True if this move put the opponent in check
+    var causedCheck: Bool
+
+    /// True if this move resulted in checkmate
+    var causedCheckmate: Bool
+
     // MARK: - Game State Snapshot (for Undo)
 
     /// Castling rights before this move (needed for undo)
@@ -75,6 +81,8 @@ struct MoveRecord {
     ///   - wasEnPassant: Whether this was en passant capture
     ///   - wasPromotion: Whether this was pawn promotion
     ///   - promotedTo: Piece type promoted to (if applicable)
+    ///   - causedCheck: Whether this move put opponent in check
+    ///   - causedCheckmate: Whether this move resulted in checkmate
     ///   - previousCastlingRights: Castling rights before move
     ///   - previousEnPassantTarget: En passant target before move
     ///   - previousEnPassantAvailable: En passant availability before move
@@ -91,6 +99,8 @@ struct MoveRecord {
         wasEnPassant: Bool = false,
         wasPromotion: Bool = false,
         promotedTo: PieceType? = nil,
+        causedCheck: Bool = false,
+        causedCheckmate: Bool = false,
         previousCastlingRights: CastlingRights,
         previousEnPassantTarget: Position?,
         previousEnPassantAvailable: Bool,
@@ -107,6 +117,8 @@ struct MoveRecord {
         self.wasEnPassant = wasEnPassant
         self.wasPromotion = wasPromotion
         self.promotedTo = promotedTo
+        self.causedCheck = causedCheck
+        self.causedCheckmate = causedCheckmate
         self.previousCastlingRights = previousCastlingRights
         self.previousEnPassantTarget = previousEnPassantTarget
         self.previousEnPassantAvailable = previousEnPassantAvailable
@@ -158,6 +170,13 @@ struct MoveRecord {
         // En passant indicator
         if wasEnPassant {
             result += " e.p."
+        }
+
+        // Check and checkmate indicators (checkmate takes precedence)
+        if causedCheckmate {
+            result += "#"
+        } else if causedCheck {
+            result += "+"
         }
 
         return result
