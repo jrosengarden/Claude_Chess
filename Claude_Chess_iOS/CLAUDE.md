@@ -29,13 +29,14 @@ logic, features, and behavior.**
 
 **Current Phase:** Phase 3 IN PROGRESS 🔄 - Game Features & Polish
 **Created:** September 30, 2025
-**Last Updated:** October 23, 2025 (Session 26)
+**Last Updated:** October 25, 2025 (Session 27)
 **Development Stage:** Fully playable chess game with all core rules,
 complete Stockfish AI integration with skill-aware draw offer system,
 position evaluation, hint system, in-app PDF User Guide with share
 functionality, and Contact Developer feature. Polished UX with
 responsive design verified across all device sizes (iPhone 11 through
-iPad Pro M4)
+iPad Pro M4), theme-coordinated UI, board coordinate system, and
+Dynamic Type accessibility support
 
 ## Build System
 
@@ -1377,6 +1378,34 @@ with Settings
   - Clean console output during gameplay
 - **Files modified:** `MoveRecord.swift`, `ChessGame.swift`, `ChessBoardView.swift`,
   `ContentView.swift`, `ScoreView.swift`, `StockfishEngine.swift`
+- **TODO count:** 5 (unchanged)
+
+**Session 27: Oct 25, 2025** - Board Coordinates & Theme Harmony Polish
+- **Board coordinate system** - Added algebraic notation labels (a-h, 1-8) with toggle in Settings
+  - Labels use 6% of board space when enabled, board scales to 94%
+  - Coordinates flip with board orientation for proper perspective
+  - Theme-aware darkened color (40% darker than dark square) for visibility
+  - User-controllable via Settings → Board → "Show Coordinates" (default: OFF)
+- **Theme harmony system** - Extended theme-coordinated colors to all main screen text
+  - Applied `coordinateLabelColor` to title, player names, captured counts, time displays, game info
+  - Maintains visual cohesion across entire UI matching board theme selection
+- **Tappable control affordances** - Enhanced visual feedback for interactive elements
+  - Added subtle backgrounds (15% opacity) and borders (30% opacity) to 5 tappable controls
+  - Applied `.buttonStyle(.plain)` to prevent iOS system button styling on physical devices
+  - Maintains theme harmony while clearly indicating interactive areas
+- **Navigation consistency fixes** - Resolved confusing stacked back chevrons in modal sheets
+  - Removed nested `NavigationStack` from SettingsView (was inside GameMenuView's NavigationView)
+  - Added "Done" buttons to AboutView, OpponentView, TimeControlsView with `.navigationBarBackButtonHidden(true)`
+  - Follows iOS patterns: modal root = Done button, nested levels = back chevron
+- **Dynamic Type accessibility** - Implemented text size capping for layout stability
+  - Added `.dynamicTypeSize(...DynamicTypeSize.xxxLarge)` to ContentView
+  - Increased White/Black label width from 55 to 60 points for small devices
+  - Respects accessibility settings up to xxxLarge while preventing extreme layout breaking
+  - Verified across all device sizes and accessibility text settings
+- **Alignment fixes** - Resolved "Captured:" button misalignment between White/Black rows
+  - Fixed-width labels (60 points small, 70 points large) ensure horizontal alignment
+- **Files modified:** `ChessBoardView.swift`, `ContentView.swift`, `SettingsView.swift`,
+  `AboutView.swift`, `OpponentView.swift`, `TimeControlsView.swift`
 - **TODO count:** 5 (unchanged)
 
 ### Key Decisions

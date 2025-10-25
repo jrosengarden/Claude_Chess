@@ -39,6 +39,7 @@ struct ChessBoardView: View {
     @AppStorage("showPossibleMoves") private var showPossibleMoves: Bool = true
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
     @AppStorage("showLastMoveHighlight") private var showLastMoveHighlight: Bool = true
+    @AppStorage("showCoordinates") private var showCoordinates: Bool = false
 
     // Opponent settings for engine initialization
     @AppStorage("selectedEngine") private var selectedEngine = "human"
@@ -118,58 +119,128 @@ struct ChessBoardView: View {
         return BoardColorTheme.theme(withId: boardThemeId)
     }
 
+    /// Compute a darker, more visible version of the dark square color for coordinate labels
+    private var coordinateLabelColor: SwiftUI.Color {
+        let darkColor = currentTheme.darkSquare.color
+
+        // Extract color components and darken them by 40% for better visibility
+        #if os(iOS)
+        let uiColor = UIColor(darkColor)
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+
+        // Darken by multiplying by 0.6 (making it 40% darker)
+        return SwiftUI.Color(red: red * 0.6, green: green * 0.6, blue: blue * 0.6)
+        #else
+        let nsColor = NSColor(darkColor)
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        nsColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+
+        return SwiftUI.Color(red: red * 0.6, green: green * 0.6, blue: blue * 0.6)
+        #endif
+    }
+
     var body: some View {
         GeometryReader { geometry in
-            // Calculate square size to fit the board in available space
-            let squareSize = min(geometry.size.width, geometry.size.height) / 8
+            // Calculate square size accounting for coordinate labels if shown
+            // When coordinates shown, allocate ~6% for labels, leaving 94% for board
+            let availableSize = min(geometry.size.width, geometry.size.height)
+            let squareSize = showCoordinates ? (availableSize * 0.94) / 8 : availableSize / 8
+            let labelSize = showCoordinates ? availableSize * 0.06 : 0
 
             ZStack {
-                // Chess board
+                // Board with optional coordinate labels
                 VStack(spacing: 0) {
-                    // Iterate through rows (rank 8 to rank 1)
-                    ForEach(0..<rows, id: \.self) { row in
+                    // Top spacer (no label needed at top)
+                    if showCoordinates {
+                        Spacer()
+                            .frame(height: labelSize)
+                    }
+
+                    // Board rows with left-side rank labels
+                    HStack(spacing: 0) {
+                        // Left rank labels (1-8, respect board flip)
+                        if showCoordinates {
+                            VStack(spacing: 0) {
+                                ForEach(0..<rows, id: \.self) { row in
+                                    let rank = boardFlipped ? (row + 1) : (8 - row)
+                                    Text("\(rank)")
+                                        .font(.system(size: squareSize * 0.25, weight: .bold))
+                                        .foregroundColor(coordinateLabelColor)
+                                        .frame(width: labelSize, height: squareSize)
+                                        .rotationEffect(.degrees(boardFlipped ? 180 : 0))
+                                }
+                            }
+                        }
+
+                        // Chess board
+                        VStack(spacing: 0) {
+                            // Iterate through rows (rank 8 to rank 1)
+                            ForEach(0..<rows, id: \.self) { row in
+                                HStack(spacing: 0) {
+                                    // Iterate through columns (file a to file h)
+                                    ForEach(0..<columns, id: \.self) { col in
+                                        let position = Position(row: row, col: col)
+                                        ChessSquareView(
+                                            position: position,
+                                            piece: game.board[row][col],
+                                            isLight: isLightSquare(row: row, col: col),
+                                            lightColor: currentTheme.lightSquare.color,
+                                            darkColor: currentTheme.darkSquare.color,
+                                            isSelected: selectedSquare == position,
+                                            isPreviewed: previewSquare == position,
+                                            isLegalMove: legalMoveSquares.contains(position),
+                                            isCapturable: capturablePositions.contains(position),
+                                            isDragging: draggedPiece == position,
+                                            isKingInCheck: kingInCheckPosition == position,
+                                            isLastMoveOrigin: showLastMoveHighlight && game.lastMoveFrom == position,
+                                            isLastMoveDestination: showLastMoveHighlight && game.lastMoveTo == position
+                                        )
+                                        .frame(width: squareSize, height: squareSize)
+                                        .onTapGesture(count: 2) {
+                                            handleDoubleTap(at: position)
+                                        }
+                                        .onTapGesture(count: 1) {
+                                            handleSingleTap(at: position)
+                                        }
+                                        .gesture(
+                                            DragGesture(minimumDistance: 0)
+                                                .onChanged { value in
+                                                    handleDragChanged(at: position, translation: value.translation, squareSize: squareSize)
+                                                }
+                                                .onEnded { value in
+                                                    handleDragEnded(at: position, translation: value.translation, squareSize: squareSize, geometry: geometry)
+                                                }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        .frame(width: squareSize * 8, height: squareSize * 8)
+                    }
+
+                    // Bottom file labels (a-h, respect board flip)
+                    if showCoordinates {
                         HStack(spacing: 0) {
-                            // Iterate through columns (file a to file h)
+                            // Left spacer to align with board (matches rank label width)
+                            Spacer()
+                                .frame(width: labelSize)
+
+                            // File labels
                             ForEach(0..<columns, id: \.self) { col in
-                                let position = Position(row: row, col: col)
-                                ChessSquareView(
-                                    position: position,
-                                    piece: game.board[row][col],
-                                    isLight: isLightSquare(row: row, col: col),
-                                    lightColor: currentTheme.lightSquare.color,
-                                    darkColor: currentTheme.darkSquare.color,
-                                    isSelected: selectedSquare == position,
-                                    isPreviewed: previewSquare == position,
-                                    isLegalMove: legalMoveSquares.contains(position),
-                                    isCapturable: capturablePositions.contains(position),
-                                    isDragging: draggedPiece == position,
-                                    isKingInCheck: kingInCheckPosition == position,
-                                    isLastMoveOrigin: showLastMoveHighlight && game.lastMoveFrom == position,
-                                    isLastMoveDestination: showLastMoveHighlight && game.lastMoveTo == position
-                                )
-                                .frame(width: squareSize, height: squareSize)
-                                .onTapGesture(count: 2) {
-                                    handleDoubleTap(at: position)
-                                }
-                                .onTapGesture(count: 1) {
-                                    handleSingleTap(at: position)
-                                }
-                                .gesture(
-                                    DragGesture(minimumDistance: 0)
-                                        .onChanged { value in
-                                            handleDragChanged(at: position, translation: value.translation, squareSize: squareSize)
-                                        }
-                                        .onEnded { value in
-                                            handleDragEnded(at: position, translation: value.translation, squareSize: squareSize, geometry: geometry)
-                                        }
-                                )
+                                let file = boardFlipped ? String(UnicodeScalar(UInt8(104 - col))) : String(UnicodeScalar(UInt8(97 + col)))
+                                Text(file)
+                                    .font(.system(size: squareSize * 0.25, weight: .bold))
+                                    .foregroundColor(coordinateLabelColor)
+                                    .frame(width: squareSize, height: labelSize)
+                                    .rotationEffect(.degrees(boardFlipped ? 180 : 0))
                             }
                         }
                     }
                 }
                 .frame(
-                    width: squareSize * CGFloat(columns),
-                    height: squareSize * CGFloat(rows)
+                    width: showCoordinates ? (squareSize * 8) + labelSize : squareSize * 8,
+                    height: showCoordinates ? (squareSize * 8) + labelSize : squareSize * 8
                 )
                 .position(
                     x: geometry.size.width / 2,
@@ -182,9 +253,13 @@ struct ChessBoardView: View {
                     let piece = game.getPiece(at: draggedPos)
                     if piece.type != .empty {
                         // Calculate the actual screen position of the dragged piece
-                        let boardSize = squareSize * 8
-                        let boardOriginX = (geometry.size.width - boardSize) / 2
-                        let boardOriginY = (geometry.size.height - boardSize) / 2
+                        // Account for coordinate labels when calculating board origin
+                        let actualBoardSize = squareSize * 8
+                        let totalWidth = showCoordinates ? actualBoardSize + labelSize : actualBoardSize
+                        let totalHeight = showCoordinates ? actualBoardSize + labelSize : actualBoardSize
+
+                        let boardOriginX = (geometry.size.width - totalWidth) / 2 + (showCoordinates ? labelSize : 0)
+                        let boardOriginY = (geometry.size.height - totalHeight) / 2 + (showCoordinates ? labelSize : 0)
                         let pieceStartX = boardOriginX + CGFloat(draggedPos.col) * squareSize + squareSize / 2
                         let pieceStartY = boardOriginY + CGFloat(draggedPos.row) * squareSize + squareSize / 2
 
@@ -385,9 +460,15 @@ struct ChessBoardView: View {
         guard draggedPiece == position else { return }
 
         // Calculate which square the piece was dropped on
-        let boardSize = squareSize * 8
-        let boardOriginX = (geometry.size.width - boardSize) / 2
-        let boardOriginY = (geometry.size.height - boardSize) / 2
+        // Account for coordinate labels
+        let availableSize = min(geometry.size.width, geometry.size.height)
+        let labelSize = showCoordinates ? availableSize * 0.06 : 0
+        let actualBoardSize = squareSize * 8
+        let totalWidth = showCoordinates ? actualBoardSize + labelSize : actualBoardSize
+        let totalHeight = showCoordinates ? actualBoardSize + labelSize : actualBoardSize
+
+        let boardOriginX = (geometry.size.width - totalWidth) / 2 + (showCoordinates ? labelSize : 0)
+        let boardOriginY = (geometry.size.height - totalHeight) / 2 + (showCoordinates ? labelSize : 0)
 
         // Calculate starting position of dragged piece
         let startX = boardOriginX + CGFloat(position.col) * squareSize + squareSize / 2

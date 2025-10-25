@@ -14,6 +14,7 @@ struct SettingsView: View {
     @AppStorage("showPossibleMoves") private var showPossibleMoves: Bool = true
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
     @AppStorage("showLastMoveHighlight") private var showLastMoveHighlight: Bool = true
+    @AppStorage("showCoordinates") private var showCoordinates: Bool = false
 
     // Custom color storage
     @AppStorage("customLightRed") private var customLightRed: Double = 0.93
@@ -24,8 +25,7 @@ struct SettingsView: View {
     @AppStorage("customDarkBlue") private var customDarkBlue: Double = 0.30
 
     var body: some View {
-        NavigationStack {
-            List {
+        List {
                 // Game Options Section
                 Section {
                     Toggle("Show Possible Moves", isOn: $showPossibleMoves)
@@ -58,6 +58,7 @@ struct SettingsView: View {
                     }
 
                     Toggle("Highlight Last Move", isOn: $showLastMoveHighlight)
+                    Toggle("Show Coordinates", isOn: $showCoordinates)
                 }
 
                 // Future sections will go here
@@ -78,14 +79,14 @@ struct SettingsView: View {
                         }
                     }
                 }
-            }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
+        }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)  // Hide back button - we have "Done" instead
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    dismiss()
                 }
             }
         }

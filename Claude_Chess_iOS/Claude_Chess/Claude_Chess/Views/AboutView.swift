@@ -15,6 +15,7 @@ import SwiftUI
 /// - Development credits
 /// - Third-party license information (chess pieces, Stockfish, etc.)
 struct AboutView: View {
+    @Environment(\.dismiss) var dismiss
     @State private var stockfishVersion: String = "Unknown"
     @State private var showingContactOptions = false
 
@@ -146,6 +147,14 @@ struct AboutView: View {
         }
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
         .confirmationDialog("Contact Developer", isPresented: $showingContactOptions, titleVisibility: .visible) {
             Button("Feedback") {
                 sendEmail(type: "Feedback")

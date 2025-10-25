@@ -15,6 +15,7 @@ import SwiftUI
 /// - Increment: Seconds added after each move (0-60 seconds)
 /// - Setting both players to 0/0 disables time controls
 struct TimeControlsView: View {
+    @Environment(\.dismiss) var dismiss
     // Game state to check if game has started
     @ObservedObject var game: ChessGame
 
@@ -229,6 +230,14 @@ struct TimeControlsView: View {
         }
         .navigationTitle("Time Controls")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
     }
 
     /// Check if time controls are enabled

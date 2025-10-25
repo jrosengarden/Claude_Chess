@@ -117,6 +117,28 @@ struct ContentView: View {
         return SwiftUI.Color(red: theme.darkSquare.red, green: theme.darkSquare.green, blue: theme.darkSquare.blue)
     }
 
+    /// Compute a darker, more visible version of the dark square color for text labels
+    /// Matches ChessBoardView coordinate label color for UI consistency
+    private var coordinateLabelColor: SwiftUI.Color {
+        let darkColor = boardDarkColor
+
+        // Extract color components and darken them by 40% for better visibility
+        #if os(iOS)
+        let uiColor = UIColor(darkColor)
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+
+        // Darken by multiplying by 0.6 (making it 40% darker)
+        return SwiftUI.Color(red: red * 0.6, green: green * 0.6, blue: blue * 0.6)
+        #else
+        let nsColor = NSColor(darkColor)
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        nsColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+
+        return SwiftUI.Color(red: red * 0.6, green: green * 0.6, blue: blue * 0.6)
+        #endif
+    }
+
     var body: some View {
         VStack {
             // Header with title and action buttons
@@ -124,6 +146,7 @@ struct ContentView: View {
                 Text("Claude Chess")
                     .font(titleFont)
                     .fontWeight(.bold)
+                    .foregroundColor(coordinateLabelColor)
 
                 Spacer()
 
@@ -206,6 +229,8 @@ struct ContentView: View {
                     Text("White")
                         .font(playerNameFont)
                         .fontWeight(.semibold)
+                        .foregroundColor(coordinateLabelColor)
+                        .frame(width: isLargeDevice ? 70 : 60, alignment: .leading)
 
                     // Captured pieces count - tappable to show details
                     Button(action: {
@@ -218,8 +243,19 @@ struct ContentView: View {
                     }) {
                         Text("Captured: \(game.capturedByWhite.count)")
                             .font(capturedFont)
-                            .foregroundColor(.blue)
+                            .foregroundColor(coordinateLabelColor)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(coordinateLabelColor.opacity(0.15))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(coordinateLabelColor.opacity(0.3), lineWidth: 1)
+                            )
                     }
+                    .buttonStyle(.plain)
 
                     Spacer()
 
@@ -236,8 +272,19 @@ struct ContentView: View {
                             Text(formatTime(game.getCurrentTime(for: .white)))
                                 .font(timeFont)
                                 .fontWeight(.semibold)
-                                .foregroundColor(.blue)
+                                .foregroundColor(coordinateLabelColor)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(coordinateLabelColor.opacity(0.15))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(coordinateLabelColor.opacity(0.3), lineWidth: 1)
+                                )
                         }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -250,6 +297,8 @@ struct ContentView: View {
                     Text("Black")
                         .font(playerNameFont)
                         .fontWeight(.semibold)
+                        .foregroundColor(coordinateLabelColor)
+                        .frame(width: isLargeDevice ? 70 : 60, alignment: .leading)
 
                     // Captured pieces count - tappable to show details
                     Button(action: {
@@ -262,8 +311,19 @@ struct ContentView: View {
                     }) {
                         Text("Captured: \(game.capturedByBlack.count)")
                             .font(capturedFont)
-                            .foregroundColor(.blue)
+                            .foregroundColor(coordinateLabelColor)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(coordinateLabelColor.opacity(0.15))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(coordinateLabelColor.opacity(0.3), lineWidth: 1)
+                            )
                     }
+                    .buttonStyle(.plain)
 
                     Spacer()
 
@@ -280,8 +340,19 @@ struct ContentView: View {
                             Text(formatTime(game.getCurrentTime(for: .black)))
                                 .font(timeFont)
                                 .fontWeight(.semibold)
-                                .foregroundColor(.blue)
+                                .foregroundColor(coordinateLabelColor)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(coordinateLabelColor.opacity(0.15))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(coordinateLabelColor.opacity(0.3), lineWidth: 1)
+                                )
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -298,6 +369,7 @@ struct ContentView: View {
             VStack(spacing: 8) {
                 Text("Current Player: \(game.currentPlayer.displayName)")
                     .font(gameInfoFont)
+                    .foregroundColor(coordinateLabelColor)
 
                 // Opponent info - tappable to open opponent settings
                 Button(action: {
@@ -310,8 +382,19 @@ struct ContentView: View {
                 }) {
                     Text(opponentInfoText)
                         .font(opponentFont)
-                        .foregroundColor(.blue)
+                        .foregroundColor(coordinateLabelColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(coordinateLabelColor.opacity(0.15))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(coordinateLabelColor.opacity(0.3), lineWidth: 1)
+                        )
                 }
+                .buttonStyle(.plain)
             }
             .padding(.top)
 
@@ -334,6 +417,7 @@ struct ContentView: View {
                 }
             }
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
         .sheet(isPresented: $showingQuickGame) {
             QuickGameMenuView(game: game)
         }

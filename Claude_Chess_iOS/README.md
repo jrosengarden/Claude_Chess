@@ -80,15 +80,17 @@ experience with SwiftUI.
 - ✅ Drag-and-drop piece movement with ghost piece feedback
 - ✅ Haptic feedback (user-toggleable)
 - ✅ Board flipping for perspective change
+- ✅ **Board coordinate system** - Algebraic notation (a-h, 1-8) with toggle in Settings
 - ✅ Customizable board colors (7 themes + custom)
+- ✅ **Theme harmony** - All UI text matches board theme colors
 - ✅ Professional SVG chess pieces (Cburnett)
 - ✅ Device-adaptive UI (iPhone/iPad/macOS)
+- ✅ **Dynamic Type accessibility** - Text size support up to xxxLarge with layout stability
 - ✅ **In-app PDF User Guide** with share functionality (AirDrop, email, save to Files, print)
 - ✅ **Contact Developer** feature with categorized feedback (Feedback/Bug Report/Feature Request)
 - Smooth animations (planned)
 - Game sharing functionality (planned - mid-game FEN/PGN export)
 - iCloud sync (planned)
-- Accessibility support (planned)
 
 ## Requirements
 
@@ -99,16 +101,29 @@ experience with SwiftUI.
 
 ## Development Status
 
-**Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 19, 2025)
+**Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 25, 2025)
 
-**Latest Progress (October 19, 2025 - Session 23):**
+**Latest Progress (October 25, 2025 - Session 27):**
+- ✅ **Board coordinate system** - Algebraic notation labels (a-h, 1-8) with toggle
+  - Labels use 6% of board space when enabled, board scales to 94%
+  - Coordinates flip with board orientation for proper perspective
+  - Theme-aware darkened color (40% darker) for visibility
+- ✅ **Theme harmony system** - All main screen text matches board theme colors
+  - Applied to title, player names, captured counts, time displays, game info
+  - Maintains visual cohesion across entire UI
+- ✅ **Tappable control affordances** - Enhanced visual feedback with subtle
+  backgrounds/borders
+- ✅ **Navigation consistency** - Fixed confusing stacked back chevrons in modal sheets
+- ✅ **Dynamic Type accessibility** - Text size capping at xxxLarge for layout stability
+- ✅ **Cross-device testing** - Verified on iPhone 11, iPad Pro 13", macOS, iPhone 14 Pro
+  (simulator + physical)
+
+**Previous Session (October 19, 2025 - Session 23):**
 - ✅ **Stockfish Color Selection** - Choose which color AI plays (White or Black)
-- ✅ **Instant board flip** - Board orientation updates immediately when color
-  changed
-- ✅ **Auto time control swap** - Time allocations swap automatically so human
-  always gets intended time
-- ✅ **Practice openings** - Play Black against Stockfish to practice specific
-  openings as Black
+- ✅ **Instant board flip** - Board orientation updates immediately when color changed
+- ✅ **Auto time control swap** - Time allocations swap automatically so human always
+  gets intended time
+- ✅ **Practice openings** - Play Black against Stockfish to practice specific openings
 - ✅ **2-second delay** - When AI plays White, brief pause before first move
 - ✅ **Default setup** - Stockfish plays Black (human plays White) by default
 

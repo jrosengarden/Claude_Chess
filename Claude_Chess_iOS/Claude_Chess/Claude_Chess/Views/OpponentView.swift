@@ -15,6 +15,7 @@ import SwiftUI
 /// - Lichess: Online API integration (future)
 /// - Chess.com: Online API integration (future)
 struct OpponentView: View {
+    @Environment(\.dismiss) var dismiss
     @AppStorage("selectedEngine") private var selectedEngine = "human"
     @ObservedObject var game: ChessGame
 
@@ -135,6 +136,14 @@ struct OpponentView: View {
         }
         .navigationTitle("Opponent")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
     }
 }
 
