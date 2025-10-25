@@ -150,7 +150,11 @@ terminal project:
 6. **No Session Crashes**: Never run full games during development
    sessions
 7. **User Handles Git**: Developer never performs git operations
-8. **TODO Management**: Actively monitor and remove TODO comments
+8. **User Handles Builds & Testing**: Developer NEVER runs xcodebuild
+   or attempts compilation. User handles ALL builds and testing in
+   Xcode. After code changes, tell user "Ready for you to build and
+   test" instead of attempting builds.
+9. **TODO Management**: Actively monitor and remove TODO comments
    when functionality is implemented. Before marking any feature
    complete, search for related TODOs and remove them. See TODO
    Tracking section below for current inventory.
@@ -169,6 +173,12 @@ terminal project:
 3. **Accessibility First** - VoiceOver support for all features
 4. **60fps Performance** - Smooth animations, efficient updates
 5. **Swift API Guidelines** - Follow Apple's naming conventions
+6. **"Going Forward" Promises MUST Be Documented** - Developer has
+   NO session memory. Any "going forward I will..." promise is
+   MEANINGLESS unless immediately documented in CLAUDE.md Development
+   Standards section. When making workflow commitments, ALWAYS follow
+   with: "Let me add this to CLAUDE.md so it carries forward." Empty
+   promises waste user's time explaining the same issues repeatedly.
 
 ### Documentation Standards (Critical - Prevent Doc Sprawl)
 
