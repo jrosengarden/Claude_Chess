@@ -1,0 +1,78 @@
+BOARD FLIP COORDINATE SYSTEM BUG
+Session 30 - Documented for Next Session
+===========================================
+
+PROBLEM SUMMARY:
+When board is flipped, coordinate system is incorrectly transformed causing:
+1. Wrong move notation in PGN display
+2. Incorrect coordinate labels on flipped board
+3. Moves recorded with flipped coordinates instead of absolute board positions
+
+SPECIFIC ISSUES:
+
+Issue 1: PGN Notation Wrong When Board Flipped (Stockfish plays Black)
+- User plays: e2e4 (White King's Pawn 2 squares forward)
+- PGN shows: d2d4 (WRONG - coordinates are being flipped)
+- User plays: e7e5 (Black King's Pawn response)
+- PGN shows: d7d6 (WRONG - also flipped)
+
+Issue 2: PGN Notation Wrong When Board Flipped (Stockfish plays White)
+- AI plays: b1c3 (Knight to c3)
+- PGN shows: 1.Ng1-f3 (WRONG - flipped coordinates)
+- User responds: e2e4
+- PGN shows: d7-d5 (WRONG - flipped)
+
+Issue 3: Coordinate Labels Are Backwards
+- Current behavior: When board flips, we flip the coordinate labels too
+- Correct behavior: Coordinates should ALWAYS stay the same regardless of board orientation
+  - Left edge: Always 8 (top) to 1 (bottom)
+  - Bottom edge: Always a (left) to h (right)
+  - Board VIEW flips, but coordinate SYSTEM stays absolute
+
+REFERENCE IMAGE:
+User provided screenshot from another iOS chess app (Shredder) showing correct flipped board:
+- Board is visually flipped (Black on bottom)
+- Coordinates still show: left edge 8-1 (top to bottom), bottom edge a-h (left to right)
+- An e2e4 move is ALWAYS the same square regardless of board flip
+- An e7e5 response is ALWAYS the same square regardless of board flip
+
+ROOT CAUSE ANALYSIS:
+The board flip is transforming the COORDINATE SYSTEM instead of just the VIEW.
+- Correct: Board array stays same (a1=bottom-left always), render pieces from opposite perspective
+- Wrong: Transforming coordinates when recording moves based on visual board state
+
+AFFECTED SYSTEMS:
+1. Move notation generation (algebraic notation like "e2e4")
+2. PGN move recording
+3. Coordinate label display (ChessBoardView.swift)
+4. Possibly: Move input handling (tap/drag coordinate translation)
+
+FILES TO INVESTIGATE:
+- ChessBoardView.swift - Coordinate label rendering and flip logic
+- ChessGame.swift / MoveRecord.swift - Move notation generation
+- Position.swift - Coordinate conversion (algebraic notation)
+
+CORRECT BEHAVIOR:
+- Board coordinates are ABSOLUTE (never change)
+- a1 is ALWAYS bottom-left from White's perspective
+- e2e4 is ALWAYS the same square (e-file, 2nd rank to 4th rank)
+- Board flip should only affect: rendering order, piece positions visually
+- Board flip should NOT affect: coordinate system, move notation, PGN
+
+TESTING NEEDED AFTER FIX:
+1. Flip board with Stockfish playing Black
+   - Play e2e4, verify PGN shows "e2-e4" or "e4" (not d2d4)
+   - AI responds e7e5, verify PGN shows "e7-e5" or "e5" (not e2e4)
+2. Flip board with Stockfish playing White
+   - AI plays b1c3, verify PGN shows "Nb1-c3" or "Nc3" (not Ng1-f3)
+   - Respond e2e4, verify PGN shows "e2-e4" (not d7-d5)
+3. Check coordinate labels stay a-h (bottom) and 1-8 (left edge) regardless of flip
+4. Verify moves work correctly with both tap and drag gestures on flipped board
+
+ESTIMATED COMPLEXITY: Medium-High
+- Need to trace coordinate transformation logic through multiple files
+- Likely affects: rendering, move input, notation generation
+- High risk of edge cases if rushed
+- Recommend full session (60K+ tokens) for proper fix and testing
+
+STATUS: Documented for next session with fresh resources
