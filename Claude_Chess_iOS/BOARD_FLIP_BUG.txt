@@ -22,24 +22,55 @@ Issue 2: PGN Notation Wrong When Board Flipped (Stockfish plays White)
 - User responds: e2e4
 - PGN shows: d7-d5 (WRONG - flipped)
 
-Issue 3: Coordinate Labels Are Backwards
-- Current behavior: When board flips, we flip the coordinate labels too
-- Correct behavior: Coordinates should ALWAYS stay the same regardless of board orientation
-  - Left edge: Always 8 (top) to 1 (bottom)
-  - Bottom edge: Always a (left) to h (right)
-  - Board VIEW flips, but coordinate SYSTEM stays absolute
+Issue 3: Coordinate Labels Are Wrong on Flipped Board
+Current (WRONG) behavior:
+- Coordinate labels move to wrong edges
+- Files move to TOP edge (should stay on BOTTOM)
+- Ranks move to RIGHT edge (should stay on LEFT)
+- Label order is backwards
+
+Correct behavior (per Shredder reference image):
+- Coordinate labels ALWAYS stay on LEFT edge (ranks) and BOTTOM edge (files)
+- When board is UNFLIPPED (White on bottom):
+  - Left edge: 8, 7, 6, 5, 4, 3, 2, 1 (top to bottom)
+  - Bottom edge: a, b, c, d, e, f, g, h (left to right)
+- When board is FLIPPED (Black on bottom):
+  - Left edge: 1, 2, 3, 4, 5, 6, 7, 8 (top to bottom) - REVERSED ORDER
+  - Bottom edge: h, g, f, e, d, c, b, a (left to right) - REVERSED ORDER
+  - Labels stay on SAME EDGES (left/bottom), only their ORDER reverses
+
+KEY VISUALIZATION:
+"The White Queen's Rook starts out on A1. When the board is flipped,
+the White Queen's Rook should STILL be labeled as being on A1."
 
 REFERENCE IMAGE:
-User provided screenshot from another iOS chess app (Shredder) showing correct flipped board:
-- Board is visually flipped (Black on bottom)
-- Coordinates still show: left edge 8-1 (top to bottom), bottom edge a-h (left to right)
+User provided screenshot from Shredder iOS chess app showing correct
+flipped board:
+- Board is visually flipped (Black pieces on bottom)
+- Rank labels stay on LEFT edge: 1, 2, 3, 4, 5, 6, 7, 8 (reversed from
+  unflipped)
+- File labels stay on BOTTOM edge: h, g, f, e, d, c, b, a (reversed
+  from unflipped)
 - An e2e4 move is ALWAYS the same square regardless of board flip
 - An e7e5 response is ALWAYS the same square regardless of board flip
 
 ROOT CAUSE ANALYSIS:
-The board flip is transforming the COORDINATE SYSTEM instead of just the VIEW.
-- Correct: Board array stays same (a1=bottom-left always), render pieces from opposite perspective
-- Wrong: Transforming coordinates when recording moves based on visual board state
+The board flip is transforming the COORDINATE SYSTEM instead of just
+the VIEW.
+
+What we're doing WRONG:
+- Transforming coordinates when recording moves based on visual board
+  state
+- Moving coordinate labels to different edges of the board
+- Flipping the coordinate system itself
+
+What we should be doing RIGHT:
+- Board array stays same (a1=[7][0] always, h8=[0][7] always)
+- Only change rendering order (draw pieces from opposite direction)
+- Coordinate labels stay on left/bottom edges, only reverse their
+  content order
+- Move notation always uses absolute coordinates (e2e4 is always
+  e2→e4)
 
 AFFECTED SYSTEMS:
 1. Move notation generation (algebraic notation like "e2e4")
@@ -52,22 +83,51 @@ FILES TO INVESTIGATE:
 - ChessGame.swift / MoveRecord.swift - Move notation generation
 - Position.swift - Coordinate conversion (algebraic notation)
 
-CORRECT BEHAVIOR:
-- Board coordinates are ABSOLUTE (never change)
-- a1 is ALWAYS bottom-left from White's perspective
-- e2e4 is ALWAYS the same square (e-file, 2nd rank to 4th rank)
-- Board flip should only affect: rendering order, piece positions visually
-- Board flip should NOT affect: coordinate system, move notation, PGN
+CORRECT BEHAVIOR SPECIFICATION:
+
+Board Coordinates (ABSOLUTE - NEVER CHANGE):
+- a1 is ALWAYS bottom-left from White's perspective (array [7][0])
+- h1 is ALWAYS bottom-right from White's perspective (array [7][7])
+- a8 is ALWAYS top-left from White's perspective (array [0][0])
+- h8 is ALWAYS top-right from White's perspective (array [0][7])
+- e2e4 is ALWAYS e-file rank 2 → rank 4 (array [6][4] → [4][4])
+- These NEVER change regardless of board flip state
+
+Board Flip Should Only Affect:
+1. Rendering order (draw squares/pieces from opposite direction)
+2. Coordinate label CONTENT order (reverse, but stay on same edges)
+
+Board Flip Should NOT Affect:
+1. Board array indices
+2. Move notation (e2e4 is always e2e4)
+3. PGN recording
+4. Which edges the coordinate labels appear on
 
 TESTING NEEDED AFTER FIX:
-1. Flip board with Stockfish playing Black
-   - Play e2e4, verify PGN shows "e2-e4" or "e4" (not d2d4)
-   - AI responds e7e5, verify PGN shows "e7-e5" or "e5" (not e2e4)
-2. Flip board with Stockfish playing White
-   - AI plays b1c3, verify PGN shows "Nb1-c3" or "Nc3" (not Ng1-f3)
-   - Respond e2e4, verify PGN shows "e2-e4" (not d7-d5)
-3. Check coordinate labels stay a-h (bottom) and 1-8 (left edge) regardless of flip
-4. Verify moves work correctly with both tap and drag gestures on flipped board
+
+Test 1: Flip board with Stockfish playing Black
+- Play e2e4 (White pawn e-file 2→4)
+- Verify PGN shows "e2-e4" or "e4" (NOT d2d4)
+- AI responds e7e5 (Black pawn e-file 7→5)
+- Verify PGN shows "e7-e5" or "e5" (NOT d7d6)
+- Verify coordinate labels: LEFT=1-8, BOTTOM=h-a
+
+Test 2: Flip board with Stockfish playing White
+- AI plays b1c3 (Knight b1→c3)
+- Verify PGN shows "Nb1-c3" or "Nc3" (NOT Ng1-f3)
+- Respond e2e4 (White pawn e-file 2→4)
+- Verify PGN shows "e2-e4" or "e4" (NOT d7-d5)
+- Verify coordinate labels: LEFT=1-8, BOTTOM=h-a
+
+Test 3: Verify coordinate labels stay on correct edges
+- Unflipped: LEFT edge shows 8-1, BOTTOM edge shows a-h
+- Flipped: LEFT edge shows 1-8, BOTTOM edge shows h-a
+- Labels never appear on TOP or RIGHT edges
+
+Test 4: Verify move input works correctly on flipped board
+- Tap/drag moves work with absolute coordinates
+- Tapping e2 square selects piece at array position [6][4] always
+- Legal move highlights appear on correct absolute squares
 
 ESTIMATED COMPLEXITY: Medium-High
 - Need to trace coordinate transformation logic through multiple files
