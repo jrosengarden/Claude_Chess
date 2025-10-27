@@ -105,64 +105,67 @@ struct GameMenuView: View {
                     }
                 }
             }
-            .alert("Setup Game Board", isPresented: $showingFenSetup) {
-                TextField("Paste FEN string", text: $fenInput)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                Button("Setup") {
-                    // Step 1: Validate FEN string first (don't proceed if invalid)
-                    // Create a temporary game to test FEN validity without modifying current game
-                    let testGame = ChessGame()
-                    if testGame.setupFromFEN(fenInput) {
-                        // FEN is valid - store it for later use
-                        validatedFenString = fenInput
-                        fenError = ""
+            .overlay {
+                if showingFenSetup {
+                    SetupBoardView(
+                        isPresented: $showingFenSetup,
+                        fenInput: $fenInput,
+                        onSetup: { fen in
+                            // Step 1: Validate FEN string first (don't proceed if invalid)
+                            let testGame = ChessGame()
+                            if testGame.setupFromFEN(fen) {
+                                // FEN is valid - store it for later use
+                                validatedFenString = fen
+                                fenError = ""
+                                showingFenSetup = false
 
-                        // Step 2: Check if game is in progress - if so, prompt to save
-                        if game.gameInProgress {
-                            showingSavePrompt = true
-                        } else {
-                            // No game in progress - apply setup immediately
-                            applySetupBoard()
+                                // Step 2: Check if game is in progress - if so, prompt to save
+                                if game.gameInProgress {
+                                    showingSavePrompt = true
+                                } else {
+                                    // No game in progress - apply setup immediately
+                                    applySetupBoard()
+                                }
+                            } else {
+                                // FEN is invalid - show error and stop
+                                fenError = "Invalid FEN string entered. Please check the format and try again."
+                                showingFenSetup = false
+                                showingFenError = true
+                            }
                         }
-                    } else {
-                        // FEN is invalid - show error and stop
-                        fenError = "Invalid FEN string entered. Please check the format and try again."
-                        showingFenError = true
-                    }
+                    )
                 }
-                Button("Cancel", role: .cancel) {
-                    fenInput = ""
-                    fenError = ""
-                }
-            } message: {
-                Text("Enter a valid FEN string to set up the board position")
             }
-            .alert("Save Current Game?", isPresented: $showingSavePrompt) {
-                Button("Yes") {
-                    // TODO: Save current game to file (Phase 3 - file operations)
-                    // For now, just proceed with setup
-                    applySetupBoard()
+            .overlay {
+                if showingSavePrompt {
+                    SaveGamePromptView(
+                        isPresented: $showingSavePrompt,
+                        onYes: {
+                            // TODO: Save current game to file (Phase 3 - file operations)
+                            // For now, just proceed with setup
+                            applySetupBoard()
+                        },
+                        onNo: {
+                            // Don't save - just proceed with setup
+                            applySetupBoard()
+                        },
+                        onCancel: {
+                            // User changed their mind - return to game menu
+                            validatedFenString = ""
+                            fenInput = ""
+                        }
+                    )
                 }
-                Button("No") {
-                    // Don't save - just proceed with setup
-                    applySetupBoard()
-                }
-                Button("Cancel", role: .cancel) {
-                    // User changed their mind - return to game menu
-                    validatedFenString = ""
-                    fenInput = ""
-                }
-            } message: {
-                Text("Do you want to save the current game before setting up a new board position?")
             }
-            .alert("Invalid FEN String", isPresented: $showingFenError) {
-                Button("OK") {
-                    // Return to Game Menu (dismiss is called automatically)
+            .overlay {
+                if showingFenError {
+                    InvalidFENAlertView(
+                        isPresented: $showingFenError,
+                        errorMessage: fenError
+                    )
                 }
-            } message: {
-                Text(fenError)
             }
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
         }
     }
 
@@ -195,6 +198,146 @@ struct GameMenuView: View {
             fenError = "Unexpected error applying FEN setup"
             showingFenError = true
         }
+    }
+}
+
+/// Custom setup board overlay with text input
+struct SetupBoardView: View {
+    @Binding var isPresented: Bool
+    @Binding var fenInput: String
+    let onSetup: (String) -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Setup Game Board")
+                    .font(.headline)
+                    .padding(.top)
+
+                Text("Enter a valid FEN string to set up the board position")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                TextField("Paste FEN string", text: $fenInput)
+                    .textFieldStyle(.roundedBorder)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .padding(.horizontal)
+
+                HStack(spacing: 12) {
+                    Button("Cancel") {
+                        fenInput = ""
+                        isPresented = false
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+
+                    Button("Setup") {
+                        onSetup(fenInput)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.bottom)
+            }
+            .frame(width: 320)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+}
+
+/// Custom invalid FEN alert overlay
+struct InvalidFENAlertView: View {
+    @Binding var isPresented: Bool
+    let errorMessage: String
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Invalid FEN String")
+                    .font(.headline)
+                    .padding(.top)
+
+                Text(errorMessage)
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Button("OK") {
+                    isPresented = false
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+}
+
+/// Custom save game prompt overlay
+struct SaveGamePromptView: View {
+    @Binding var isPresented: Bool
+    let onYes: () -> Void
+    let onNo: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Save Current Game?")
+                    .font(.headline)
+                    .padding(.top)
+
+                Text("Do you want to save the current game before setting up a new board position?")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                HStack(spacing: 12) {
+                    Button("Cancel") {
+                        isPresented = false
+                        onCancel()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+
+                    Button("No") {
+                        isPresented = false
+                        onNo()
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button("Yes") {
+                        isPresented = false
+                        onYes()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 

@@ -66,6 +66,10 @@ struct ChessBoardView: View {
     // AI move tracking (prevent concurrent AI move requests)
     @State private var aiMoveInProgress = false
 
+    // AI timeout handling
+    @State private var showingAITimeoutAlert = false
+    @State private var aiTimeoutError: String = ""
+
     // TEMPORARY: Blocking overlay for testing race condition
     @State private var showingWaitOverlay = false
 
@@ -138,6 +142,11 @@ struct ChessBoardView: View {
 
         return SwiftUI.Color(red: red * 0.6, green: green * 0.6, blue: blue * 0.6)
         #endif
+    }
+
+    /// Get display name for AI color (for timeout alert button)
+    private var aiColorName: String {
+        return stockfishPlaysColor == "white" ? "White" : "Black"
     }
 
     var body: some View {
@@ -347,6 +356,9 @@ struct ChessBoardView: View {
             if showingFiftyMoveDraw {
                 FiftyMoveDrawAlertView(
                     isPresented: $showingFiftyMoveDraw,
+                    onOK: {
+                        // Keep game locked (gameHasEnded already true from checkGameEnd)
+                    },
                     onNewGame: {
                         Task {
                             await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel, stockfishColor: stockfishPlaysColor)
@@ -371,12 +383,35 @@ struct ChessBoardView: View {
                 )
             }
         }
-        .alert("Check!", isPresented: $showingCheckAlert) {
-            Button("OK", role: .cancel) {
-                // Keep king highlighted for visual feedback
+        .overlay {
+            if showingCheckAlert {
+                CheckAlertView(
+                    isPresented: $showingCheckAlert,
+                    playerName: game.currentPlayer.displayName
+                )
             }
-        } message: {
-            Text("\(game.currentPlayer.displayName) is in check!")
+        }
+        .overlay {
+            if showingAITimeoutAlert {
+                AITimeoutAlertView(
+                    isPresented: $showingAITimeoutAlert,
+                    aiColorName: aiColorName,
+                    errorMessage: aiTimeoutError,
+                    onTryAgain: {
+                        triggerAIMove()
+                    },
+                    onResign: {
+                        // AI forfeits - human wins
+                        let humanColor = stockfishPlaysColor == "white" ? "Black" : "White"
+                        game.resignationWinner = humanColor
+                        game.gameHasEnded = true
+
+                        // Dismiss timeout alert and trigger resignation alert overlay
+                        showingAITimeoutAlert = false
+                        showingResignation = true
+                    }
+                )
+            }
         }
         .overlay {
             if showingPromotionPicker,
@@ -415,8 +450,8 @@ struct ChessBoardView: View {
 
     /// Handle drag gesture started/changed
     private func handleDragChanged(at position: Position, translation: CGSize, squareSize: CGFloat) {
-        // Prevent any moves until "Start Game" is tapped
-        guard game.gameInProgress else {
+        // Prevent any moves until "Start Game" is tapped or if game has ended
+        guard game.gameInProgress && !game.gameHasEnded else {
             return
         }
 
@@ -536,6 +571,11 @@ struct ChessBoardView: View {
 
     /// Handle double-tap on a square (preview mode toggle)
     private func handleDoubleTap(at position: Position) {
+        // Prevent preview if game hasn't started or has ended
+        guard game.gameInProgress && !game.gameHasEnded else {
+            return
+        }
+
         // Prevent preview during AI's turn (could block AI move execution)
         guard game.isHumanTurn else {
             return
@@ -568,8 +608,8 @@ struct ChessBoardView: View {
 
     /// Handle single-tap on a square (selection/move)
     private func handleSingleTap(at position: Position) {
-        // Prevent any moves until "Start Game" is tapped
-        guard game.gameInProgress else {
+        // Prevent any moves until "Start Game" is tapped or if game has ended
+        guard game.gameInProgress && !game.gameHasEnded else {
             return
         }
 
@@ -828,9 +868,10 @@ struct ChessBoardView: View {
                     aiMoveInProgress = false
                 }
             } catch {
-                print("ERROR: AI move request failed: \(error)")
-                // Clear flag on error path too
+                // AI move request failed (likely timeout or engine error)
                 await MainActor.run {
+                    aiTimeoutError = error.localizedDescription
+                    showingAITimeoutAlert = true
                     aiMoveInProgress = false
                 }
             }
@@ -862,6 +903,7 @@ struct ChessBoardView: View {
         if game.isFiftyMoveRuleDraw() {
             kingInCheckPosition = nil  // Clear check indicator
             game.gameHasEnded = true
+            game.stopMoveTimer()  // Stop timer on draw
             showingFiftyMoveDraw = true
             return
         }
@@ -872,6 +914,7 @@ struct ChessBoardView: View {
             game.checkmateWinner = game.currentPlayer.opposite  // Store winner in game model
             kingInCheckPosition = nil  // Clear check indicator
             game.gameHasEnded = true
+            game.stopMoveTimer()  // Stop timer on checkmate
             showingCheckmate = true
             return
         }
@@ -880,6 +923,7 @@ struct ChessBoardView: View {
         if GameStateChecker.isStalemate(game: game, color: game.currentPlayer) {
             kingInCheckPosition = nil  // Clear check indicator
             game.gameHasEnded = true
+            game.stopMoveTimer()  // Stop timer on stalemate
             showingStalemate = true
             return
         }
@@ -1131,6 +1175,7 @@ struct CheckmateAlertView: View {
             .cornerRadius(20)
             .shadow(radius: 20)
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 
@@ -1188,12 +1233,14 @@ struct StalemateAlertView: View {
             .cornerRadius(20)
             .shadow(radius: 20)
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 
 /// Custom 50-move rule draw alert with both kings
 struct FiftyMoveDrawAlertView: View {
     @Binding var isPresented: Bool
+    let onOK: () -> Void
     let onNewGame: () -> Void
 
     var body: some View {
@@ -1228,6 +1275,7 @@ struct FiftyMoveDrawAlertView: View {
                 HStack(spacing: 12) {
                     Button("OK") {
                         isPresented = false
+                        onOK()
                     }
                     .buttonStyle(.bordered)
                     .tint(.gray)
@@ -1245,6 +1293,7 @@ struct FiftyMoveDrawAlertView: View {
             .cornerRadius(20)
             .shadow(radius: 20)
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 
@@ -1296,6 +1345,7 @@ struct ResignationAlertView: View {
             .cornerRadius(20)
             .shadow(radius: 20)
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 
@@ -1303,6 +1353,7 @@ struct ResignationAlertView: View {
 struct TimeForfeitAlertView: View {
     let winner: Color
     @Binding var isPresented: Bool
+    let onOK: () -> Void
     let onNewGame: () -> Void
 
     var body: some View {
@@ -1330,6 +1381,7 @@ struct TimeForfeitAlertView: View {
                 HStack(spacing: 12) {
                     Button("OK") {
                         isPresented = false
+                        onOK()
                     }
                     .buttonStyle(.bordered)
                     .tint(.gray)
@@ -1347,6 +1399,96 @@ struct TimeForfeitAlertView: View {
             .cornerRadius(20)
             .shadow(radius: 20)
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
+    }
+}
+
+/// Custom check alert overlay
+struct CheckAlertView: View {
+    @Binding var isPresented: Bool
+    let playerName: String
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Check!")
+                    .font(.headline)
+                    .padding(.top)
+
+                Text("\(playerName) is in check!")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Button("OK") {
+                    isPresented = false
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+}
+
+/// Custom AI timeout alert overlay
+struct AITimeoutAlertView: View {
+    @Binding var isPresented: Bool
+    let aiColorName: String
+    let errorMessage: String
+    let onTryAgain: () -> Void
+    let onResign: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("AI Engine Timeout")
+                    .font(.headline)
+                    .padding(.top)
+
+                Text("Stockfish did not respond within 30 seconds. This may be due to position complexity or system resources.")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Text("Error: \(errorMessage)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                HStack(spacing: 12) {
+                    Button("Try Again") {
+                        isPresented = false
+                        onTryAgain()
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button("Resign for \(aiColorName)") {
+                        isPresented = false
+                        onResign()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+                }
+                .padding(.bottom)
+            }
+            .frame(width: 320)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }
 

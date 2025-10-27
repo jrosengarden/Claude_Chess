@@ -66,6 +66,7 @@ struct ChessComSettingsView: View {
         }
         .navigationTitle("Chess.com")
         .navigationBarTitleDisplayMode(.inline)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 

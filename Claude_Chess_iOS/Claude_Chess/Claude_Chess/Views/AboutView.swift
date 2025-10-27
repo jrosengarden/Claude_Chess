@@ -155,19 +155,21 @@ struct AboutView: View {
                 }
             }
         }
-        .confirmationDialog("Contact Developer", isPresented: $showingContactOptions, titleVisibility: .visible) {
-            Button("Feedback") {
-                sendEmail(type: "Feedback")
+        .overlay {
+            if showingContactOptions {
+                ContactDeveloperAlertView(
+                    isPresented: $showingContactOptions,
+                    onFeedback: {
+                        sendEmail(type: "Feedback")
+                    },
+                    onBugReport: {
+                        sendEmail(type: "Bug Report")
+                    },
+                    onFeatureRequest: {
+                        sendEmail(type: "Feature Request")
+                    }
+                )
             }
-            Button("Bug Report") {
-                sendEmail(type: "Bug Report")
-            }
-            Button("Feature Request") {
-                sendEmail(type: "Feature Request")
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("What would you like to send?")
         }
         .onAppear {
             // Get Stockfish version from shared engine instance
@@ -192,6 +194,7 @@ struct AboutView: View {
                 }
             }
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 
     // MARK: - Helper Functions
@@ -207,6 +210,69 @@ struct AboutView: View {
                 UIApplication.shared.open(url)
             }
         }
+    }
+}
+
+/// Custom contact developer alert overlay
+struct ContactDeveloperAlertView: View {
+    @Binding var isPresented: Bool
+    let onFeedback: () -> Void
+    let onBugReport: () -> Void
+    let onFeatureRequest: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Contact Developer")
+                    .font(.headline)
+                    .padding(.top)
+
+                Text("What would you like to send?")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                VStack(spacing: 12) {
+                    Button("Feedback") {
+                        isPresented = false
+                        onFeedback()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+
+                    Button("Bug Report") {
+                        isPresented = false
+                        onBugReport()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+
+                    Button("Feature Request") {
+                        isPresented = false
+                        onFeatureRequest()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+
+                    Button("Cancel") {
+                        isPresented = false
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }
 

@@ -80,6 +80,7 @@ struct ScoreView: View {
                 }
             }
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 
     /// Format evaluation based on selected scale

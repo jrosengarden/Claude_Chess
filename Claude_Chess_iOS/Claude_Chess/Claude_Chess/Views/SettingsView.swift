@@ -90,6 +90,7 @@ struct SettingsView: View {
                 }
             }
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 
@@ -175,6 +176,7 @@ struct BoardColorThemePickerView: View {
         }
         .navigationTitle("Board Colors")
         .navigationBarTitleDisplayMode(.inline)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 
@@ -263,6 +265,7 @@ struct CustomColorPickerView: View {
         }
         .navigationTitle("Custom Colors")
         .navigationBarTitleDisplayMode(.inline)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 

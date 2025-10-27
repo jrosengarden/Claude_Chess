@@ -173,7 +173,15 @@ terminal project:
 3. **Accessibility First** - VoiceOver support for all features
 4. **60fps Performance** - Smooth animations, efficient updates
 5. **Swift API Guidelines** - Follow Apple's naming conventions
-6. **"Going Forward" Promises MUST Be Documented** - Developer has
+6. **Dynamic Type Accessibility Standard (MANDATORY)** - NEVER use
+   standard SwiftUI `.alert()`, `.confirmationDialog()`, or
+   `.actionSheet()` modifiers. iOS standard alerts ignore Dynamic Type
+   caps, causing layout breaking at extreme accessibility text sizes.
+   ALL alerts and modal sheets MUST be custom overlay views with
+   `.dynamicTypeSize(...DynamicTypeSize.xxxLarge)` applied. Custom
+   overlays provide consistent styling, complete text size control, and
+   better UX. See Sessions 28-29 for implementation patterns.
+7. **"Going Forward" Promises MUST Be Documented** - Developer has
    NO session memory. Any "going forward I will..." promise is
    MEANINGLESS unless immediately documented in CLAUDE.md Development
    Standards section. When making workflow commitments, ALWAYS follow
@@ -812,6 +820,137 @@ not globally. Allows flexibility:
 - Engine preference persistence
 - Rate limit tracking and throttling
 
+## Custom Alert Overlay System
+
+**Status:** ✅ **COMPLETE** - Mandatory standard for all alerts/modals
+(Sessions 28-29)
+
+### Problem: iOS Standard Alert Accessibility Issues
+
+iOS standard `.alert()` modifiers ignore Dynamic Type size caps,
+causing:
+- Gigantic text at extreme accessibility settings (Larger
+  Accessibility Sizes)
+- Layout breaking and text overflow
+- Inconsistent styling across different alert types
+- Poor integration with app theming
+
+### Solution: Custom Overlay Pattern
+
+All alerts converted to custom SwiftUI views with ZStack overlay
+pattern:
+
+```swift
+struct CustomAlertView: View {
+    @Binding var isPresented: Bool
+    // Alert-specific properties
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Alert Title")
+                    .font(.headline)
+                    .padding(.top)
+
+                Text("Alert message content")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Button("OK") {
+                    isPresented = false
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // MANDATORY
+    }
+}
+```
+
+### Implementation Requirements
+
+**Every custom alert MUST have:**
+1. `.dynamicTypeSize(...DynamicTypeSize.xxxLarge)` cap (MANDATORY)
+2. Semi-transparent black background (.opacity(0.4))
+3. Fixed-width panel (300-320px for consistency)
+4. Rounded corners (20pt radius)
+5. Shadow for depth (radius: 20)
+6. System background color (adapts to light/dark mode)
+7. Proper spacing (20pt between elements)
+8. Theme-coordinated button styles
+
+### Converted Alerts (13 total)
+
+**Game-Ending Alerts (ChessBoardView.swift):**
+- CheckmateAlertView - Winner announcement with king icon
+- StalemateAlertView - Draw announcement with both kings
+- FiftyMoveDrawAlertView - 50-move rule draw with both kings
+- ResignationAlertView - Winner announcement with pawn icon
+- TimeForfeitAlertView - Time forfeit with winner's pawn
+
+**Game State Alerts (ChessBoardView.swift):**
+- CheckAlertView - Check notification
+- AITimeoutAlertView - AI engine timeout with Try Again/Resign
+
+**Game Actions (QuickGameMenuView.swift):**
+- DrawResultAlertView - Draw offer accepted/declined
+- ResignConfirmationAlertView - Resign confirmation prompt
+- FENDisplayView - FEN string display with copy
+- PGNDisplayView - PGN display with copy
+
+**Game Management (GameMenuView.swift):**
+- SetupBoardView - FEN input for board setup
+- InvalidFENAlertView - FEN validation error
+- SaveGamePromptView - Save current game prompt
+
+**Other (ContentView.swift, AboutView.swift):**
+- HintAlertView - Hint display with move notation
+- ContactDeveloperAlertView - Email category selection
+
+**Navigation Views (Settings/Opponent):**
+- BoardColorThemePickerView - Board theme selection
+- CustomColorPickerView - Custom color creation
+- ChessPiecesView - Piece style selection
+- ChessComSettingsView - Chess.com placeholder
+- LichessSettingsView - Lichess placeholder
+- EngineTestResultsView - Stockfish test results
+
+### Benefits Achieved
+
+1. **Complete accessibility control** - App maintains perfect layout at
+   all iOS text sizes
+2. **Consistent professional styling** - All alerts match app design
+   language
+3. **Better UX** - Theme-coordinated colors, proper spacing, clear
+   hierarchy
+4. **Maintainability** - Single pattern applied consistently across
+   entire app
+5. **User feedback** - "all of the custom alerts look so much better
+   than the native iOS versions"
+
+### Usage in New Code
+
+When adding new alerts:
+1. **NEVER** use `.alert()`, `.confirmationDialog()`, or
+   `.actionSheet()`
+2. Create custom view struct following the pattern above
+3. Add `.overlay { if showingAlert { CustomAlertView(...) } }` to
+   parent view
+4. Apply `.dynamicTypeSize(...DynamicTypeSize.xxxLarge)` to custom
+   view
+5. Test with extreme accessibility text sizes (Settings → Accessibility
+   → Display & Text Size → Larger Text → enable Larger Accessibility
+   Sizes → max slider)
+
 ## Technical Advantages
 
 ### Code Reusability
@@ -1418,6 +1557,69 @@ with Settings
   `AboutView.swift`, `OpponentView.swift`, `TimeControlsView.swift`
 - **TODO count:** 5 (unchanged)
 
+**Session 28: Oct 26-27, 2025** - Comprehensive Alert System Overhaul
+- **Critical accessibility bug** - iOS standard `.alert()` calls ignore
+  Dynamic Type caps causing gigantic text and layout breaking
+- **Systematic conversion** - Converted ALL 7 standard alerts to custom
+  overlays with Dynamic Type protection
+  - Setup Game Board → Custom SetupBoardView overlay (improved from
+    full sheet to compact panel)
+  - Invalid FEN String → InvalidFENAlertView overlay
+  - Check Alert → CheckAlertView overlay
+  - AI Timeout → AITimeoutAlertView overlay (Try Again/Resign buttons)
+  - Draw Offer Result → DrawResultAlertView overlay
+  - Resign Confirmation → ResignConfirmationAlertView overlay
+  - Contact Developer → ContactDeveloperAlertView overlay (4 buttons)
+- **Board locking fixes** - Game-ending conditions now properly lock
+  board
+  - Added `game.gameHasEnded` check to handleSingleTap,
+    handleDragChanged, handleDoubleTap
+  - Fixed Time Forfeit and 50-Move Rule allowing moves after "OK"
+  - Fixed all game endings (checkmate, stalemate, resignation, time
+    forfeit, 50-move) to lock board
+- **Timer management fixes** - Timers now stop on all game-ending
+  conditions
+  - Added `game.stopMoveTimer()` to checkmate, stalemate, 50-move rule
+    detection
+  - Fixed timer continuing to count down after game ended
+- **UX fixes** - Multiple button/navigation improvements
+  - Removed duplicate "Done" buttons in TimeControlsView and
+    OpponentView
+  - Disabled Undo/Hint buttons when game ends (ContentView)
+  - AI Timeout error handling with proper alerts instead of silent
+    failure
+- **Custom alert styling** - Consistent professional design across all
+  overlays
+  - 300-320px width panels with rounded corners and shadows
+  - All overlays have `.dynamicTypeSize(...DynamicTypeSize.xxxLarge)`
+    cap
+  - Theme-coordinated colors and proper button styles
+  - User feedback: "all of the custom alerts look so much better than
+    the native iOS versions"
+- **Files modified (8):** GameMenuView.swift, ChessBoardView.swift,
+  QuickGameMenuView.swift, AboutView.swift, ContentView.swift,
+  TimeControlsView.swift, OpponentView.swift, StockfishEngine.swift
+- **TODO count:** 5 (unchanged)
+
+**Session 29: Oct 27, 2025** - Navigation Views Dynamic Type Protection
+- **Remaining accessibility issues** - Found 6 more views without
+  Dynamic Type caps
+- **Settings menu fixes** - Applied caps to all navigation destinations
+  - BoardColorThemePickerView (Settings → Color Theme)
+  - CustomColorPickerView (Settings → Color Theme → Custom)
+  - ChessPiecesView (Settings → Chess Pieces)
+- **Opponent menu fixes** - Applied caps to placeholder views
+  - ChessComSettingsView (Opponent → Chess.com)
+  - LichessSettingsView (Opponent → Lichess)
+- **Diagnostics fix** - Applied cap to Stockfish test modal
+  - EngineTestResultsView (Stockfish → Run Integration Tests)
+- **Complete accessibility coverage** - All views/alerts/overlays now
+  properly handle extreme iOS text sizes
+- **Files modified (5):** SettingsView.swift (2 caps),
+  ChessPiecesView.swift, ChessComSettingsView.swift,
+  LichessSettingsView.swift, StockfishSettingsView.swift
+- **TODO count:** 5 (unchanged)
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -1464,6 +1666,19 @@ mistakes), Skill 10 = depth 7 (intermediate play), Skill 20 = depth 15
 (maximum strength). This prevents the depth-10-for-all issue that caused
 unrealistic AI difficulty. User testing confirmed move quality matches
 reference Stockfish 17.1 engine.
+
+**Oct 26-27, 2025**: Dynamic Type accessibility standard - iOS standard
+`.alert()` calls ignore Dynamic Type size caps, causing gigantic text
+and layout breaking when users enable extreme accessibility settings
+(Larger Accessibility Sizes at maximum). Solution: Convert ALL alerts
+and modal sheets to custom overlay views with
+`.dynamicTypeSize(...DynamicTypeSize.xxxLarge)` applied. This became a
+mandatory standard - NO standard SwiftUI alerts allowed in the app.
+Custom overlays provide: (1) consistent professional styling, (2)
+complete accessibility text size control, (3) better UX with proper
+theming and spacing. Sessions 28-29 converted 13 views total (7
+alerts/overlays + 6 navigation destinations). Result: App maintains
+perfect layout at all iOS accessibility text sizes.
 
 ### Implementation Progress
 

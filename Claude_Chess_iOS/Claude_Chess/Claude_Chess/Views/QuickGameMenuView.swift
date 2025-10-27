@@ -222,45 +222,51 @@ struct QuickGameMenuView: View {
                 )
             }
         }
-        .alert(drawAccepted ? "Draw Accepted!" : "Draw Declined", isPresented: $showingDrawResult) {
-            Button("OK") {
-                if drawAccepted {
-                    // End game as draw
-                    game.gameInProgress = false
-                    game.gameHasEnded = true
-                    dismiss()
-                } else {
-                    // Continue playing
-                    dismiss()
-                }
+        .overlay {
+            if showingDrawResult {
+                DrawResultAlertView(
+                    isPresented: $showingDrawResult,
+                    drawAccepted: drawAccepted,
+                    onOK: {
+                        if drawAccepted {
+                            // End game as draw
+                            game.gameInProgress = false
+                            game.gameHasEnded = true
+                            dismiss()
+                        } else {
+                            // Continue playing
+                            dismiss()
+                        }
+                    }
+                )
             }
-        } message: {
-            Text(drawAccepted
-                 ? "Your opponent has accepted the draw offer. Game ends in a draw."
-                 : "Your opponent has declined the draw offer. The game continues.")
         }
-        .alert("Resign Game", isPresented: $showingResignConfirmation) {
-            Button("Cancel", role: .cancel) {
-                // Return to main view (dismiss Quick Menu)
-                dismiss()
+        .overlay {
+            if showingResignConfirmation {
+                ResignConfirmationAlertView(
+                    isPresented: $showingResignConfirmation,
+                    onCancel: {
+                        // Return to main view (dismiss Quick Menu)
+                        dismiss()
+                    },
+                    onResign: {
+                        // Determine winner (opponent of current player)
+                        let winner = game.currentPlayer == .white ? "Black" : "White"
+
+                        // Set resignation winner for alert display
+                        game.resignationWinner = winner
+
+                        // End game permanently
+                        game.gameInProgress = false
+                        game.gameHasEnded = true
+                        game.stopMoveTimer()
+
+                        dismiss()
+                    }
+                )
             }
-            Button("Resign", role: .destructive) {
-                // Determine winner (opponent of current player)
-                let winner = game.currentPlayer == .white ? "Black" : "White"
-
-                // Set resignation winner for alert display
-                game.resignationWinner = winner
-
-                // End game permanently
-                game.gameInProgress = false
-                game.gameHasEnded = true
-                game.stopMoveTimer()
-
-                dismiss()
-            }
-        } message: {
-            Text("Are you sure you want to resign? Your opponent will win the game.")
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 
@@ -348,6 +354,7 @@ struct FENDisplayView: View {
             .cornerRadius(20)
             .shadow(radius: 20)
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 
@@ -435,6 +442,93 @@ struct PGNDisplayView: View {
             .cornerRadius(20)
             .shadow(radius: 20)
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
+    }
+}
+
+/// Custom draw result alert overlay
+struct DrawResultAlertView: View {
+    @Binding var isPresented: Bool
+    let drawAccepted: Bool
+    let onOK: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text(drawAccepted ? "Draw Accepted!" : "Draw Declined")
+                    .font(.headline)
+                    .padding(.top)
+
+                Text(drawAccepted
+                     ? "Your opponent has accepted the draw offer. Game ends in a draw."
+                     : "Your opponent has declined the draw offer. The game continues.")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Button("OK") {
+                    isPresented = false
+                    onOK()
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+}
+
+/// Custom resign confirmation alert overlay
+struct ResignConfirmationAlertView: View {
+    @Binding var isPresented: Bool
+    let onCancel: () -> Void
+    let onResign: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Resign Game")
+                    .font(.headline)
+                    .padding(.top)
+
+                Text("Are you sure you want to resign? Your opponent will win the game.")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                HStack(spacing: 12) {
+                    Button("Cancel") {
+                        isPresented = false
+                        onCancel()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+
+                    Button("Resign") {
+                        isPresented = false
+                        onResign()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+                }
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }
 

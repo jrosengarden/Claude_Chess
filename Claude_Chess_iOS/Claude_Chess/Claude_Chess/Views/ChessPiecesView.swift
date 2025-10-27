@@ -105,6 +105,7 @@ struct ChessPiecesView: View {
         }
         .navigationTitle("Chess Pieces")
         .navigationBarTitleDisplayMode(.inline)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 

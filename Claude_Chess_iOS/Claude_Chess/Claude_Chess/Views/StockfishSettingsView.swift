@@ -215,6 +215,7 @@ struct StockfishSettingsView: View {
                     }
             }
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 
     /// Returns human-readable description of skill level
@@ -252,6 +253,7 @@ struct EngineTestResultsView: View {
         }
         .navigationTitle("Stockfish Test Results")
         .navigationBarTitleDisplayMode(.inline)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 

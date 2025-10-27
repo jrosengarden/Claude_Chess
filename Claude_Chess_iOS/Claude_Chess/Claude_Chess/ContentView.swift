@@ -153,7 +153,7 @@ struct ContentView: View {
                 // Scrollable action buttons
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        // Undo button (always visible, disabled when no moves to undo)
+                        // Undo button (disabled when no moves to undo OR game has ended)
                         Button {
                             #if os(iOS)
                             if hapticFeedbackEnabled {
@@ -166,10 +166,10 @@ struct ContentView: View {
                                 .font(headerButtonFont)
                                 .foregroundColor(boardDarkColor)
                         }
-                        .disabled(game.moveHistory.isEmpty)
-                        .opacity(game.moveHistory.isEmpty ? 0.3 : 1.0)
+                        .disabled(game.moveHistory.isEmpty || game.gameHasEnded)
+                        .opacity(game.moveHistory.isEmpty || game.gameHasEnded ? 0.3 : 1.0)
 
-                        // Hint button (lightbulb icon - disabled until game starts and engine available)
+                        // Hint button (lightbulb icon - disabled until game starts, when no engine, or when game has ended)
                         Button {
                             #if os(iOS)
                             if hapticFeedbackEnabled {
@@ -182,8 +182,8 @@ struct ContentView: View {
                                 .font(headerButtonFont)
                                 .foregroundColor(.yellow)
                         }
-                        .disabled(isRequestingHint || !game.gameInProgress || game.engine == nil)
-                        .opacity((isRequestingHint || !game.gameInProgress || game.engine == nil) ? 0.3 : 1.0)
+                        .disabled(isRequestingHint || !game.gameInProgress || game.engine == nil || game.gameHasEnded)
+                        .opacity((isRequestingHint || !game.gameInProgress || game.engine == nil || game.gameHasEnded) ? 0.3 : 1.0)
 
                         // Quick Game button (lightning bolt icon)
                         Button {
@@ -520,6 +520,9 @@ struct ContentView: View {
                 TimeForfeitAlertView(
                     winner: winner,
                     isPresented: $showingTimeForfeitAlert,
+                    onOK: {
+                        // Keep game locked (gameHasEnded already true from time forfeit detection)
+                    },
                     onNewGame: {
                         Task {
                             await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel)
@@ -528,12 +531,14 @@ struct ContentView: View {
                 )
             }
         }
-        .alert(hintAlertTitle(), isPresented: $showingHintAlert) {
-            Button("OK") {
-                showingHintAlert = false
+        .overlay {
+            if showingHintAlert {
+                HintAlertView(
+                    isPresented: $showingHintAlert,
+                    hint: game.currentHint,
+                    formatHint: formatHintForAlert
+                )
             }
-        } message: {
-            Text(hintAlertMessage())
         }
     }
 
@@ -613,19 +618,6 @@ struct ContentView: View {
         }
     }
 
-    /// Title for hint alert
-    private func hintAlertTitle() -> String {
-        return game.currentHint != nil ? "💡 Move Hint" : "Hint"
-    }
-
-    /// Message for hint alert
-    private func hintAlertMessage() -> String {
-        if let hint = game.currentHint {
-            return formatHintForAlert(hint)
-        }
-        return "No hint available."
-    }
-
     /// Format UCI move notation for alert display
     /// - Parameter uciMove: UCI move string (e.g., "e2e4", "e7e8q")
     /// - Returns: Human-readable move notation
@@ -650,6 +642,49 @@ struct ContentView: View {
         }
 
         return "\(from) → \(to)\n\nMove your piece from \(from) to \(to)."
+    }
+}
+
+/// Custom hint alert overlay
+struct HintAlertView: View {
+    @Binding var isPresented: Bool
+    let hint: String?
+    let formatHint: (String) -> String
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text(hint != nil ? "💡 Move Hint" : "Hint")
+                    .font(.headline)
+                    .padding(.top)
+
+                if let hint = hint {
+                    Text(formatHint(hint))
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                } else {
+                    Text("No hint available.")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                }
+
+                Button("OK") {
+                    isPresented = false
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)  // Cap text size to prevent layout breaking
     }
 }
 
