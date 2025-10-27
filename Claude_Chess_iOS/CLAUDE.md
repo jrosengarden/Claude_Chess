@@ -1620,6 +1620,43 @@ with Settings
   LichessSettingsView.swift, StockfishSettingsView.swift
 - **TODO count:** 5 (unchanged)
 
+**Session 30: Oct 27, 2025** - AI Time Management & Natural Move Timing
+- **Problem identified** - AI move timing felt robotic and artificial
+  with fixed delays
+  - Original: 10-second cap caused exactly 10 seconds every move
+  - Increased to 30 seconds but still felt mechanical (exactly 15 sec)
+  - Depth-only approach too fast (sub-second moves, timer didn't
+    decrement)
+- **Root cause** - UCI `movetime` command forces Stockfish to wait
+  full duration even if move found quickly
+- **Final solution** - Hybrid approach with randomness
+  - Opening moves (1-10): Use 1/40th of time with ±30% random
+    variation (2-10 sec)
+  - Middlegame (11+): Use 1/20th of time with ±30% random variation
+    (5-20 sec)
+  - Minimum 1 second (ensures timer always decrements)
+  - Maximum 30 seconds (prevents excessive waits)
+- **Result** - Natural, varied move timing that feels like real chess
+  engine
+  - Example sequence: 9, 6, 9, 7, 5 seconds (realistic variation)
+  - Time management works correctly (decrements properly)
+  - Simulates opening book behavior without actual book
+- **Opening book planning** - Documented Caissabase integration for
+  Phase 3
+  - Would provide instant opening moves (< 100ms)
+  - Proper opening theory from professional database
+  - Natural transition to calculation when out of book
+  - Added to Implementation Progress as planned feature
+- **Strength discussion** - Clarified AI limitations vs full Stockfish
+  - Our Skill 20: Depth 10, UCI Skill Level 20, challenging but
+    beatable
+  - Full Stockfish: Depth 20-40+, no artificial limits, nearly
+    unbeatable
+  - Intentional design for playable games vs engine analysis
+- **Files modified (2):** ChessGame.swift (time calculation with
+  randomness), StockfishEngine.swift (restored movetime/depth logic)
+- **TODO count:** 6 (added Opening Book Integration)
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -1748,6 +1785,8 @@ perfect layout at all iOS accessibility text sizes.
 - 📋 **"Save current game" prompts before loading positions**
 - 📋 Game save/load (iOS document picker)
 - 📋 Share Game feature (iOS share sheet)
+- 📋 **Opening Book Integration** (Caissabase or similar - adds instant
+  opening moves, natural time management, proper opening theory)
 
 ### Board Color Theme System
 

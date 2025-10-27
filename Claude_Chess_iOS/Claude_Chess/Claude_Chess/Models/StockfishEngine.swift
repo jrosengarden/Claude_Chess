@@ -268,14 +268,12 @@ class StockfishEngine: ChessEngine {
         requestGeneration += 1
         let expectedGeneration = requestGeneration
 
-        // Send go command based on time limit
+        // Send go command: use movetime when time limit specified, otherwise depth-based
         if let timeLimit = timeLimit {
-            // Time-based search (terminal project: uses 1/20th of remaining time)
+            // Time-based search: AI uses specified time (includes randomness for natural feel)
             await engine.send(command: .go(movetime: timeLimit))
         } else {
-            // Depth-based search (terminal project: fixed depth 10, skill controlled by UCI option)
-            // Stockfish's "Skill Level" UCI option handles strength variation internally
-            // Using consistent depth ensures Stockfish can see tactics and choose when to make mistakes
+            // Depth-based search: AI returns immediately when depth reached (time controls disabled)
             await engine.send(command: .go(depth: 10))
         }
 

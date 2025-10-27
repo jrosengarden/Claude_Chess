@@ -1173,13 +1173,20 @@ class ChessGame: ObservableObject {
         // Determine time limit based on time controls
         let timeLimit: Int?
         if timeControlsEnabled && !timeControlsDisabledByUndo {
-            // Time-based search: use ~1/20th of remaining time (terminal project behavior)
             let timeRemaining = getCurrentTime(for: currentPlayer)
-            var moveTime = (timeRemaining * 1000) / 20  // Convert to milliseconds
 
-            // Clamp between 500ms and 10000ms (terminal project limits)
-            if moveTime < 500 { moveTime = 500 }
-            if moveTime > 10000 { moveTime = 10000 }
+            // Use less time in opening (first 10 moves), more in middlegame/endgame
+            // This simulates opening book behavior without actual book integration
+            let divisor = fullmoveNumber <= 10 ? 40 : 20
+            var moveTime = (timeRemaining * 1000) / divisor  // Convert to milliseconds
+
+            // Add randomness (70%-130%) to prevent robotic timing
+            let randomFactor = Double.random(in: 0.7...1.3)
+            moveTime = Int(Double(moveTime) * randomFactor)
+
+            // Clamp between 1 second and 30 seconds
+            if moveTime < 1000 { moveTime = 1000 }
+            if moveTime > 30000 { moveTime = 30000 }
 
             timeLimit = moveTime
         } else {
