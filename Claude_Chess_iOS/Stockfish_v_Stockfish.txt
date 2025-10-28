@@ -1,0 +1,131 @@
+Stockfish 17(iOS AI Engine) v Stockfish 17.1 (External Game/Engine)
+
+Game #1 Results:
+Stockfish 17.1 (External Game/Engine) (White)
+	Skill Level 20
+Stockfish 17 (iOS AI Engine) (Black)
+	Skill Level 5
+	
+Time Controls at Start: 30/10/5/0
+Time Controls at End:	23:18/10/1:06/0
+
+Total Number of Moves: 36
+
+Result Stockfish 17.1 (External Game/Engine) beat our iOS AI Engine
+
+PGN:
+[Event "iPhone Game"]
+[Site "Claude Chess iOS"]
+[Date "2025.10.27"]
+[Round "1"]
+[White "Player"]
+[Black "Stockfish (Level 5)"]
+[Result "1-0"]
+
+1. e2-e4 d7-d6 2. d2-d4 Ng8-f6 3. Nb1-c3 g7-g6 4. Bc1-e3 a7-a6 5. h2-h3 b7-b5 
+6. e4-e5 Nf6-d7 7. h3-h4 b5-b4 8. Nc3-e4 e7-e6 9. h4-h5 Rh8-g8 10. h5xg6 h7xg6 
+11. Qd1-f3 d6-d5 12. Ne4-g5 Qd8-e7 13. Ng5-h7 b4-b3 14. a2xb3 Qe7-b4+ 15. Ke1-d1 Nb8-c6 
+16. Ra1-a4 Qb4-b7 17. Nh7-g5 Rg8-g7 18. Rh1-h8 a6-a5 19. Ng5-h7 Nc6-e7 20. Nh7xf8 Rg7-g8 
+21. Rh8xg8 Nd7xe5 22. Nf8xg6+ Ne7xg8 23. Ng6xe5 c7-c6 24. Qf3-h5 Qb7-e7 25. Be3-g5 Qe7-f8 
+26. Bf1-d3 Ng8-e7 27. Ng1-f3 Bc8-d7 28. Qh5-h4 Bd7-c8 29. Ne5xf7 Ne7-f5 30. Bd3xf5 e6xf5 
+31. Nf7-e5 Qf8-g7 32. Qh4-h5+ Ke8-f8 33. Bg5-h6 Kf8-e7 34. Bh6xg7 Ke7-d8 35. Qh5-f7 Bc8-a6 
+36. Qf7-d7# 1-0
+
+Analysis:  White gained a significant advantage by move #5 (14.2 cp). From that point on
+		   our iOS AI Engine was simply scrambling and could never get an edge or push
+		   back on White.  Black (our iOS AI Engine) made good use of it's allocated
+		   30 minutes (with 10 second increments).  The move times for our iOS AI Engine
+		   were not "robotic" at all this game.  Sometimes our iOS AI Engine moved
+		   quickly and other times it pondered a bit.  Never anything to make me feel
+		   that "this isn't right" if I was a human player going up against this
+		   Stockfish 17 Engine (even though our iOS AI Engine was at Skill Level 5 while
+		   the Stockfish 17.1 External Game/Engine was at Skill Level 20.)
+		   
+Conclusion: I believe our iOS AI Engine played a good game with such a skill level 
+			handicap.
+			
+			
+========================================================================================	
+
+Game #2 Results:
+Stockfish 17.1 (External Game/Engine) (White)
+	Skill Level 20
+Stockfish 17 (iOS AI Engine) (Black)
+	Skill Level 20
+	
+Time Controls at Start: 30/10/5/0
+Time Controls at End:	23:32/10/0:12/0
+
+Total Number of Moves: 70 (External Stockfish Engine/Game declared a draw)
+						  (When there were only the 2 kings left on the board)
+						  (but our iOS AI Engine continued to play and did not)
+						  (declare a draw)
+
+Result Our iOS AI Engine wrestled the External Stockfish Engine/Game to a draw!!!
+
+PGN:
+[Event "iPhone Game"]
+[Site "Claude Chess iOS"]
+[Date "2025.10.27"]
+[Round "1"]
+[White "Player"]
+[Black "Stockfish (Level 20)"]
+[Result "*"]
+
+1. e2-e4 c7-c5 2. Ng1-f3 e7-e6 3. d2-d4 c5xd4 4. Nf3xd4 a7-a6 5. Bf1-d3 Ng8-f6 
+6. O-O Qd8-c7 7. Qd1-e2 d7-d6 8. c2-c4 g7-g6 9. Bc1-e3 Bf8-g7 10. Nb1-c3 O-O 
+11. Rf1-d1 Nb8-c6 12. h2-h3 Nf6-d7 13. Nd4xc6 b7xc6 14. Qe2-d2 c6-c5 15. Bd3-f1 Ra8-b8 
+16. Ra1-c1 Rf8-e8 17. Rc1-c2 Bg7-f8 18. Be3-h6 Bf8-e7 19. f2-f4 Be7-f6 20. Qd2xd6 Qc7xd6 
+21. Rd1xd6 Bf6-d4+ 22. Kg1-h2 f7-f6 23. g2-g3 Rb8-b6 24. Rd6xb6 Nd7xb6 25. b2-b3 Bc8-b7 
+26. Bf1-g2 Nb6-d7 27. Rc2-c1 Bb7-c6 28. e4-e5 Bc6xg2 29. Kh2xg2 f6xe5 30. Nc3-e4 e5xf4 
+31. Bh6xf4 Kg8-g7 32. Bf4-d6 h7-h6 33. Rc1-d1 a6-a5 34. Bd6xc5 Nd7xc5 35. Rd1xd4 e6-e5 
+36. Ne4-d6 e5xd4 37. Nd6xe8+ Kg7-f7 38. Ne8-c7 d4-d3 39. Kg2-f3 d3-d2 40. Kf3-e2 Nc5-e4 
+41. Nc7-b5 Kf7-e6 42. Nb5-d4+ Ke6-d6 43. a2-a3 Kd6-c5 44. Nd4-f3 Ne4xg3+ 45. Ke2xd2 a5-a4 
+46. b3-b4+ Kc5xc4 47. Nf3-e5+ Kc4-d4 48. Ne5xg6 Ng3-e4+ 49. Kd2-c2 Ne4-d6 
+50. Ng6-f4 Nd6-c4 51. Nf4-e6+ Kd4-e5 52. Ne6-c5 Nc4xa3+ 53. Kc2-d3 Ke5-f4 
+54. Nc5xa4 Kf4-g3 55. Na4-c3 Kg3xh3 56. b4-b5 Na3xb5 57. Nc3xb5 Kh3-h2 58. Kd3-e3 Kh2-g3 
+59. Nb5-d4 Kg3-g4 60. Ke3-e4 h6-h5 61. Nd4-f3 Kg4-g3 62. Nf3-d4 Kg3-g4 63. Nd4-e2 h5-h4 
+64. Ne2-f4 Kg4-g3 65. Nf4-e2+ Kg3-f2 66. Ne2-f4 Kf2-g3 67. Nf4-d5 h4-h3 68. Nd5-e3 h3-h2 
+69. Ne3-f1+ Kg3-g2 70. Nf1xh2 Kg2xh2 71. Ke4-d5 Kh2-h3 72. Kd5-e5 Kh3-g2 *
+
+Analysis:  The External Stockfish Game/Engine started gaining the upperhand around move
+		   #12 but our iOS Stockfish Engine kept pushing back taking away the minimal
+		   upperhand so it was basically still an even game. The External Stockfish 
+		   Engine/Game kept trying to gain the upperhand but it just went back and forth
+		   with the External Stockfish Engine slowly increasing it's gain (albiet an
+		   upperhand of ~100 cp). Around move #44 the External Stockfish Engine/Game 
+		   actually had a gain of 350 cp - pretty significant! However at move #46 our
+		   iOS AI Engine erased that entire advantage back to a dead even game (and the
+		   external Stockfish Engine/Game was now predicting a 99% game draw at this
+			point.)  From this point (move #46) on neither side could gain any advantage
+			and just started trading material heading for a draw....which is exactly what
+			happened.	
+		   
+Conclusion: I believe our iOS AI Engine played a great game, battling back from a 
+			350 cp disadvantage to a draw!  THAT is MUCH stronger playing then we
+			would see from a human player (who isn't a grandmaster).  It actually
+			played a phenomenal game when Black only had a pawn and a King left and
+			White had a knight and a king.  Black was desperately trying to push 
+			that last pawn into a promotion, using it's king to protect it as it 
+			tried to push it forward but White played a stellar game with it's 
+			knight and king, battling for a couple of moves until White "won" and
+			captured the pawn....albiet at the expense of loosing it's knight thus
+			forcing the draw but....as I watched I was amazed at how our iOS
+			AI Engine was craftily beating off the white knight time and time again!
+						
+			I think this "puts to rest" that our throttling of the iOS Stockfish engine
+			would be crippling it's game.  I don't think that is the case at all.  Also
+			in this game, as well as the 1st game, the moves were not "robotic" and the
+			time to move changed +/- along the way.
+			
+SERIOUS QUESTION:  Why did our iOS App not declare a draw when there were only 2 kings
+				   remaining.  Did we miss this chess rule (insufficient material?)
+			
+			
+			
+			
+			
+			
+			
+			
+			

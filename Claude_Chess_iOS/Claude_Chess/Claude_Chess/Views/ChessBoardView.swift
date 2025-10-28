@@ -158,36 +158,33 @@ struct ChessBoardView: View {
             let labelSize = showCoordinates ? availableSize * 0.06 : 0
 
             ZStack {
-                // Board with optional coordinate labels
+                // Main layout: Board + Labels (labels stay in place, only board rotates)
                 VStack(spacing: 0) {
-                    // Top spacer (no label needed at top)
+                    // Top spacer for coordinate labels
                     if showCoordinates {
                         Spacer()
                             .frame(height: labelSize)
                     }
 
-                    // Board rows with left-side rank labels
                     HStack(spacing: 0) {
-                        // Left rank labels (1-8, respect board flip)
+                        // Left rank labels (ALWAYS on left, order reverses when flipped)
                         if showCoordinates {
                             VStack(spacing: 0) {
                                 ForEach(0..<rows, id: \.self) { row in
+                                    // Reverse order when flipped: unflipped = 8,7,6..1, flipped = 1,2,3..8
                                     let rank = boardFlipped ? (row + 1) : (8 - row)
                                     Text("\(rank)")
                                         .font(.system(size: squareSize * 0.25, weight: .bold))
                                         .foregroundColor(coordinateLabelColor)
                                         .frame(width: labelSize, height: squareSize)
-                                        .rotationEffect(.degrees(boardFlipped ? 180 : 0))
                                 }
                             }
                         }
 
-                        // Chess board
+                        // Chess board only (this gets rotated, not the labels)
                         VStack(spacing: 0) {
-                            // Iterate through rows (rank 8 to rank 1)
                             ForEach(0..<rows, id: \.self) { row in
                                 HStack(spacing: 0) {
-                                    // Iterate through columns (file a to file h)
                                     ForEach(0..<columns, id: \.self) { col in
                                         let position = Position(row: row, col: col)
                                         ChessSquareView(
@@ -226,23 +223,23 @@ struct ChessBoardView: View {
                             }
                         }
                         .frame(width: squareSize * 8, height: squareSize * 8)
+                        .rotationEffect(.degrees(boardFlipped ? 180 : 0))  // Only rotate the board, not labels
                     }
 
-                    // Bottom file labels (a-h, respect board flip)
+                    // Bottom file labels (ALWAYS on bottom, order reverses when flipped)
                     if showCoordinates {
                         HStack(spacing: 0) {
-                            // Left spacer to align with board (matches rank label width)
+                            // Left spacer to align with rank labels
                             Spacer()
                                 .frame(width: labelSize)
 
-                            // File labels
+                            // File labels - reverse order when flipped: unflipped = a,b,c..h, flipped = h,g,f..a
                             ForEach(0..<columns, id: \.self) { col in
                                 let file = boardFlipped ? String(UnicodeScalar(UInt8(104 - col))) : String(UnicodeScalar(UInt8(97 + col)))
                                 Text(file)
                                     .font(.system(size: squareSize * 0.25, weight: .bold))
                                     .foregroundColor(coordinateLabelColor)
                                     .frame(width: squareSize, height: labelSize)
-                                    .rotationEffect(.degrees(boardFlipped ? 180 : 0))
                             }
                         }
                     }
@@ -293,7 +290,6 @@ struct ChessBoardView: View {
                     waitOverlay
                 }
             }
-            .rotationEffect(.degrees(boardFlipped ? 180 : 0))
         }
         .onAppear {
             // Check game state when view first appears (handles FEN setup scenarios)

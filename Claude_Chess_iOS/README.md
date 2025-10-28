@@ -79,8 +79,15 @@ experience with SwiftUI.
 ### iOS Features ✅ (Partial)
 - ✅ Drag-and-drop piece movement with ghost piece feedback
 - ✅ Haptic feedback (user-toggleable)
-- ✅ Board flipping for perspective change
+- ✅ **Board flipping** - Rotate board 180° to view from Black's perspective
+  - Coordinate labels stay on LEFT (ranks) and BOTTOM (files) edges always
+  - Label order reverses when flipped (8-1 becomes 1-8, a-h becomes h-a)
+  - All moves use absolute coordinates (e2e4 always means e2→e4 regardless of flip)
+  - Toggle in Quick Menu (⚡) for instant perspective change
 - ✅ **Board coordinate system** - Algebraic notation (a-h, 1-8) with toggle in Settings
+  - Labels positioned on left edge (ranks) and bottom edge (files)
+  - 6% of board space allocated for labels when enabled
+  - Theme-aware color (40% darker than dark square for visibility)
 - ✅ Customizable board colors (7 themes + custom)
 - ✅ **Theme harmony** - All UI text matches board theme colors
 - ✅ Professional SVG chess pieces (Cburnett)
@@ -101,9 +108,19 @@ experience with SwiftUI.
 
 ## Development Status
 
-**Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 25, 2025)
+**Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 28, 2025)
 
-**Latest Progress (October 25, 2025 - Session 27):**
+**Latest Progress (October 28, 2025 - Session 31):**
+- ✅ **Board flip coordinate system fix** - Critical bug resolved
+  - Coordinate labels now stay on LEFT (ranks) and BOTTOM (files) edges always
+  - Label order reverses when board flipped (8-1 becomes 1-8, a-h becomes h-a)
+  - Before fix: Labels appeared on TOP and RIGHT when flipped (wrong)
+  - After fix: Professional behavior matching Shredder iOS reference app
+  - Architecture redesign: Only 8x8 board grid rotates, labels stay fixed
+  - PGN notation verified always correct (uses absolute coordinates)
+  - All move input/output uses absolute coordinates regardless of board flip
+
+**Previous Session (October 25, 2025 - Session 27):**
 - ✅ **Board coordinate system** - Algebraic notation labels (a-h, 1-8) with toggle
   - Labels use 6% of board space when enabled, board scales to 94%
   - Coordinates flip with board orientation for proper perspective

@@ -1657,6 +1657,38 @@ with Settings
   randomness), StockfishEngine.swift (restored movetime/depth logic)
 - **TODO count:** 6 (added Opening Book Integration)
 
+**Session 31: Oct 28, 2025** - Board Flip Coordinate System Fix
+- **Critical bug fixed** - Coordinate labels appearing on wrong edges when
+  board flipped
+  - Before: Labels on TOP and RIGHT when flipped (double transformation)
+  - After: Labels stay on LEFT and BOTTOM always (correct behavior)
+- **Root cause** - Entire container (board + labels) was being rotated 180°
+  - Coordinate labels were part of rotated view
+  - Labels ended up on opposite edges (top/right instead of bottom/left)
+- **Architecture redesign** - Separated board rotation from label positioning
+  - Only the 8x8 chess board grid rotates 180° when flipped
+  - Coordinate labels stay in fixed positions (left edge and bottom edge)
+  - Label content order reverses when flipped (8-1 becomes 1-8, a-h becomes
+    h-a)
+  - Labels maintain absolute chess coordinates regardless of board orientation
+- **Implementation details** (ChessBoardView.swift):
+  - Moved `.rotationEffect()` from entire container to board grid only
+  - Rank labels: `boardFlipped ? (row + 1) : (8 - row)` for reversed order
+  - File labels: `boardFlipped ? (104 - col) : (97 + col)` for reversed order
+  - Labels always stay on LEFT (ranks) and BOTTOM (files) edges
+- **PGN notation verified** - Already correct, always uses absolute coordinates
+  - Position.swift `algebraic` property independent of board flip
+  - MoveRecord.swift notation generation uses Position.algebraic
+  - No references to boardFlipped in move recording logic
+- **Result** - Professional board flip matching Shredder iOS reference app
+  - Unflipped: LEFT = 8,7,6,5,4,3,2,1, BOTTOM = a,b,c,d,e,f,g,h
+  - Flipped: LEFT = 1,2,3,4,5,6,7,8, BOTTOM = h,g,f,e,d,c,b,a
+  - Board pieces rotate, labels stay on same edges with reversed order
+  - All move input/output uses absolute coordinates (e2e4 always means e2e4)
+- **Files modified (1):** ChessBoardView.swift (restructured layout, fixed
+  coordinate system)
+- **TODO count:** 5 (unchanged)
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
