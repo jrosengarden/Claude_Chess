@@ -514,8 +514,10 @@ Terminal command-line flags require iOS Settings equivalents:
 - ✅ **Threefold repetition** - Complete implementation with skill-aware AI
   evaluation (Sessions 32-33)
 
-**❌ Not Implemented:**
-- ❌ **Insufficient material** - (Not implemented in terminal either)
+**📋 Planned Implementation:**
+- 📋 **Insufficient material** - Automatic draw detection for impossible
+  checkmate positions (K vs K, K+N vs K, K+B vs K, K+N+N vs K) - Not in
+  terminal either, iOS will implement first
 
 ---
 
@@ -1873,6 +1875,8 @@ perfect layout at all iOS accessibility text sizes.
 - ✅ **Threefold repetition** (complete with position tracking, alert limits,
   skill-aware AI evaluation, "Claim Draw" button - Sessions 32-33)
 - ✅ **Board flip coordinate fix** (labels stay on correct edges when flipped - Session 31)
+- 📋 **Insufficient material draw detection** - Automatic draw when neither
+  player can checkmate (K vs K, K+N vs K, K+B vs K, K+N+N vs K)
 - 📋 **Game statistics display** (move count, captures, time remaining)
 - 📋 **FEN/PGN import with position navigation** (matches terminal LOAD FEN/PGN)
 - 📋 **"Save current game" prompts before loading positions**
