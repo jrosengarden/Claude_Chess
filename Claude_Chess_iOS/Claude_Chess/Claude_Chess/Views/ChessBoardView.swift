@@ -51,10 +51,14 @@ struct ChessBoardView: View {
     @State private var showingStalemate = false
     @State private var showingFiftyMoveDraw = false
     @State private var showingResignation = false
+    @State private var showingThreefoldRepetition = false
+    @State private var showingDrawResult = false  // Generic draw result (for AI draw offers)
+    @State private var showingThreefoldDrawResult = false  // Threefold repetition draw result
     @State private var winnerColor: Color?
 
     // Check indicator
     @State private var showingCheckAlert = false
+    @State private var checkAlertPlayerName: String = ""  // Capture player name when alert triggers
     @State private var kingInCheckPosition: Position?
 
     // Pawn promotion
@@ -65,6 +69,21 @@ struct ChessBoardView: View {
 
     // AI move tracking (prevent concurrent AI move requests)
     @State private var aiMoveInProgress = false
+
+    /// Check if any alert or modal is currently showing that should block AI moves
+    private func isAnyAlertShowing() -> Bool {
+        if showingCheckmate { return true }
+        if showingStalemate { return true }
+        if showingFiftyMoveDraw { return true }
+        if showingResignation { return true }
+        if game.threefoldAlertShowing { return true }  // Use @Published flag, not @State
+        if showingDrawResult { return true }
+        if showingThreefoldDrawResult { return true }
+        if showingCheckAlert { return true }
+        if showingAITimeoutAlert { return true }
+        if showingPromotionPicker { return true }
+        return false
+    }
 
     // AI timeout handling
     @State private var showingAITimeoutAlert = false
@@ -150,6 +169,64 @@ struct ChessBoardView: View {
     }
 
     var body: some View {
+        boardContentView
+            .onAppear {
+                checkGameEnd()
+            }
+            .onChange(of: game.currentPlayer) { _, _ in
+                checkGameEnd()
+            }
+            .onChange(of: game.resetTrigger) { _, _ in
+                resetBoardState()
+            }
+            .onChange(of: game.aiMoveCheckTrigger) { _, _ in
+                checkGameEnd()
+                if game.gameInProgress && game.isAITurn {
+                    triggerAIMove()
+                }
+            }
+            .onChange(of: game.resignationWinner) { _, newValue in
+                if newValue != nil {
+                    checkGameEnd()
+                }
+            }
+            .onChange(of: showingThreefoldRepetition) { oldValue, newValue in
+                if oldValue == true && newValue == false {
+                    // Clear the blocking flag
+                    game.threefoldAlertShowing = false
+
+                    // Restart timer when threefold alert is dismissed
+                    if game.gameInProgress && !game.gameHasEnded {
+                        game.startMoveTimer()
+                    }
+
+                    // Trigger AI move if it's AI's turn
+                    if !game.gameHasEnded {
+                        triggerAIMove()
+                    }
+                }
+            }
+            .onChange(of: showingCheckAlert) { oldValue, newValue in
+                if oldValue == true && newValue == false {
+                    // Restart timer when check alert is dismissed
+                    if game.gameInProgress && !game.gameHasEnded {
+                        game.startMoveTimer()
+                    }
+                    // Trigger AI move if it's AI's turn
+                    if !game.gameHasEnded && game.gameInProgress {
+                        triggerAIMove()
+                    }
+                }
+            }
+            .onChange(of: game.threefoldDrawClaimed) { oldValue, newValue in
+                // When Claim Draw button is pressed, show threefold draw result alert
+                if newValue == true && game.gameHasEnded {
+                    showingThreefoldDrawResult = true
+                }
+            }
+    }
+
+    private var boardContentView: some View {
         GeometryReader { geometry in
             // Calculate square size accounting for coordinate labels if shown
             // When coordinates shown, allocate ~6% for labels, leaving 94% for board
@@ -266,8 +343,19 @@ struct ChessBoardView: View {
 
                         let boardOriginX = (geometry.size.width - totalWidth) / 2 + (showCoordinates ? labelSize : 0)
                         let boardOriginY = (geometry.size.height - totalHeight) / 2 + (showCoordinates ? labelSize : 0)
-                        let pieceStartX = boardOriginX + CGFloat(draggedPos.col) * squareSize + squareSize / 2
-                        let pieceStartY = boardOriginY + CGFloat(draggedPos.row) * squareSize + squareSize / 2
+
+                        // When board is flipped, the visual position is inverted
+                        // Unflipped: row 0 = top, col 0 = left
+                        // Flipped: row 0 = bottom (visually at row 7), col 0 = right (visually at col 7)
+                        let visualRow = boardFlipped ? (7 - draggedPos.row) : draggedPos.row
+                        let visualCol = boardFlipped ? (7 - draggedPos.col) : draggedPos.col
+
+                        let pieceStartX = boardOriginX + CGFloat(visualCol) * squareSize + squareSize / 2
+                        let pieceStartY = boardOriginY + CGFloat(visualRow) * squareSize + squareSize / 2
+
+                        // When board is flipped, drag offset must also be inverted (finger moves right = piece moves left in flipped view)
+                        let adjustedDragWidth = boardFlipped ? -dragOffset.width : dragOffset.width
+                        let adjustedDragHeight = boardFlipped ? -dragOffset.height : dragOffset.height
 
                         // Offset the ghost piece so it's visible (up and to the right of finger)
                         let visualOffset = squareSize * 0.6
@@ -275,10 +363,10 @@ struct ChessBoardView: View {
                         Image(piece.assetName)
                             .resizable()
                             .frame(width: squareSize * 0.9, height: squareSize * 0.9)
-                            .rotationEffect(.degrees(boardFlipped ? 180 : 0))
+                            // Don't rotate the piece itself - pieces stay upright regardless of board orientation
                             .position(
-                                x: pieceStartX + dragOffset.width + visualOffset,
-                                y: pieceStartY + dragOffset.height - visualOffset
+                                x: pieceStartX + adjustedDragWidth + visualOffset,
+                                y: pieceStartY + adjustedDragHeight - visualOffset
                             )
                             .shadow(radius: 10)
                             .allowsHitTesting(false)
@@ -289,33 +377,6 @@ struct ChessBoardView: View {
                 if showingWaitOverlay {
                     waitOverlay
                 }
-            }
-        }
-        .onAppear {
-            // Check game state when view first appears (handles FEN setup scenarios)
-            checkGameEnd()
-        }
-        .onChange(of: game.currentPlayer) { oldValue, newValue in
-            // Also check game state whenever the current player changes (handles FEN setup)
-            checkGameEnd()
-        }
-        .onChange(of: game.resetTrigger) { oldValue, newValue in
-            // Clear UI state when New Game is created
-            resetBoardState()
-        }
-        .onChange(of: game.aiMoveCheckTrigger) { oldValue, newValue in
-            // Check game state when game starts (handles checkmate/stalemate in Setup Board positions)
-            checkGameEnd()
-
-            // Check if AI should make a move when game starts or after Setup Board
-            if game.gameInProgress && game.isAITurn {
-                triggerAIMove()
-            }
-        }
-        .onChange(of: game.resignationWinner) { oldValue, newValue in
-            // Check for resignation alert when resignationWinner is set
-            if newValue != nil {
-                checkGameEnd()
             }
         }
         // Custom checkmate alert with fallen king icon
@@ -364,6 +425,75 @@ struct ChessBoardView: View {
                 )
             }
         }
+        // Custom threefold repetition alert (human player only)
+        .overlay {
+            if showingThreefoldRepetition {
+                ThreefoldRepetitionAlertView(
+                    isPresented: $showingThreefoldRepetition,
+                    onClaimDraw: {
+                        // Human claims draw
+                        game.threefoldAlertShowing = false
+                        kingInCheckPosition = nil
+                        game.gameHasEnded = true
+                        game.stopMoveTimer()
+                        game.threefoldDrawClaimed = true
+                        showingThreefoldDrawResult = true  // Show threefold-specific alert
+                    },
+                    onContinuePlaying: {
+                        // Human continues playing
+                        game.threefoldAlertShowing = false
+                        game.threefoldDrawClaimed = false
+                    }
+                )
+            }
+        }
+        // Custom draw result alert (for AI draw offers)
+        .overlay {
+            if showingDrawResult {
+                DrawResultAlertView(
+                    isPresented: $showingDrawResult,
+                    onNewGame: {
+                        Task {
+                            await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel, stockfishColor: stockfishPlaysColor)
+                            resetBoardState()
+                        }
+                    }
+                )
+            }
+        }
+        // Custom threefold draw result alert
+        .overlay {
+            if showingThreefoldDrawResult {
+                ThreefoldDrawResultAlertView(
+                    isPresented: $showingThreefoldDrawResult,
+                    onNewGame: {
+                        Task {
+                            await game.resetGame(selectedEngine: selectedEngine, skillLevel: skillLevel, stockfishColor: stockfishPlaysColor)
+                            resetBoardState()
+                        }
+                    }
+                )
+            }
+        }
+        // Spinner while AI evaluates threefold claim
+        .overlay {
+            if game.evaluatingThreefoldClaim {
+                ZStack {
+                    SwiftUI.Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+
+                        Text("Evaluating draw claim...")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                    }
+                }
+            }
+        }
         // Custom resignation alert with chess piece icon
         .overlay {
             if showingResignation {
@@ -383,7 +513,7 @@ struct ChessBoardView: View {
             if showingCheckAlert {
                 CheckAlertView(
                     isPresented: $showingCheckAlert,
-                    playerName: game.currentPlayer.displayName
+                    playerName: checkAlertPlayerName
                 )
             }
         }
@@ -545,7 +675,10 @@ struct ChessBoardView: View {
                         // Evaluation happens AFTER AI move completes (see triggerAIMove)
 
                         // Trigger AI move if playing against AI (terminal project parity)
-                        triggerAIMove()
+                        // Don't trigger if any alert is showing - will trigger when dismissed
+                        if !isAnyAlertShowing() {
+                            triggerAIMove()
+                        }
                     }
                 }
             } else {
@@ -558,9 +691,10 @@ struct ChessBoardView: View {
             }
         }
 
-        // Reset drag state
+        // Reset drag state and clear any lingering selection
         draggedPiece = nil
         dragOffset = .zero
+        selectedSquare = nil  // Clear selection to remove blue border
         legalMoveSquares = []
         capturablePositions = []
     }
@@ -663,7 +797,10 @@ struct ChessBoardView: View {
                         // Evaluation happens AFTER AI move completes (see triggerAIMove)
 
                         // Trigger AI move if playing against AI (terminal project parity)
-                        triggerAIMove()
+                        // Don't trigger if any alert is showing - will trigger when dismissed
+                        if !isAnyAlertShowing() {
+                            triggerAIMove()
+                        }
                     }
                 }
             } else {
@@ -756,6 +893,18 @@ struct ChessBoardView: View {
         kingInCheckPosition = nil
         winnerColor = nil
         aiMoveInProgress = false  // Clear AI move flag
+
+        // Clear all alert states
+        showingCheckmate = false
+        showingStalemate = false
+        showingFiftyMoveDraw = false
+        showingResignation = false
+        showingThreefoldRepetition = false
+        showingDrawResult = false
+        showingThreefoldDrawResult = false
+        showingCheckAlert = false
+        showingAITimeoutAlert = false
+        showingPromotionPicker = false
     }
 
     // MARK: - Pawn Promotion Handler
@@ -781,7 +930,10 @@ struct ChessBoardView: View {
             // Evaluation happens AFTER AI move completes (see triggerAIMove)
 
             // Trigger AI move if playing against AI (terminal project parity)
-            triggerAIMove()
+            // Don't trigger if any alert is showing - will trigger when dismissed
+            if !isAnyAlertShowing() {
+                triggerAIMove()
+            }
         }
 
         // Dismiss promotion picker
@@ -814,6 +966,11 @@ struct ChessBoardView: View {
             return
         }
 
+        // Don't trigger AI move if threefold alert is showing to human
+        guard !game.threefoldAlertShowing else {
+            return
+        }
+
         // Only trigger if game hasn't ended
         guard !GameStateChecker.isCheckmate(game: game, color: game.currentPlayer) &&
               !GameStateChecker.isStalemate(game: game, color: game.currentPlayer) &&
@@ -827,6 +984,9 @@ struct ChessBoardView: View {
         // Request and execute AI move asynchronously
         Task {
             do {
+                // Record start time to ensure minimum 1 second elapsed
+                let moveStartTime = Date()
+
                 // Get AI move from engine
                 guard let uciMove = try await game.getAIMove() else {
                     print("ERROR: AI engine returned no move")
@@ -837,7 +997,16 @@ struct ChessBoardView: View {
                     return
                 }
 
-                // Execute the AI move
+                // Calculate how long Stockfish took
+                let engineElapsed = Date().timeIntervalSince(moveStartTime)
+
+                // If less than 1 second, wait for the remainder to ensure 1 second minimum
+                if engineElapsed < 1.0 {
+                    let remainingTime = 1.0 - engineElapsed
+                    try? await Task.sleep(nanoseconds: UInt64(remainingTime * 1_000_000_000))
+                }
+
+                // Execute the AI move (this calls stopMoveTimer which deducts the actual elapsed time)
                 let success = await game.executeAIMove(uciMove)
 
                 if success {
@@ -848,6 +1017,14 @@ struct ChessBoardView: View {
                             heavyHaptic.impactOccurred()
                         }
                         #endif
+
+                        // DEBUG: Log before checking game end
+                        NSLog("DEBUG: AI move completed, calling checkGameEnd()")
+
+                        // Check for game-ending conditions after AI move
+                        checkGameEnd()
+
+                        NSLog("DEBUG: checkGameEnd() returned, threefoldAlertShowing = %d", game.threefoldAlertShowing)
                     }
 
                     // NOTE: Position evaluation NOT done automatically
@@ -904,6 +1081,63 @@ struct ChessBoardView: View {
             return
         }
 
+        // Check for threefold repetition
+        NSLog("DEBUG: Checking threefold repetition...")
+        if game.checkThreefoldRepetition() {
+            NSLog("DEBUG: THREEFOLD DETECTED! isAITurn = %d", game.isAITurn)
+            // Clear check alert and visual indicator since threefold takes priority
+            showingCheckAlert = false
+            kingInCheckPosition = nil
+
+            // Handle based on current player
+            if game.isAITurn {
+                // Prevent concurrent evaluations
+                guard !game.evaluatingThreefoldClaim else {
+                    NSLog("DEBUG: AI threefold evaluation already in progress, skipping")
+                    return
+                }
+
+                NSLog("DEBUG: AI's turn - evaluating draw claim...")
+                // Set BOTH flags IMMEDIATELY to block concurrent triggers
+                game.threefoldAlertShowing = true
+                game.evaluatingThreefoldClaim = true  // Set BEFORE Task starts
+
+                // Evaluate and auto-claim if losing badly (timer keeps running - evaluation is "on the clock")
+                Task {
+                    let aiClaimsDraw = await game.handleAIThreefoldRepetition()
+                    await MainActor.run {
+                        NSLog("DEBUG: AI threefold decision returned: %d", aiClaimsDraw)
+                        game.threefoldDrawClaimed = aiClaimsDraw
+                        if aiClaimsDraw {
+                            // AI claims draw - stop timer
+                            NSLog("DEBUG: AI claimed draw - ending game")
+                            kingInCheckPosition = nil
+                            game.gameHasEnded = true
+                            game.stopMoveTimer()
+                            showingThreefoldDrawResult = true  // Show threefold-specific alert
+                        } else {
+                            // AI continues playing - clear flag and continue (timer never stopped)
+                            NSLog("DEBUG: AI declined draw - clearing flag")
+                            game.threefoldAlertShowing = false
+                            if game.gameInProgress && !game.gameHasEnded {
+                                NSLog("DEBUG: Triggering AI move")
+                                triggerAIMove()
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Human's turn - show alert with choice (stop timer while human decides)
+                NSLog("DEBUG: Human's turn - showing alert")
+                game.stopMoveTimer()
+                game.threefoldAlertShowing = true
+                game.incrementThreefoldAlertCount()  // Increment alert count when showing to human
+                showingThreefoldRepetition = true
+            }
+            return
+        }
+        NSLog("DEBUG: No threefold detected")
+
         // Check if current player is in checkmate
         if GameStateChecker.isCheckmate(game: game, color: game.currentPlayer) {
             winnerColor = game.currentPlayer.opposite
@@ -928,7 +1162,18 @@ struct ChessBoardView: View {
         if GameStateChecker.isInCheck(game: game, color: game.currentPlayer) {
             // Set king position for visual indicator (red border)
             kingInCheckPosition = game.currentPlayer == .white ? game.whiteKingPos : game.blackKingPos
-            showingCheckAlert = true
+
+            // Only show check alert if no other alerts are showing
+            // Check alerts are informational and should never interrupt important game-ending alerts
+            if !showingCheckmate && !showingStalemate && !showingFiftyMoveDraw &&
+               !showingResignation && !showingThreefoldRepetition && !showingDrawResult &&
+               !showingThreefoldDrawResult {
+                // Capture the player name NOW before it changes
+                checkAlertPlayerName = game.currentPlayer.displayName
+                // Stop timer while check alert is displayed
+                game.stopMoveTimer()
+                showingCheckAlert = true
+            }
         } else {
             // Clear check indicator if not in check
             kingInCheckPosition = nil
@@ -1480,6 +1725,182 @@ struct AITimeoutAlertView: View {
                 .padding(.bottom)
             }
             .frame(width: 320)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+}
+
+/// Custom draw result alert (generic draw)
+struct DrawResultAlertView: View {
+    @Binding var isPresented: Bool
+    let onNewGame: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Draw!")
+                    .font(.headline)
+                    .padding(.top)
+
+                VStack(spacing: 12) {
+                    HStack(spacing: 20) {
+                        Image("Chess_klt45")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 50, height: 50)
+
+                        Image("Chess_kdt45")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 50, height: 50)
+                    }
+
+                    Text("The game is a draw.")
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+
+                HStack(spacing: 12) {
+                    Button("OK") {
+                        isPresented = false
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+
+                    Button("New Game") {
+                        isPresented = false
+                        onNewGame()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+}
+
+/// Custom alert for AI claiming threefold repetition draw
+struct ThreefoldDrawResultAlertView: View {
+    @Binding var isPresented: Bool
+    let onNewGame: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Draw!")
+                    .font(.headline)
+                    .padding(.top)
+
+                VStack(spacing: 12) {
+                    HStack(spacing: 20) {
+                        Image("Chess_klt45")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 50, height: 50)
+
+                        Image("Chess_kdt45")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 50, height: 50)
+                    }
+
+                    Text("Draw by threefold repetition.")
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+
+                HStack(spacing: 12) {
+                    Button("OK") {
+                        isPresented = false
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+
+                    Button("New Game") {
+                        isPresented = false
+                        onNewGame()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.bottom)
+            }
+            .frame(width: 300)
+            .background(SwiftUI.Color(UIColor.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+}
+
+/// Custom threefold repetition alert overlay for human player
+struct ThreefoldRepetitionAlertView: View {
+    @Binding var isPresented: Bool
+    let onClaimDraw: () -> Void
+    let onContinuePlaying: () -> Void
+
+    var body: some View {
+        ZStack {
+            SwiftUI.Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Threefold Repetition")
+                    .font(.headline)
+                    .padding(.top)
+
+                VStack(spacing: 12) {
+                    HStack(spacing: 20) {
+                        Image("Chess_klt45")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 50, height: 50)
+
+                        Image("Chess_kdt45")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 50, height: 50)
+                    }
+
+                    Text("The same position has occurred three times. You may claim a draw.")
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+
+                HStack(spacing: 12) {
+                    Button("Continue Playing") {
+                        isPresented = false
+                        onContinuePlaying()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.gray)
+
+                    Button("Claim Draw") {
+                        isPresented = false
+                        onClaimDraw()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.bottom)
+            }
+            .frame(width: 300)
             .background(SwiftUI.Color(UIColor.systemBackground))
             .cornerRadius(20)
             .shadow(radius: 20)

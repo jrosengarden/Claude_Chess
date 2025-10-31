@@ -59,6 +59,13 @@ class ChessGame: ObservableObject {
     /// Complete move history for undo and PGN generation
     @Published var moveHistory: [MoveRecord] = []
 
+    // MARK: - Threefold Repetition Tracking
+
+    /// Position history for threefold repetition detection
+    /// Each entry is a position key string (4 FEN components: pieces, player, castling, en passant)
+    /// Excludes halfmove clock and fullmove number per chess rules
+    private var positionHistory: [String] = []
+
     // MARK: - Setup Board Captured Pieces
 
     /// Pieces captured by White before game started (from Setup Board FEN)
@@ -111,6 +118,24 @@ class ChessGame: ObservableObject {
     /// Time forfeit winner tracking
     /// Format: "White" or "Black" for winner, or nil if no time forfeit
     @Published var timeForfeitWinner: String?
+
+    /// Threefold repetition result (true = draw claimed, false = continued)
+    /// nil if not yet decided
+    @Published var threefoldDrawClaimed: Bool? = nil
+
+    /// Flag indicating threefold alert is currently showing to human
+    /// Used to block AI moves until human dismisses the alert
+    @Published var threefoldAlertShowing: Bool = false
+
+    /// Flag to show spinner while AI evaluates threefold claim
+    @Published var evaluatingThreefoldClaim: Bool = false
+
+    /// Track position keys where we've already shown threefold alerts
+    /// Allows up to 2 alerts (one for each player in a repetition sequence)
+    /// Resets when players move to entirely different positions
+    /// Tracks alert count per position for threefold repetition
+    /// Key = position hash (FEN), Value = number of alerts shown (max 2 per position)
+    private var threefoldAlertCounts: [String: Int] = [:]
 
     /// Trigger to check if AI should make first move (after Start Game or Setup Board)
     /// Increments when we need to check for AI's turn
@@ -265,6 +290,8 @@ class ChessGame: ObservableObject {
         setupInitialPosition()
         // Clear move history (captured pieces tracking)
         moveHistory.removeAll()
+        // Clear position history (threefold repetition tracking)
+        positionHistory.removeAll()
         // Clear initial captured pieces from Setup Board
         initialCapturedByWhite.removeAll()
         initialCapturedByBlack.removeAll()
@@ -280,6 +307,10 @@ class ChessGame: ObservableObject {
         resignationWinner = nil
         checkmateWinner = nil
         timeForfeitWinner = nil
+        // Clear threefold repetition state
+        threefoldDrawClaimed = nil
+        threefoldAlertShowing = false
+        threefoldAlertCounts.removeAll()
         // Clear starting FEN (standard position)
         startingFEN = nil
         // Increment reset trigger to notify UI to clear selection state
@@ -428,12 +459,18 @@ class ChessGame: ObservableObject {
         // Clear move history for new position
         moveHistory.removeAll()
 
+        // Clear position history for threefold repetition tracking
+        positionHistory.removeAll()
+
         // Reset game state flags so "Start Game" button is enabled
         gameInProgress = false
         gameHasEnded = false
         resignationWinner = nil
         checkmateWinner = nil
         timeForfeitWinner = nil
+        threefoldDrawClaimed = nil
+        threefoldAlertShowing = false
+        threefoldAlertCounts.removeAll()
 
         // Reset timer state
         moveStartTime = nil
@@ -862,6 +899,9 @@ class ChessGame: ObservableObject {
         lastMoveFrom = from
         lastMoveTo = to
 
+        // Record position for threefold repetition detection
+        recordPosition()
+
         // Check status now handled by GameStateChecker after move execution
 
         return true
@@ -874,6 +914,290 @@ class ChessGame: ObservableObject {
     /// - Returns: True if 100 halfmoves have been made without pawn move or capture
     func isFiftyMoveRuleDraw() -> Bool {
         return halfmoveClock >= 100
+    }
+
+    // MARK: - Threefold Repetition
+
+    /// Generate position key for threefold repetition detection
+    /// Uses only 4 FEN components per chess rules (excludes halfmove/fullmove counters):
+    /// - Piece placement (board state)
+    /// - Active player (w/b)
+    /// - Castling rights (KQkq)
+    /// - En passant target square
+    /// - Returns: Position key string for comparison
+    func generatePositionKey() -> String {
+        var key = ""
+
+        // 1. Piece placement (board state)
+        for row in 0..<8 {
+            var emptyCount = 0
+            for col in 0..<8 {
+                if let piece = board[row][col] {
+                    if emptyCount > 0 {
+                        key += "\(emptyCount)"
+                        emptyCount = 0
+                    }
+                    // Use FEN piece notation
+                    switch piece.type {
+                    case .king:   key += piece.color == .white ? "K" : "k"
+                    case .queen:  key += piece.color == .white ? "Q" : "q"
+                    case .rook:   key += piece.color == .white ? "R" : "r"
+                    case .bishop: key += piece.color == .white ? "B" : "b"
+                    case .knight: key += piece.color == .white ? "N" : "n"
+                    case .pawn:   key += piece.color == .white ? "P" : "p"
+                    case .empty:  emptyCount += 1
+                    }
+                } else {
+                    emptyCount += 1
+                }
+            }
+            if emptyCount > 0 {
+                key += "\(emptyCount)"
+            }
+            if row < 7 {
+                key += "/"
+            }
+        }
+
+        // 2. Active player
+        key += " "
+        key += currentPlayer == .white ? "w" : "b"
+
+        // 3. Castling rights
+        key += " "
+        var castling = ""
+        if !whiteKingMoved {
+            if !whiteRookKingsideMoved { castling += "K" }
+            if !whiteRookQueensideMoved { castling += "Q" }
+        }
+        if !blackKingMoved {
+            if !blackRookKingsideMoved { castling += "k" }
+            if !blackRookQueensideMoved { castling += "q" }
+        }
+        key += castling.isEmpty ? "-" : castling
+
+        // 4. En passant target
+        key += " "
+        if let target = enPassantTarget {
+            key += target.algebraic
+        } else {
+            key += "-"
+        }
+
+        // NOTE: Halfmove clock and fullmove number intentionally excluded
+        // per threefold repetition rule
+
+        return key
+    }
+
+    /// Generate position key for alert tracking (excludes active player color)
+    /// Used to ensure AI and Human share the same alert counter for the same board position
+    /// This prevents Human from getting 2 alerts in Human vs AI when AI silently declines
+    private func generateAlertTrackingKey() -> String {
+        var key = ""
+
+        // 1. Piece positions (8 ranks from row 7 to row 0)
+        for row in (0..<8).reversed() {
+            var emptyCount = 0
+            for col in 0..<8 {
+                if let piece = board[row][col] {
+                    if emptyCount > 0 {
+                        key += "\(emptyCount)"
+                        emptyCount = 0
+                    }
+                    key += String(piece.fenCharacter)
+                } else {
+                    emptyCount += 1
+                }
+            }
+            if emptyCount > 0 {
+                key += "\(emptyCount)"
+            }
+            if row > 0 {
+                key += "/"
+            }
+        }
+
+        // 2. Active player - EXCLUDED for alert tracking
+        // (so same board position shares alert count regardless of whose turn)
+
+        // 3. Castling rights
+        key += " "
+        var castling = ""
+        if !whiteKingMoved {
+            if !whiteRookKingsideMoved { castling += "K" }
+            if !whiteRookQueensideMoved { castling += "Q" }
+        }
+        if !blackKingMoved {
+            if !blackRookKingsideMoved { castling += "k" }
+            if !blackRookQueensideMoved { castling += "q" }
+        }
+        key += castling.isEmpty ? "-" : castling
+
+        // 4. En passant target
+        key += " "
+        if let target = enPassantTarget {
+            key += target.algebraic
+        } else {
+            key += "-"
+        }
+
+        return key
+    }
+
+    /// Check if current position has occurred three times (threefold repetition)
+    /// AI always gets to evaluate on every occurrence (equality: AI evaluates every time, human has button every time)
+    /// Human gets visible alert only once per position, then button only
+    /// - Returns: True if threefold exists AND (AI turn OR human hasn't seen alert yet)
+    func checkThreefoldRepetition() -> Bool {
+        guard !positionHistory.isEmpty else {
+            NSLog("DEBUG: positionHistory is empty")
+            return false
+        }
+
+        let currentPosition = generatePositionKey()
+        let occurrenceCount = positionHistory.filter { $0 == currentPosition }.count
+        NSLog("DEBUG: Position '%@' occurred %d times", currentPosition, occurrenceCount)
+
+        // Check if position has occurred 3+ times
+        if occurrenceCount >= 3 {
+            // If it's AI's turn, ALWAYS return true (AI evaluates every occurrence)
+            if isAITurn {
+                NSLog("DEBUG: Returning TRUE - AI turn, always allow evaluation")
+                return true
+            }
+
+            // Human's turn - check if we've already shown alert for this position
+            let alertKey = generateAlertTrackingKey()
+            let alertCount = threefoldAlertCounts[alertKey] ?? 0
+            NSLog("DEBUG: Human turn - this position has %d alerts shown already", alertCount)
+
+            // Check opponent type to determine alert limit
+            let isHumanVsHuman = (selectedEngine == "human")
+
+            if isHumanVsHuman {
+                // Human vs Human: Allow up to 2 alerts (one per player)
+                if alertCount < 2 {
+                    NSLog("DEBUG: Returning TRUE - Human vs Human, will show alert (alert count: %d)", alertCount)
+                    return true
+                } else {
+                    NSLog("DEBUG: Returning FALSE - Human vs Human, already shown 2 alerts for this position")
+                    return false
+                }
+            } else {
+                // Human vs AI: Allow only 1 alert total (human gets one alert only)
+                if alertCount < 1 {
+                    NSLog("DEBUG: Returning TRUE - Human vs AI, will show alert (alert count: %d)", alertCount)
+                    return true
+                } else {
+                    NSLog("DEBUG: Returning FALSE - Human vs AI, already shown 1 alert for this position")
+                    return false
+                }
+            }
+        }
+
+        return false
+    }
+
+    /// Check if threefold repetition is currently available to claim
+    /// Used for "Claim Draw" button state and AI decision making
+    /// - Returns: True if the current position has occurred 3 or more times (regardless of alert history)
+    func checkThreefoldRepetitionAvailable() -> Bool {
+        guard !positionHistory.isEmpty else { return false }
+
+        let currentPosition = generatePositionKey()
+        let occurrenceCount = positionHistory.filter { $0 == currentPosition }.count
+
+        return occurrenceCount >= 3
+    }
+
+    /// Add current position to position history for threefold repetition tracking
+    /// Call this after each move is executed
+    func recordPosition() {
+        let positionKey = generatePositionKey()
+        positionHistory.append(positionKey)
+    }
+
+    /// Increment the alert count for a position (used when AI silently declines draw)
+    func incrementThreefoldAlertCount() {
+        let alertKey = generateAlertTrackingKey()
+        let alertCount = threefoldAlertCounts[alertKey] ?? 0
+        threefoldAlertCounts[alertKey] = alertCount + 1
+        NSLog("DEBUG: Incremented alert count for position to %d", alertCount + 1)
+    }
+
+    /// Handle threefold repetition detection for AI player
+    /// AI will auto-claim draw if losing badly (based on skill level)
+    /// Uses same threshold as draw offer system
+    /// AI evaluation does NOT consume alert count (AI evaluates every time, human gets button every time)
+    /// - Returns: True if AI claims the draw, False if AI continues playing
+    func handleAIThreefoldRepetition() async -> Bool {
+        NSLog("DEBUG: handleAIThreefoldRepetition() started")
+
+        guard let engine = engine else {
+            NSLog("DEBUG: No engine available, returning false")
+            return false  // No engine, can't evaluate, don't claim
+        }
+
+        // Show spinner while evaluating (must be on MainActor for UI update)
+        await MainActor.run {
+            evaluatingThreefoldClaim = true
+        }
+
+        // Generate current FEN for evaluation
+        let currentFEN = boardToFEN()
+        NSLog("DEBUG: Evaluating position: %@", currentFEN)
+
+        do {
+            // Get position evaluation from Stockfish
+            NSLog("DEBUG: Calling engine.evaluatePosition()...")
+            guard let evaluation = try await engine.evaluatePosition(position: currentFEN) else {
+                // Evaluation unavailable, don't claim draw
+                NSLog("DEBUG: Evaluation returned nil, returning false")
+                return false
+            }
+
+            NSLog("DEBUG: Got evaluation: %d centipawns (from White's perspective)", evaluation)
+
+            // UCI evaluations are ALWAYS from White's perspective:
+            // - Positive = White winning
+            // - Negative = Black winning
+            //
+            // For AI decision: we want to claim draw if AI is losing badly
+            // If AI is Black and eval is -10000 (White winning), that means Black losing → should claim
+            // If AI is White and eval is -10000 (Black winning), that means White losing → should claim
+            //
+            // So we DON'T flip the evaluation - we use it as-is for both colors
+            // and check if it's negative (meaning current side to move is losing)
+            let aiEvaluation = evaluation  // Use evaluation as-is
+            NSLog("DEBUG: AI color: %@, evaluation (no flip): %d centipawns", aiColor == .white ? "White" : "Black", aiEvaluation)
+
+            // Skill-aware threshold (same as draw offer system)
+            // Lower skill = more willing to claim draws when losing
+            let acceptThreshold = -(100 + (skillLevel * 10))
+            NSLog("DEBUG: Accept threshold for skill %d: %d centipawns", skillLevel, acceptThreshold)
+
+            // AI claims draw only if losing badly (eval < threshold, both negative)
+            let shouldClaim = aiEvaluation < acceptThreshold
+            NSLog("DEBUG: AI will claim draw: %d", shouldClaim)
+
+            // Hide spinner (must be on MainActor for UI update)
+            await MainActor.run {
+                evaluatingThreefoldClaim = false
+            }
+
+            return shouldClaim
+        } catch {
+            // Evaluation failed, don't claim draw
+            NSLog("ERROR: Failed to evaluate position for threefold repetition: %@", error.localizedDescription)
+
+            // Hide spinner (must be on MainActor for UI update)
+            await MainActor.run {
+                evaluatingThreefoldClaim = false
+            }
+
+            return false
+        }
     }
 
     // MARK: - Pawn Promotion
@@ -1003,6 +1327,9 @@ class ChessGame: ObservableObject {
         lastMoveFrom = from
         lastMoveTo = to
 
+        // Record position for threefold repetition detection
+        recordPosition()
+
         return true
     }
 
@@ -1094,6 +1421,11 @@ class ChessGame: ObservableObject {
 
         // Update king positions manually (setPiece might not be called if king didn't move)
         updateKingPositions()
+
+        // Remove last position from history for threefold repetition tracking
+        if !positionHistory.isEmpty {
+            positionHistory.removeLast()
+        }
 
         return true
     }

@@ -16,7 +16,7 @@ struct QuickGameMenuView: View {
     @State private var showingFEN = false
     @State private var showingPGN = false
     @State private var isEvaluatingDraw = false
-    @State private var showingDrawResult = false
+    @State private var showingDrawResult = false  // For "Offer Draw" result
     @State private var drawAccepted = false
     @State private var showingResignConfirmation = false
 
@@ -135,6 +135,30 @@ struct QuickGameMenuView: View {
                     .disabled(!game.gameInProgress || game.selectedEngine == "human" || isEvaluatingDraw)
                     .opacity((!game.gameInProgress || game.selectedEngine == "human" || isEvaluatingDraw) ? 0.3 : 1.0)
 
+                    // Claim Draw button - enabled when threefold repetition is available
+                    Button {
+                        #if os(iOS)
+                        if hapticFeedbackEnabled {
+                            lightHaptic.impactOccurred()
+                        }
+                        #endif
+                        // Claim draw immediately - ChessBoardView will show the threefold draw alert
+                        game.threefoldDrawClaimed = true
+                        game.gameInProgress = false
+                        game.gameHasEnded = true
+                        game.stopMoveTimer()
+                        dismiss()  // Dismiss Quick Menu, ChessBoardView shows ThreefoldDrawResultAlertView
+                    } label: {
+                        HStack {
+                            Image(systemName: "hand.raised.fill")
+                                .foregroundColor(.orange)
+                            Text("Claim Draw")
+                                .foregroundColor(.orange)
+                        }
+                    }
+                    .disabled(!game.gameInProgress || game.gameHasEnded || !game.checkThreefoldRepetitionAvailable() || game.isAITurn)
+                    .opacity((!game.gameInProgress || game.gameHasEnded || !game.checkThreefoldRepetitionAvailable() || game.isAITurn) ? 0.3 : 1.0)
+
                     Button(role: .destructive) {
                         #if os(iOS)
                         if hapticFeedbackEnabled {
@@ -224,7 +248,7 @@ struct QuickGameMenuView: View {
         }
         .overlay {
             if showingDrawResult {
-                DrawResultAlertView(
+                DrawOfferResultAlertView(
                     isPresented: $showingDrawResult,
                     drawAccepted: drawAccepted,
                     onOK: {
@@ -232,6 +256,7 @@ struct QuickGameMenuView: View {
                             // End game as draw
                             game.gameInProgress = false
                             game.gameHasEnded = true
+                            game.stopMoveTimer()  // Stop timer when draw accepted
                             dismiss()
                         } else {
                             // Continue playing
@@ -447,7 +472,7 @@ struct PGNDisplayView: View {
 }
 
 /// Custom draw result alert overlay
-struct DrawResultAlertView: View {
+struct DrawOfferResultAlertView: View {
     @Binding var isPresented: Bool
     let drawAccepted: Bool
     let onOK: () -> Void
