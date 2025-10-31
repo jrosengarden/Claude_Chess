@@ -29,14 +29,15 @@ logic, features, and behavior.**
 
 **Current Phase:** Phase 3 IN PROGRESS 🔄 - Game Features & Polish
 **Created:** September 30, 2025
-**Last Updated:** October 25, 2025 (Session 27)
-**Development Stage:** Fully playable chess game with all core rules,
-complete Stockfish AI integration with skill-aware draw offer system,
-position evaluation, hint system, in-app PDF User Guide with share
-functionality, and Contact Developer feature. Polished UX with
-responsive design verified across all device sizes (iPhone 11 through
-iPad Pro M4), theme-coordinated UI, board coordinate system, and
-Dynamic Type accessibility support
+**Last Updated:** October 31, 2025 (Session 33)
+**Development Stage:** Fully playable chess game with all core rules
+including threefold repetition, complete Stockfish AI integration with
+skill-aware draw offer and draw claim systems, position evaluation, hint
+system, in-app PDF User Guide with share functionality, and Contact
+Developer feature. Polished UX with responsive design verified across all
+device sizes (iPhone 11 through iPad Pro M4), theme-coordinated UI, board
+coordinate system with correct flip behavior, and Dynamic Type
+accessibility support
 
 ## Build System
 
@@ -508,9 +509,12 @@ Terminal command-line flags require iOS Settings equivalents:
 - ✅ Checkmate alert with winner announcement
 - ✅ Stalemate alert
 
-**❌ Terminal Additional Features:**
-- ❌ **50-move rule draw** - Automatic detection with user prompt
-- ❌ **Threefold repetition** - (Not implemented in terminal either)
+**✅ iOS Implementation Complete:**
+- ✅ **50-move rule draw** - Automatic detection with alert (Phase 2)
+- ✅ **Threefold repetition** - Complete implementation with skill-aware AI
+  evaluation (Sessions 32-33)
+
+**❌ Not Implemented:**
 - ❌ **Insufficient material** - (Not implemented in terminal either)
 
 ---
@@ -1689,6 +1693,60 @@ with Settings
   coordinate system)
 - **TODO count:** 5 (unchanged)
 
+**Session 32: Oct 29-30, 2025** - Threefold Repetition Implementation
+- **Complete threefold repetition feature** - All core functionality
+  implemented and working
+- **Position tracking system** - generatePositionKey() creates unique keys
+  from pieces + castling + en passant
+- **Alert tracking per position** - generateAlertTrackingKey() excludes
+  active player color for proper counting
+- **Smart alert limits** - Human vs AI: 1 alert per position, Human vs
+  Human: 2 alerts per position
+- **AI evaluation system** - AI evaluates EVERY threefold occurrence using
+  skill-aware thresholds
+- **Skill-aware draw acceptance** - Lower skill = more willing to accept
+  draws when losing
+  - Threshold: -(100 + skillLevel * 10) centipawns
+  - Skill 5: -150cp, Skill 10: -200cp, Skill 20: -300cp
+- **"Claim Draw" button** - Human can claim draw at any time when
+  threefold exists
+- **Timer management** - Timer runs during AI evaluation (evaluation "on
+  the clock")
+- **State clearing** - New Game/Setup Board/Undo properly clear threefold
+  state
+- **Files modified (3):** ChessGame.swift (position/alert tracking,
+  evaluation), ChessBoardView.swift (UI integration), QuickGameMenuView.swift
+  (Claim Draw button)
+- **TODO count:** 5 (unchanged)
+
+**Session 33: Oct 31, 2025** - Threefold AI Alert Timing Fix & UX Polish
+- **Critical bug fixed** - AI draw claim spinner displaying for <1 second
+  instead of 3+ seconds
+  - Root cause: SwiftUI rendering delay - flag set but spinner not yet
+    visible before timing started
+  - Solution: Wait 3 seconds FIRST (ensures spinner visible), THEN evaluate
+    position
+  - Result: Spinner always displays for full 3 seconds minimum + evaluation
+    time
+- **UX improvements** - Better feedback during AI threefold evaluation
+  - Spinner text: "Black evaluating draw claim..." (was "Evaluating draw
+    claim...")
+  - Auto-dismissing alert when AI declines: "Black declines draw claim -
+    Play continues" (3 seconds)
+  - Seamless transition from spinner → decline alert → AI move
+- **Code cleanup** - Removed all debug NSLog statements from threefold
+  implementation
+  - ChessBoardView.swift, ChessGame.swift, StockfishEngine.swift cleaned
+- **Testing validation** - User confirmed perfect functionality:
+  - Human receives threefold alert (max 1 per position vs AI, 2 vs Human)
+  - "Claim Draw" button works correctly for human
+  - AI evaluates on every occurrence with visible spinner
+  - AI accepts draw when losing badly based on skill level
+  - AI declines draw with clear feedback message
+- **Files modified (3):** ChessBoardView.swift (timing fix + UX alerts),
+  ChessGame.swift (debug cleanup), StockfishEngine.swift (debug cleanup)
+- **TODO count:** 5 (unchanged)
+
 ### Key Decisions
 
 **Oct 1, 2025**: Multi-engine AI architecture approved - Protocol-
@@ -1812,6 +1870,9 @@ perfect layout at all iOS accessibility text sizes.
 - ✅ **PGN display** (custom alert with move history, proper result tracking - Session 24)
 - ✅ **PGN FEN headers** (SetUp/FEN tags for Setup Board positions - Session 24)
 - ✅ **Draw offer system** (skill-aware AI acceptance based on evaluation - Session 22)
+- ✅ **Threefold repetition** (complete with position tracking, alert limits,
+  skill-aware AI evaluation, "Claim Draw" button - Sessions 32-33)
+- ✅ **Board flip coordinate fix** (labels stay on correct edges when flipped - Session 31)
 - 📋 **Game statistics display** (move count, captures, time remaining)
 - 📋 **FEN/PGN import with position navigation** (matches terminal LOAD FEN/PGN)
 - 📋 **"Save current game" prompts before loading positions**

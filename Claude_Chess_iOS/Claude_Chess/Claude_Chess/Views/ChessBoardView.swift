@@ -54,6 +54,7 @@ struct ChessBoardView: View {
     @State private var showingThreefoldRepetition = false
     @State private var showingDrawResult = false  // Generic draw result (for AI draw offers)
     @State private var showingThreefoldDrawResult = false  // Threefold repetition draw result
+    @State private var showingAIDeclinedDraw = false  // Auto-dismissing alert when AI declines threefold draw
     @State private var winnerColor: Color?
 
     // Check indicator
@@ -475,7 +476,7 @@ struct ChessBoardView: View {
                 )
             }
         }
-        // Spinner while AI evaluates threefold claim
+        // Spinner while AI evaluates threefold claim (minimum 3 seconds for readability)
         .overlay {
             if game.evaluatingThreefoldClaim {
                 ZStack {
@@ -487,11 +488,38 @@ struct ChessBoardView: View {
                             .scaleEffect(1.5)
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
 
-                        Text("Evaluating draw claim...")
+                        Text("Black evaluating draw claim...")
                             .font(.headline)
                             .foregroundColor(.white)
                     }
                 }
+            }
+        }
+        // Auto-dismissing alert when AI declines threefold draw (3 seconds)
+        .overlay {
+            if showingAIDeclinedDraw {
+                ZStack {
+                    SwiftUI.Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+
+                    VStack(spacing: 20) {
+                        Text("Black declines draw claim")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .padding(.top)
+
+                        Text("Play continues")
+                            .font(.body)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                            .padding(.bottom)
+                    }
+                    .frame(width: 300)
+                    .background(SwiftUI.Color(UIColor.systemBackground))
+                    .cornerRadius(20)
+                    .shadow(radius: 20)
+                }
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             }
         }
         // Custom resignation alert with chess piece icon
@@ -1018,13 +1046,8 @@ struct ChessBoardView: View {
                         }
                         #endif
 
-                        // DEBUG: Log before checking game end
-                        NSLog("DEBUG: AI move completed, calling checkGameEnd()")
-
                         // Check for game-ending conditions after AI move
                         checkGameEnd()
-
-                        NSLog("DEBUG: checkGameEnd() returned, threefoldAlertShowing = %d", game.threefoldAlertShowing)
                     }
 
                     // NOTE: Position evaluation NOT done automatically
@@ -1082,9 +1105,7 @@ struct ChessBoardView: View {
         }
 
         // Check for threefold repetition
-        NSLog("DEBUG: Checking threefold repetition...")
         if game.checkThreefoldRepetition() {
-            NSLog("DEBUG: THREEFOLD DETECTED! isAITurn = %d", game.isAITurn)
             // Clear check alert and visual indicator since threefold takes priority
             showingCheckAlert = false
             kingInCheckPosition = nil
@@ -1093,34 +1114,44 @@ struct ChessBoardView: View {
             if game.isAITurn {
                 // Prevent concurrent evaluations
                 guard !game.evaluatingThreefoldClaim else {
-                    NSLog("DEBUG: AI threefold evaluation already in progress, skipping")
                     return
                 }
 
-                NSLog("DEBUG: AI's turn - evaluating draw claim...")
                 // Set BOTH flags IMMEDIATELY to block concurrent triggers
                 game.threefoldAlertShowing = true
                 game.evaluatingThreefoldClaim = true  // Set BEFORE Task starts
 
                 // Evaluate and auto-claim if losing badly (timer keeps running - evaluation is "on the clock")
                 Task {
+                    // Wait minimum 3 seconds FIRST to ensure spinner is visible
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)  // 3 seconds minimum display
+
                     let aiClaimsDraw = await game.handleAIThreefoldRepetition()
+
                     await MainActor.run {
-                        NSLog("DEBUG: AI threefold decision returned: %d", aiClaimsDraw)
                         game.threefoldDrawClaimed = aiClaimsDraw
                         if aiClaimsDraw {
-                            // AI claims draw - stop timer
-                            NSLog("DEBUG: AI claimed draw - ending game")
+                            // AI claims draw - stop timer and show final alert
                             kingInCheckPosition = nil
                             game.gameHasEnded = true
                             game.stopMoveTimer()
-                            showingThreefoldDrawResult = true  // Show threefold-specific alert
+                            showingThreefoldDrawResult = true  // Show draw alert
+                            game.evaluatingThreefoldClaim = false  // Hide spinner
                         } else {
-                            // AI continues playing - clear flag and continue (timer never stopped)
-                            NSLog("DEBUG: AI declined draw - clearing flag")
+                            // AI continues playing - hide spinner, show decline message, clear flags (timer never stopped)
+                            game.evaluatingThreefoldClaim = false  // Hide spinner
                             game.threefoldAlertShowing = false
+
+                            // Show auto-dismissing "Black declines" alert for 3 seconds
+                            showingAIDeclinedDraw = true
+                            Task {
+                                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                                await MainActor.run {
+                                    showingAIDeclinedDraw = false
+                                }
+                            }
+
                             if game.gameInProgress && !game.gameHasEnded {
-                                NSLog("DEBUG: Triggering AI move")
                                 triggerAIMove()
                             }
                         }
@@ -1128,7 +1159,6 @@ struct ChessBoardView: View {
                 }
             } else {
                 // Human's turn - show alert with choice (stop timer while human decides)
-                NSLog("DEBUG: Human's turn - showing alert")
                 game.stopMoveTimer()
                 game.threefoldAlertShowing = true
                 game.incrementThreefoldAlertCount()  // Increment alert count when showing to human
@@ -1136,7 +1166,6 @@ struct ChessBoardView: View {
             }
             return
         }
-        NSLog("DEBUG: No threefold detected")
 
         // Check if current player is in checkmate
         if GameStateChecker.isCheckmate(game: game, color: game.currentPlayer) {

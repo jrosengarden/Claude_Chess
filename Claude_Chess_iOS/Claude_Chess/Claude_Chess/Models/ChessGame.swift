@@ -1051,26 +1051,22 @@ class ChessGame: ObservableObject {
     /// - Returns: True if threefold exists AND (AI turn OR human hasn't seen alert yet)
     func checkThreefoldRepetition() -> Bool {
         guard !positionHistory.isEmpty else {
-            NSLog("DEBUG: positionHistory is empty")
             return false
         }
 
         let currentPosition = generatePositionKey()
         let occurrenceCount = positionHistory.filter { $0 == currentPosition }.count
-        NSLog("DEBUG: Position '%@' occurred %d times", currentPosition, occurrenceCount)
 
         // Check if position has occurred 3+ times
         if occurrenceCount >= 3 {
             // If it's AI's turn, ALWAYS return true (AI evaluates every occurrence)
             if isAITurn {
-                NSLog("DEBUG: Returning TRUE - AI turn, always allow evaluation")
                 return true
             }
 
             // Human's turn - check if we've already shown alert for this position
             let alertKey = generateAlertTrackingKey()
             let alertCount = threefoldAlertCounts[alertKey] ?? 0
-            NSLog("DEBUG: Human turn - this position has %d alerts shown already", alertCount)
 
             // Check opponent type to determine alert limit
             let isHumanVsHuman = (selectedEngine == "human")
@@ -1078,19 +1074,15 @@ class ChessGame: ObservableObject {
             if isHumanVsHuman {
                 // Human vs Human: Allow up to 2 alerts (one per player)
                 if alertCount < 2 {
-                    NSLog("DEBUG: Returning TRUE - Human vs Human, will show alert (alert count: %d)", alertCount)
                     return true
                 } else {
-                    NSLog("DEBUG: Returning FALSE - Human vs Human, already shown 2 alerts for this position")
                     return false
                 }
             } else {
                 // Human vs AI: Allow only 1 alert total (human gets one alert only)
                 if alertCount < 1 {
-                    NSLog("DEBUG: Returning TRUE - Human vs AI, will show alert (alert count: %d)", alertCount)
                     return true
                 } else {
-                    NSLog("DEBUG: Returning FALSE - Human vs AI, already shown 1 alert for this position")
                     return false
                 }
             }
@@ -1123,7 +1115,6 @@ class ChessGame: ObservableObject {
         let alertKey = generateAlertTrackingKey()
         let alertCount = threefoldAlertCounts[alertKey] ?? 0
         threefoldAlertCounts[alertKey] = alertCount + 1
-        NSLog("DEBUG: Incremented alert count for position to %d", alertCount + 1)
     }
 
     /// Handle threefold repetition detection for AI player
@@ -1132,10 +1123,7 @@ class ChessGame: ObservableObject {
     /// AI evaluation does NOT consume alert count (AI evaluates every time, human gets button every time)
     /// - Returns: True if AI claims the draw, False if AI continues playing
     func handleAIThreefoldRepetition() async -> Bool {
-        NSLog("DEBUG: handleAIThreefoldRepetition() started")
-
         guard let engine = engine else {
-            NSLog("DEBUG: No engine available, returning false")
             return false  // No engine, can't evaluate, don't claim
         }
 
@@ -1146,18 +1134,13 @@ class ChessGame: ObservableObject {
 
         // Generate current FEN for evaluation
         let currentFEN = boardToFEN()
-        NSLog("DEBUG: Evaluating position: %@", currentFEN)
 
         do {
             // Get position evaluation from Stockfish
-            NSLog("DEBUG: Calling engine.evaluatePosition()...")
             guard let evaluation = try await engine.evaluatePosition(position: currentFEN) else {
                 // Evaluation unavailable, don't claim draw
-                NSLog("DEBUG: Evaluation returned nil, returning false")
                 return false
             }
-
-            NSLog("DEBUG: Got evaluation: %d centipawns (from White's perspective)", evaluation)
 
             // UCI evaluations are ALWAYS from White's perspective:
             // - Positive = White winning
@@ -1170,16 +1153,13 @@ class ChessGame: ObservableObject {
             // So we DON'T flip the evaluation - we use it as-is for both colors
             // and check if it's negative (meaning current side to move is losing)
             let aiEvaluation = evaluation  // Use evaluation as-is
-            NSLog("DEBUG: AI color: %@, evaluation (no flip): %d centipawns", aiColor == .white ? "White" : "Black", aiEvaluation)
 
             // Skill-aware threshold (same as draw offer system)
             // Lower skill = more willing to claim draws when losing
             let acceptThreshold = -(100 + (skillLevel * 10))
-            NSLog("DEBUG: Accept threshold for skill %d: %d centipawns", skillLevel, acceptThreshold)
 
             // AI claims draw only if losing badly (eval < threshold, both negative)
             let shouldClaim = aiEvaluation < acceptThreshold
-            NSLog("DEBUG: AI will claim draw: %d", shouldClaim)
 
             // Hide spinner (must be on MainActor for UI update)
             await MainActor.run {
@@ -1189,7 +1169,7 @@ class ChessGame: ObservableObject {
             return shouldClaim
         } catch {
             // Evaluation failed, don't claim draw
-            NSLog("ERROR: Failed to evaluate position for threefold repetition: %@", error.localizedDescription)
+            print("ERROR: Failed to evaluate position for threefold repetition: \(error.localizedDescription)")
 
             // Hide spinner (must be on MainActor for UI update)
             await MainActor.run {

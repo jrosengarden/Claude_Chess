@@ -40,11 +40,14 @@ experience with SwiftUI.
 ## Features (Planned)
 
 ### Complete Chess Implementation ✅
-- ✅ All standard chess rules (castling, en passant, promotion, 50-move rule)
+- ✅ All standard chess rules (castling, en passant, promotion, 50-move
+  rule, threefold repetition)
 - ✅ Check, checkmate, and stalemate detection
 - ✅ Visual board with intuitive touch controls (tap and drag-and-drop)
 - ✅ Move validation and legal move highlighting
 - ✅ Last move highlighting with corner triangles (user-toggleable)
+- ✅ Board flipping with correct coordinate system (labels stay on proper
+  edges)
 
 ### AI Opponent ✅ (Sessions 16-23 Complete)
 - ✅ Multiple difficulty levels (0-20 with UCI Skill Level control)
@@ -54,17 +57,19 @@ experience with SwiftUI.
 - ✅ Move hints and suggestions (UCI formatting)
 - ✅ Fast, responsive gameplay (optimized performance, race condition fixes)
 
-### Game Management ✅ (Partial - Sessions 13-22)
+### Game Management ✅ (Partial - Sessions 13-33)
 - ✅ Setup Game Board (FEN import for testing positions)
 - ✅ Move history tracking with undo functionality
 - ✅ Captured pieces display (with Setup Board support)
 - ✅ New Game with engine initialization
 - ✅ Offer Draw (skill-aware AI acceptance)
+- ✅ **Threefold Repetition** (complete with "Claim Draw" button, skill-
+  aware AI evaluation)
+- ✅ Resign functionality with game-ending alerts
+- ✅ FEN/PGN display with copy functionality
 - Save and load games (planned)
 - FEN/PGN import with navigation (planned)
-- FEN/PGN export (planned)
 - Opening library integration (planned)
-- Resign functionality (planned)
 
 ### Time Controls ✅ (Session 15 Complete)
 - ✅ Configurable time limits (0-60 minutes, 0-60 second increment)
@@ -106,12 +111,54 @@ experience with SwiftUI.
 - macOS 14.0+ (Apple Silicon)
 - Xcode 15.0+
 
+## Threefold Repetition Feature
+
+**Status:** ✅ COMPLETE (Sessions 32-33, October 29-31, 2025)
+
+The threefold repetition rule is now fully implemented with intelligent AI
+evaluation and user-friendly alerts.
+
+### How It Works
+
+**For Human Players:**
+- When a position occurs 3 times, you receive an alert with options:
+  - "Continue Playing" - keep the game going
+  - "Claim Draw" - end the game as a draw
+- You'll only see this alert ONCE per unique position (subsequent
+  occurrences show "Claim Draw" button only)
+- In Human vs Human games, each player gets one alert per position
+
+**For AI (Stockfish):**
+- AI evaluates EVERY threefold occurrence automatically
+- Decision based on position evaluation and skill level
+- Lower skill = more willing to accept draws when losing
+- Thresholds: Skill 5 (-150cp), Skill 10 (-200cp), Skill 20 (-300cp)
+- Visual feedback: "Black evaluating draw claim..." spinner (3+ seconds)
+- If AI declines: "Black declines draw claim - Play continues" (3 seconds)
+
+**"Claim Draw" Button:**
+- Always available when threefold repetition exists
+- Located in Quick Game Menu (three-line icon)
+- Immediately ends game as draw when pressed
+
+**Technical Details:**
+- Position tracking includes pieces + castling rights + en passant state
+- Alert tracking excludes active player (same position, different turn =
+  different alert count)
+- Timer runs during AI evaluation (evaluation is "on the clock")
+- State properly cleared on New Game, Setup Board, and Undo
+
 ## Development Status
 
-**Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 28, 2025)
+**Current Phase:** Phase 3 - IN PROGRESS 🔄 (October 31, 2025)
 
-**Latest Progress (October 28, 2025 - Session 31):**
-- ✅ **Board flip coordinate system fix** - Critical bug resolved
+**Latest Progress (October 31, 2025 - Session 33):**
+- ✅ **Threefold repetition complete** - Full implementation with AI
+  evaluation
+- ✅ **AI draw claim UX polish** - Proper spinner timing and decline
+  feedback
+- ✅ **Board flip coordinate fix** - Labels stay on correct edges
+  (Session 31)
   - Coordinate labels now stay on LEFT (ranks) and BOTTOM (files) edges always
   - Label order reverses when board flipped (8-1 becomes 1-8, a-h becomes h-a)
   - Before fix: Labels appeared on TOP and RIGHT when flipped (wrong)
